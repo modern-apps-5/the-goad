@@ -26,27 +26,48 @@ spec:
     policy: |
       g, platform-admin, role:admin
 
-  # Argo CD has no built-in health check for a DSM database, and without
-  # one it shows "Healthy" as soon as the object exists. This reads the
-  # database's Ready condition.
+  # Argo CD has no built-in health check for these kinds, and without one
+  # it shows "Healthy" as soon as the object exists. Sync waves in
+  # gitops/private-ai/ wait on these checks: database, then Private AI
+  # Services, then the model.
   #
-  # It never reports Degraded: while a database is still being built, DSM
-  # sets Provisioning to reason "Failed", which is normal and clears.
+  # All three kinds report a Ready condition, so they share one script.
+  # Ready is True: Healthy. Otherwise: Progressing, with the reason.
+  #
+  # It never reports Degraded. While DSM builds a database it sets
+  # Provisioning to reason "Failed", and Private AI Services reports
+  # "validationError" until its Secret exists. Both clear by themselves.
   resourceHealthChecks:
     - group: databases.dataservices.vmware.com
       kind: PostgresCluster
-      check: |
-        local hs = { status = "Progressing", message = "Waiting for DSM to report status" }
+      check: &ready_condition |
+        local hs = { status = "Progressing", message = "Waiting for status" }
         if obj.status == nil or obj.status.conditions == nil then
           return hs
         end
+        local function text(condition)
+          local reason = condition.reason or ""
+          local message = condition.message or ""
+          if message == "" then
+            return reason ~= "" and reason or condition.type
+          end
+          return reason .. ": " .. message
+        end
         for _, condition in ipairs(obj.status.conditions) do
-          if condition.type == "Ready" and condition.status == "True" then
-            hs.status = "Healthy"
-            hs.message = "Database is ready"
-            return hs
+          if condition.type == "Ready" then
+            if condition.status == "True" then
+              hs.status = "Healthy"
+              hs.message = text(condition)
+              return hs
+            end
+            if condition.message ~= nil and condition.message ~= "" then
+              hs.message = text(condition)
+              return hs
+            end
           end
         end
+        -- Ready is not True and says nothing: use the first condition that
+        -- explains itself.
         for _, condition in ipairs(obj.status.conditions) do
           if condition.status ~= "True" and condition.message ~= nil and condition.message ~= "" then
             hs.message = condition.type .. ": " .. condition.message
@@ -54,3 +75,9 @@ spec:
           end
         end
         return hs
+    - group: pais.vmware.com
+      kind: PAISConfiguration
+      check: *ready_condition
+    - group: pais.vmware.com
+      kind: ModelEndpoint
+      check: *ready_condition

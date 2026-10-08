@@ -187,20 +187,26 @@ Look again when: a second person needs to apply. Choose a backend then.
 Not `this`. A rename of a resource that is already in state gets a
 `moved` block. `terraform/cloud-admin` still has resources named `this`.
 
-## 18. Argo CD has a health check for a DSM database
+## 18. Argo CD has health checks for the database, Private AI Services, and the model
 
-Argo CD has no built-in check for `PostgresCluster` and called it
-healthy as soon as the object existed. The Argo CD manifest adds a Lua
-check on the database's `Ready` condition.
+Argo CD has no built-in check for `PostgresCluster`, `PAISConfiguration`,
+or `ModelEndpoint`, and called each healthy as soon as the object
+existed. The Argo CD manifest adds one Lua script for all three, on the
+`Ready` condition they share.
 
 It reports progressing, never degraded. While DSM builds a database it
-sets `Provisioning` to reason `Failed`, and that clears by itself.
+sets `Provisioning` to reason `Failed`, and Private AI Services reports
+`validationError` until its Secret exists. Both clear by themselves.
 
-Why: sync waves depend on it. Private AI Services must not start before
-its database is ready.
+Why: sync waves depend on it. `gitops/private-ai/` uses wave 0 for the
+database, 1 for Private AI Services, and 2 for the model, and a wave
+starts only when the one before it is healthy.
 
-Cost: a database that is truly stuck shows as progressing, with the real
+Cost: a resource that is truly stuck shows as progressing, with the real
 reason in the message.
+
+The script was run against status copied from the lab, for the ready and
+the not-ready case of each kind.
 
 ## 19. The database address is written into git after the database exists
 

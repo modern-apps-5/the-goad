@@ -31,9 +31,11 @@ What changed in this repository, newest first. The reasons are in
   2.5 1.5B on CPU.
 - `terraform/platform-engineer/pais.tf`: the Secret with the Private AI
   Services administrator.
-- `terraform/platform-engineer/manifests/argocd.yaml`: a health check for
-  a DSM `PostgresCluster`, so Argo CD shows a database as progressing
-  until DSM says it is ready.
+- `terraform/platform-engineer/manifests/argocd.yaml`: health checks for
+  a DSM `PostgresCluster`, a `PAISConfiguration`, and a `ModelEndpoint`.
+  Argo CD shows each as progressing until its `Ready` condition is true.
+- `gitops/private-ai/`: sync waves. Database, then Private AI Services,
+  then the model.
 
 ### Fixed
 

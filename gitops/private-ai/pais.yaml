@@ -1,7 +1,12 @@
 # Private AI Services, and one model.
 #
-# Sync order: the database in postgres.yaml first, then Private AI
-# Services, then the model. Argo CD waits for each wave to be healthy.
+# Sync order, by sync wave:
+#   0  the database (postgres.yaml) and the CA below
+#   1  Private AI Services
+#   2  the model
+# Argo CD starts a wave only when the wave before it is healthy. The
+# health checks that make that true for these kinds are in
+# terraform/platform-engineer/manifests/argocd.yaml.
 
 # The CA of the Supervisor's Harbor registry. The model and its engine
 # image are pulled from there.
