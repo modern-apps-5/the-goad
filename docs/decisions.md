@@ -344,7 +344,11 @@ is still a different value, because the hash is salted. A different
 This follows from two earlier choices: shared accounts instead of one
 per person (4, 22), and secrets kept out of git (16).
 
-Look again if: this drifts in practice. The non-secret lab values could
-then go in a committed `*.auto.tfvars`, leaving only real secrets to be
-passed around.
+The lab values that are not secret are in `lab.auto.tfvars` in each
+root, in git. Terraform loads that file by itself. They cannot differ
+between people, and a change to one is a commit. Only the passwords, the
+hash, the deploy key, and the state token are passed around.
 
+Cost: the repository now names one lab: its VCF Automation address,
+region, and policy names. `gitops/` already did. It is a private
+repository; this is not for a public one.

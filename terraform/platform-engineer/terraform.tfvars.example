@@ -1,23 +1,21 @@
-# Copy to terraform.tfvars and fill in. terraform.tfvars holds secrets
-# and is ignored by git.
+# Secrets for the platform engineer root. Copy to terraform.tfvars, which
+# git ignores.
+#
+# These are shared by the team. If the demo is already built, copy the
+# team's terraform.tfvars and do not write your own.
+#
+# Everything that is not secret is in lab.auto.tfvars, in git.
 
-vcfa_url = "https://CHANGE-ME"
-# allow_unverified_ssl = true
-
-# The organization administrator the cloud admin created.
+# Password of platform-admin: the org_admin_password of
+# terraform/cloud-admin.
 vcfa_password = "CHANGE-ME"
 
-region_name               = "CHANGE-ME"
-vpc_name                  = "default-CHANGE-ME"
-zone_name                 = "CHANGE-ME"
-storage_class_name        = "CHANGE-ME"
+# Password hash for the Private AI Services user "admin". Make one with:
+#   openssl passwd -6
+# The hash is salted. A new hash of the same password is a different
+# value, and Terraform would rewrite the Secret. Copy the team's hash.
+pais_admin_password_hash = "$6$CHANGE-ME"
 
-# Private half of a read-only deploy key for the GitOps repository.
-# Leave out for a public repository. Create one with:
-#   ssh-keygen -t ed25519 -N '' -f .secrets/gitops-deploy-key
-#   gh repo deploy-key add .secrets/gitops-deploy-key.pub --repo OWNER/REPO
-# gitops_repo_ssh_key_file = ".secrets/gitops-deploy-key"
-
-# Password hash for the Private AI Services user "admin".
-# Make one with: openssl passwd -6
-# pais_admin_password_hash = "$6$CHANGE-ME"
+# The other secret this root needs is a file, not a variable:
+#   .secrets/gitops-deploy-key
+# lab.auto.tfvars points at it. Copy the team's file there.

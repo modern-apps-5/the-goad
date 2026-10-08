@@ -1,44 +1,18 @@
-# Copy to terraform.tfvars and fill in. terraform.tfvars holds secrets
-# and is ignored by git.
+# Secrets for the cloud admin root. Copy to terraform.tfvars, which git
+# ignores.
+#
+# These are shared by the team. If the demo is already built, copy the
+# team's terraform.tfvars and do not write your own: a different
+# org_admin_password changes the password everyone logs in with.
+#
+# Everything that is not secret is in lab.auto.tfvars, in git.
 
 # Password of the provider administrator (admin) in the System org.
-vcfa_password      = "CHANGE-ME"
+vcfa_password = "CHANGE-ME"
+
+# Password of the org's first administrator, platform-admin. Terraform
+# sets it.
 org_admin_password = "CHANGE-ME"
 
-vcfa_url = "https://CHANGE-ME"
-# allow_unverified_ssl = true
-
-region_name           = "CHANGE-ME"
-distributed_vlan_connection_name = "CHANGE-ME"
-vna_cluster_name = "CHANGE-ME"
-
-zone_allocations = {
-  "CHANGE-ME" = {
-    cpu_limit_mhz    = 100000
-    memory_limit_mib = 262144
-    # Reservation the org can hand to its namespaces. Private AI Services
-    # needs some: see terraform/platform-engineer.
-    cpu_reservation_mhz    = 20000
-    memory_reservation_mib = 32768
-  }
-}
-
-# Add the GPU VM class when a GPU is allocated.
-vm_class_names = [
-  "best-effort-small",
-  "best-effort-medium",
-  "best-effort-large",
-  "best-effort-xlarge",
-]
-
-storage_policy_limits_mib = {
-  "vSAN Default Storage Policy" = 1048576
-}
-
-# dsm_infrastructure_policy_names = ["CHANGE-ME"]
-
-# oidc = {
-#   wellknown_endpoint = "https://CHANGE-ME/.well-known/openid-configuration"
-#   client_id          = "CHANGE-ME"
-# }
+# Only when oidc is set in lab.auto.tfvars.
 # oidc_client_secret = "CHANGE-ME"

@@ -5,6 +5,8 @@
 *.tfvars
 backend.hcl
 !*.tfvars.example
+!lab.auto.tfvars
+*.before-split
 crash.log
 
 # Local secrets

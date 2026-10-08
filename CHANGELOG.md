@@ -18,6 +18,9 @@ What changed in this repository, newest first. The reasons are in
 
 ### Changed
 
+- `terraform/*/lab.auto.tfvars`: the lab values that are not secret are
+  now in git. `terraform.tfvars` holds secrets only.
+
 - `docs/terraform-state.md`, `README.md`: the deploy key,
   `terraform.tfvars`, and the password hash are shared by the team. The
   documents say so, and say what breaks when someone applies with their

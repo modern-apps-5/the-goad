@@ -57,17 +57,16 @@ cd terraform/cloud-admin
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Fill in `terraform.tfvars`. If the demo is already built, copy the
-team's file and skip the table.
+Two files hold the inputs:
 
-| Variable | What to put |
-|---|---|
-| `vcfa_url`, `vcfa_password` | VCF Automation URL and the provider administrator's password |
-| `org_admin_password` | A new password. Terraform creates the user `platform-admin` with it. |
-| `region_name`, `distributed_vlan_connection_name`, `vna_cluster_name` | Names of the existing region, its connection, and its appliance cluster |
-| `zone_allocations` | The zone name, with CPU and memory limits and a reservation |
-| `vm_class_names`, `storage_policy_limits_mib` | VM classes and storage the org can use |
-| `dsm_infrastructure_policy_names` | The DSM infrastructure policy for the org's databases |
+- `lab.auto.tfvars`, in git: everything about the lab that is not
+  secret. The region, the Distributed VLAN Connection, the zone and its
+  limits, VM classes, storage, and the DSM infrastructure policy. For a
+  different lab, change this file and commit it.
+- `terraform.tfvars`, not in git: `vcfa_password`, the provider
+  administrator's password, and `org_admin_password`, which Terraform
+  sets for the user `platform-admin`. If the demo is already built, copy
+  the team's file.
 
 ```sh
 cp backend.hcl.example backend.hcl             # then fill in: see "Terraform state"
@@ -110,18 +109,14 @@ cd terraform/platform-engineer
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Fill in `terraform.tfvars`. If the demo is already built, copy the
-team's file and skip the table.
+Again two files:
 
-| Variable | What to put |
-|---|---|
-| `vcfa_url` | Same as step 1 |
-| `vcfa_password` | The `org_admin_password` from step 1 |
-| `region_name`, `zone_name` | Same region and zone as step 1 |
-| `vpc_name` | `default-<region_name>` |
-| `storage_class_name` | The storage policy, by its Kubernetes name (lower case, hyphens) |
-| `gitops_repo_ssh_key_file` | `.secrets/gitops-deploy-key` |
-| `pais_admin_password_hash` | Output of `openssl passwd -6`, for the Private AI Services user `admin` |
+- `lab.auto.tfvars`, in git: the region, zone, VPC, storage class, and
+  the path of the deploy key.
+- `terraform.tfvars`, not in git: `vcfa_password`, which is the
+  `org_admin_password` from step 1, and `pais_admin_password_hash`, the
+  output of `openssl passwd -6` for the Private AI Services user
+  `admin`. If the demo is already built, copy the team's file.
 
 ```sh
 cp backend.hcl.example backend.hcl
@@ -232,10 +227,11 @@ Manifests under `gitops/` do not set a namespace.
 
 ## Things to know
 
-- **Secrets stay out of git.** `terraform.tfvars`, `backend.hcl`, and
-  `.secrets/` are ignored by git.
-- **Those files are shared, not personal.** State is shared, so everyone
-  must apply with the same `terraform.tfvars`, the same deploy key, and
+- **Lab values are in git, secrets are not.** `lab.auto.tfvars` in each
+  root is committed, so everyone applies with the same lab values.
+  `terraform.tfvars`, `backend.hcl`, and `.secrets/` are ignored by git.
+- **The secret files are shared, not personal.** State is shared, so
+  everyone must apply with the same passwords, the same deploy key, and
   the same password hash. Copy them from a teammate; do not make your
   own. With different values, each apply undoes the last person's.
   [docs/terraform-state.md](docs/terraform-state.md) lists what breaks.
@@ -243,8 +239,9 @@ Manifests under `gitops/` do not set a namespace.
   `cloud-admin` create and delete a real org.
 - **No GPU.** The model runs on CPU. Do not say GPU on camera until one
   is allocated.
-- **Lab values are in `gitops/`.** The storage policy and the DSM
-  infrastructure policy are this lab's.
+- **This repository is tied to one lab.** `lab.auto.tfvars` and the
+  manifests in `gitops/` name this lab's region, storage policy, and DSM
+  infrastructure policy.
 - **The lab pulls one public image.** The Job in `gitops/private-ai/`
   uses `alpine/k8s` from Docker Hub.
 

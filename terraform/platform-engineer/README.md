@@ -19,7 +19,7 @@ It uses the org's default project and default VPC.
 Apply `terraform/cloud-admin` first.
 
 ```sh
-cp terraform.tfvars.example terraform.tfvars   # then fill in
+cp terraform.tfvars.example terraform.tfvars   # secrets only; copy the team's if the demo is built
 cp backend.hcl.example backend.hcl             # then fill in
 terraform init -backend-config=backend.hcl
 terraform apply

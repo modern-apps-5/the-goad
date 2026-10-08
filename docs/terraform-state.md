@@ -18,13 +18,18 @@ In Gitea, the states are under the organization's Packages.
 
 ## The files on your machine
 
-None of these are in git. Each has an `.example` beside it that is.
+| File | In git | Read at | Holds |
+|---|---|---|---|
+| `lab.auto.tfvars` | yes | `terraform plan` and `apply` | Every lab value that is not secret |
+| `backend.hcl` | no | `terraform init` | Where the state is, and the shared token |
+| `terraform.tfvars` | no | `terraform plan` and `apply` | The passwords of the shared accounts, and the password hash |
+| `.secrets/gitops-deploy-key` | no | `terraform apply` | Argo CD's deploy key (platform engineer only) |
 
-| File | Read at | Holds |
-|---|---|---|
-| `backend.hcl` | `terraform init` | Where the state is, and the shared token |
-| `terraform.tfvars` | `terraform plan` and `apply` | Lab values, and the passwords of the shared accounts |
-| `.secrets/gitops-deploy-key` | `terraform apply` | Argo CD's deploy key (platform engineer only) |
+The three that are not in git each have an `.example` beside them that
+is, or for the key, instructions in `terraform.tfvars.example`.
+
+Lab values are in git so that they cannot differ between people. Only
+what is secret has to be passed around.
 
 The token cannot go in `terraform.tfvars`. Terraform reads the backend
 settings before it reads any variable, so a `backend` block cannot use
@@ -43,17 +48,21 @@ and do not make your own.
 | Value | Where | If yours differs |
 |---|---|---|
 | Deploy key | `terraform/platform-engineer/.secrets/gitops-deploy-key` | Terraform replaces the key in Argo CD's repository Secret with yours. Yours is not on the GitHub repository, so Argo CD can no longer read git and stops syncing. |
-| `gitops_repo_ssh_key_file` | `terraform/platform-engineer/terraform.tfvars` | Left out, Terraform deletes the repository Secret. Same result. |
 | `pais_admin_password_hash` | `terraform/platform-engineer/terraform.tfvars` | The hash is salted. A new hash of the same password is still a different value, so Terraform rewrites the Secret and Private AI Services restarts pods. Copy the hash itself. |
 | `org_admin_password` | `terraform/cloud-admin/terraform.tfvars` | Terraform changes the password of `platform-admin`. Everyone else's platform engineer login then fails. |
 | `vcfa_password` | Both `terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is the password of a shared account in both roots. |
-| Everything else in `terraform.tfvars` | Both roots | Quota, VM classes, zone, and policy names are applied as written. A different number is a change to the org. |
+
+Quota, VM classes, zone, and policy names are not on this list any more.
+They are in `lab.auto.tfvars`, in git, so everyone has the same ones. To
+change one, change that file and commit it; the change is then reviewed
+like any other.
 
 The simplest rule: keep one copy of each of these in the team's password
 manager, and copy the whole file.
 
-- `terraform/cloud-admin/terraform.tfvars`
-- `terraform/platform-engineer/terraform.tfvars`
+- `terraform/cloud-admin/terraform.tfvars` (two passwords)
+- `terraform/platform-engineer/terraform.tfvars` (one password, one
+  hash)
 - `terraform/platform-engineer/.secrets/gitops-deploy-key`
 - The token for `backend.hcl`
 
