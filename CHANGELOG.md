@@ -3,6 +3,24 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-08 later
+
+### Added
+
+- `gitops/music-store/users-vm.yaml`: the shop users service as a VM
+  Service VM. Login `admin` / `admin`. Service name `users-service`.
+  No namespace and no address.
+- `gitops/music-store/catalog.yaml`: the shop catalog as a DSM
+  `PostgresCluster`, a Service named `postgres-service`, and the Jobs
+  that publish DSM's address and load the six albums.
+- `terraform/platform-engineer`: a `music-store` namespace so Argo CD
+  syncs `gitops/music-store/`.
+
+### Changed
+
+- `app/music-store` chat sets `OPENAI_TLS_VERIFY=false` and documents
+  the model secret. The secret is still not in git.
+
 ## 2026-10-08
 
 ### Added

@@ -1,0 +1,185 @@
+# Users for the shop. A VM Service VM.
+#
+# No namespace: Argo CD applies this into the music-store namespace
+# it created for the org. The Service name is users-service, which is
+# the name the shop already calls.
+#
+# imageName is the display name of a VirtualMachineImage in that
+# namespace. VM Operator resolves a display name. Import the Ubuntu
+# 24.04 cloud image into the namespace under this name first.
+# className and storageClass are the Supervisor's, the same names
+# gitops/private-ai uses. They are not an organization name.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: music-users-bootstrap
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+type: Opaque
+stringData:
+  user-data: |
+    #cloud-config
+    write_files:
+    - path: /opt/music-users/users_http.py
+      permissions: "0755"
+      content: |
+        """Users service for the VM Service guest. Python standard library only.
+
+        Same routes as users-service/app.py: /health, /api/login, /api/logout, /api/verify.
+        Admin is admin / admin. Shoppers do not get accounts.
+        """
+
+        import json
+        import os
+        import secrets
+        import sqlite3
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        DB_PATH = os.environ.get("USERS_DB_PATH", "/var/lib/music-users/users.db")
+        ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+        ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+        PORT = int(os.environ.get("PORT", "5003"))
+
+
+        def db():
+            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS tokens (
+                    token TEXT PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    role TEXT NOT NULL
+                )
+                """
+            )
+            return conn
+
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, fmt, *args):
+                return
+
+            def _json(self, code, obj):
+                raw = json.dumps(obj).encode()
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+
+            def _body(self):
+                length = int(self.headers.get("Content-Length") or 0)
+                if length <= 0:
+                    return {}
+                try:
+                    return json.loads(self.rfile.read(length).decode() or "{}")
+                except json.JSONDecodeError:
+                    return {}
+
+            def do_GET(self):
+                if self.path.split("?", 1)[0] == "/health":
+                    self._json(200, {"status": "ok", "service": "users"})
+                    return
+                self._json(404, {"error": "not found"})
+
+            def do_POST(self):
+                path = self.path.split("?", 1)[0]
+                payload = self._body()
+                if path == "/api/login":
+                    username = payload.get("username") or ""
+                    password = payload.get("password") or ""
+                    if username != ADMIN_USER or password != ADMIN_PASSWORD:
+                        self._json(401, {"success": False, "error": "Login failed"})
+                        return
+                    token = secrets.token_hex(16)
+                    with db() as conn:
+                        conn.execute(
+                            "INSERT INTO tokens (token, username, role) VALUES (?, ?, ?)",
+                            (token, username, "admin"),
+                        )
+                        conn.commit()
+                    self._json(200, {
+                        "success": True,
+                        "token": token,
+                        "user": {"username": username, "role": "admin"},
+                    })
+                    return
+                if path == "/api/logout":
+                    token = payload.get("token") or ""
+                    with db() as conn:
+                        conn.execute("DELETE FROM tokens WHERE token = ?", (token,))
+                        conn.commit()
+                    self._json(200, {"success": True})
+                    return
+                if path == "/api/verify":
+                    token = payload.get("token") or ""
+                    with db() as conn:
+                        row = conn.execute(
+                            "SELECT username, role FROM tokens WHERE token = ?", (token,)
+                        ).fetchone()
+                    if row is None:
+                        self._json(200, {"valid": False})
+                        return
+                    self._json(200, {
+                        "valid": True,
+                        "user": {"username": row["username"], "role": row["role"]},
+                    })
+                    return
+                self._json(404, {"error": "not found"})
+
+
+        if __name__ == "__main__":
+            ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    - path: /etc/systemd/system/music-users.service
+      permissions: "0644"
+      content: |
+        [Unit]
+        Description=Metal Music Store users
+        After=network-online.target
+        [Service]
+        ExecStart=/usr/bin/python3 /opt/music-users/users_http.py
+        Restart=always
+        [Install]
+        WantedBy=multi-user.target
+    runcmd:
+    - mkdir -p /var/lib/music-users
+    - systemctl daemon-reload
+    - systemctl enable --now music-users.service
+---
+apiVersion: vmoperator.vmware.com/v1alpha5
+kind: VirtualMachine
+metadata:
+  name: music-users
+  labels:
+    app: users-service
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  className: best-effort-xsmall
+  imageName: ubuntu-24.04-cloud
+  storageClass: mgmt-cl01-optimal-datastore-default-policy-autoraid
+  powerState: PoweredOn
+  bootstrap:
+    cloudInit:
+      instanceID: music-users-1
+      rawCloudConfig:
+        name: music-users-bootstrap
+        key: user-data
+---
+apiVersion: vmoperator.vmware.com/v1alpha5
+kind: VirtualMachineService
+metadata:
+  name: users-service
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  type: LoadBalancer
+  selector:
+    app: users-service
+  ports:
+  - name: http
+    port: 5003
+    protocol: TCP
+    targetPort: 5003

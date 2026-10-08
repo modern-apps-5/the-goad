@@ -246,3 +246,19 @@ manage it.
 Why: a hash does not belong in git, and one Secret does not justify a
 secrets manager.
 
+## 21. The shop users VM and the catalog are gitops, and they name no org
+
+The recording applies this repository to a new organization. The users
+service is a VM Service VM, and the catalog is a DSM PostgresCluster.
+Both follow the rules already used for Private AI Services: no namespace
+in the file, no address in git, the Service name is what the app already
+calls (`users-service`, `postgres-service`).
+
+The container users Deployment and the container database stay in
+`app/music-store` as the earlier shape. `kustomization.yml` still lists
+them. Argo CD syncs `gitops/music-store/`, not that directory.
+
+The chat secret is not in git, for the same reason as the Private AI
+Services password hash. Its base URL is the ingress of the Private AI
+Services this repository deploys, and the model name is `qwen`.
+

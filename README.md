@@ -14,7 +14,14 @@ through four personas. Two of them are built so far.
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 
 The music-store application is in [app/music-store](app/music-store) as
-plain container manifests. Argo CD does not deploy it yet.
+plain container manifests. Argo CD does not deploy those containers yet.
+
+[gitops/music-store](gitops/music-store) is the users VM Service and the
+DSM catalog. Neither file sets a namespace or an address. Terraform
+creates the `music-store` namespace with the others, and Argo CD syncs
+that directory into it. The shop login is `admin` / `admin`. The catalog
+Service is `postgres-service`, which is the `DB_HOST` the containers
+already use.
 
 ## Quickstart
 

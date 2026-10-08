@@ -1,3 +1,10 @@
+# Chat against the org's Qwen endpoint.
+# Secret metal-oracle-model is not in git. Its keys are:
+#   base-url  https://<private-ai-ingress>/api/v1/compatibility/openai/v1
+#   api-key   an API token minted from that Private AI Services
+#   model     qwen
+# TLS verification is off because the ingress certificate is issued
+# to the ingress service name.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -68,6 +75,8 @@ spec:
               name: metal-oracle-model
               key: model
               optional: true
+        - name: OPENAI_TLS_VERIFY
+          value: "false"
         readinessProbe:
           httpGet:
             path: /health

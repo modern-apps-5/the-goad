@@ -100,6 +100,14 @@ variable "namespaces" {
       memory_reservation = "16Gi"
       storage_limit      = "500Gi"
     }
+    # The shop's users VM and its DSM catalog. Best-effort VMs, so this
+    # namespace has no reservation. The app containers stay in app/music-store.
+    music-store = {
+      description   = "GOAD music store users VM and catalog database. Managed by terraform/platform-engineer."
+      cpu_limit     = "20000M"
+      memory_limit  = "32Gi"
+      storage_limit = "80Gi"
+    }
   }
 
   validation {
