@@ -208,19 +208,34 @@ reason in the message.
 The script was run against status copied from the lab, for the ready and
 the not-ready case of each kind.
 
-## 19. The database address is written into git after the database exists
+## 19. Private AI Services reaches its database by a Service name
 
-`PAISConfiguration` takes the database host as a plain string. DSM
-assigns the address when it creates the database. So `pais.yaml` holds
-the address, and it was committed after `postgres.yaml` had been synced.
+`PAISConfiguration` takes the database host as plain text, and DSM
+assigns the address when it creates the database. The first version
+committed the address to git afterwards, which made a rebuild a two-step
+job.
 
-Why: it keeps Private AI Services in git with no extra machinery.
+Now `gitops/private-ai/database-service.yaml` gives the database a fixed
+name:
 
-Cost: a rebuild from nothing needs two commits, and the address in git
-is wrong until the second one.
+- A Service `pais-db` with no selector.
+- An Argo CD sync hook Job that reads the address from the
+  `PostgresCluster` status and writes it into the Service's Endpoints.
+- `dnsNames: [pais-db]` on the `PostgresCluster`, so the database's
+  certificate is valid for the name and `sslMode: VerifyFull` still
+  holds.
 
-Look again if: the demo is rebuilt often. Then give the database a DNS
-name, or have Terraform read the address.
+Why: no address in git, and a rebuild needs no manual step. It needs no
+DNS record; the name comes from the Supervisor's cluster DNS.
+
+Checked in the lab before building it: from a Private AI Services pod,
+the name resolved, the connection reached the database, and a TLS
+handshake verified the name `pais-db` and refused a wrong one.
+
+Cost: a ServiceAccount, a Role, and a Job, and one public image
+(`alpine/k8s`) that the lab must be able to pull. Argo CD does not track
+Endpoints, which is why the Job's write is not undone, and also why
+Argo CD cannot create them itself.
 
 ## 20. Terraform creates the Private AI Services login Secret
 

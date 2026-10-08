@@ -31,6 +31,9 @@ What changed in this repository, newest first. The reasons are in
   2.5 1.5B on CPU.
 - `terraform/platform-engineer/pais.tf`: the Secret with the Private AI
   Services administrator.
+- `gitops/private-ai/database-service.yaml`: a fixed Service name for
+  the Private AI database, and the Job that points it at the address DSM
+  assigns. The address is no longer in git.
 - `terraform/platform-engineer/manifests/argocd.yaml`: health checks for
   a DSM `PostgresCluster`, a `PAISConfiguration`, and a `ModelEndpoint`.
   Argo CD shows each as progressing until its `Ready` condition is true.
@@ -43,6 +46,9 @@ What changed in this repository, newest first. The reasons are in
   DSM refuses a class under 4 CPU for PostgreSQL.
 
 ### Changed
+
+- `README.md`: a quickstart from an empty org to a served model, the
+  repository layout, and teardown.
 
 - The repository moved from the lab git server to
   `github.com/modern-apps-5/the-goad`. History was kept.

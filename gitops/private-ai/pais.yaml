@@ -1,9 +1,11 @@
 # Private AI Services, and one model.
 #
 # Sync order, by sync wave:
-#   0  the database (postgres.yaml) and the CA below
-#   1  Private AI Services
-#   2  the model
+#   0  the database (postgres.yaml), its Service, and the CA below
+#   1  the Job that points the Service at the database
+#      (database-service.yaml)
+#   2  Private AI Services
+#   3  the model
 # Argo CD starts a wave only when the wave before it is healthy. The
 # health checks that make that true for these kinds are in
 # terraform/platform-engineer/manifests/argocd.yaml.
@@ -41,14 +43,14 @@ kind: PAISConfiguration
 metadata:
   name: default
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
     pais.vmware.com/default-failure-domain: west-1
 spec:
-  # The database from postgres.yaml. DSM assigns the address when it
-  # creates the database, so it is written here afterwards. DSM creates
-  # the Secret pg-pais-db, with the password and the CA.
+  # The database from postgres.yaml, by the name of its Service: see
+  # database-service.yaml. DSM creates the Secret pg-pais-db, with the
+  # password and the CA.
   database:
-    host: 10.47.7.72
+    host: pais-db
     port: 5432
     dbname: pais
     username: pgadmin
@@ -92,7 +94,7 @@ kind: ModelEndpoint
 metadata:
   name: qwen
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   type: Completions
   routingName: qwen

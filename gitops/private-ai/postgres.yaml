@@ -7,14 +7,15 @@ kind: PostgresCluster
 metadata:
   name: pais-db
   annotations:
-    # First wave. Private AI Services (wave 1) needs this database, and
-    # the model (wave 2) needs Private AI Services: see pais.yaml.
+    # First wave. Everything else waits for this database: see the list
+    # of waves in pais.yaml.
     argocd.argoproj.io/sync-wave: "0"
 spec:
   version: 16.14+vmware.v9.1.1.0
   databaseName: pais
   # A name for the database, added to its certificate. Private AI Services
-  # connects to this name, not to the address DSM assigns.
+  # connects to this name, not to the address DSM assigns: see
+  # database-service.yaml.
   dnsNames:
     - pais-db
   adminUsername: pgadmin

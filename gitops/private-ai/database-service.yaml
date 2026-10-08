@@ -1,0 +1,103 @@
+# A fixed name for the Private AI database: pais-db.
+#
+# DSM gives a database an address when it creates it, and Private AI
+# Services takes the database host as plain text. Without this file the
+# address would have to be written into git after the database exists.
+#
+# The Service has no selector. The Job below reads the address DSM
+# assigned and writes it into the Service's Endpoints. Private AI Services
+# connects to "pais-db"; the database's certificate carries that name
+# (dnsNames in postgres.yaml).
+apiVersion: v1
+kind: Service
+metadata:
+  name: pais-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pais-db-endpoints
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pais-db-endpoints
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  - apiGroups: ["databases.dataservices.vmware.com"]
+    resources: ["postgresclusters"]
+    resourceNames: ["pais-db"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pais-db-endpoints
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pais-db-endpoints
+subjects:
+  - kind: ServiceAccount
+    name: pais-db-endpoints
+---
+# Runs on every sync, after the database is ready (wave 0) and before
+# Private AI Services (wave 2). If the database is rebuilt and gets a new
+# address, the next sync corrects the Endpoints.
+#
+# Argo CD does not track Endpoints, so it does not undo what the Job
+# writes.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pais-db-endpoints
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      serviceAccountName: pais-db-endpoints
+      restartPolicy: OnFailure
+      containers:
+        - name: write-endpoints
+          image: alpine/k8s:1.34.1
+          # A vSphere Pod's requests are reservations. This needs none.
+          resources:
+            requests: { cpu: "0", memory: "0" }
+            limits: { cpu: 500m, memory: 256Mi }
+          command: ["bash", "-euo", "pipefail", "-c"]
+          args:
+            - |
+              address=$(kubectl get postgrescluster pais-db -o jsonpath='{.status.connection.host}')
+              [ -n "$address" ] || { echo "pais-db has no address yet"; exit 1; }
+              echo "pais-db is at $address"
+              kubectl apply -f - <<EOF
+              apiVersion: v1
+              kind: Endpoints
+              metadata:
+                name: pais-db
+              subsets:
+                - addresses:
+                    - ip: $address
+                  ports:
+                    - name: postgres
+                      port: 5432
+              EOF
