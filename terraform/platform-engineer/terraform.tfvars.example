@@ -17,3 +17,7 @@ storage_class_name        = "CHANGE-ME"
 #   ssh-keygen -t ed25519 -N '' -f .secrets/gitops-deploy-key
 #   gh repo deploy-key add .secrets/gitops-deploy-key.pub --repo OWNER/REPO
 # gitops_repo_ssh_key_file = ".secrets/gitops-deploy-key"
+
+# Password hash for the Private AI Services user "admin".
+# Make one with: openssl passwd -6
+# pais_admin_password_hash = "$6$CHANGE-ME"

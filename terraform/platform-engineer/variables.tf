@@ -126,3 +126,12 @@ variable "gitops_repo_ssh_key_file" {
   description = "Path to the private half of a read-only deploy key for gitops_repo. Null for a public repository."
   default     = null
 }
+
+# --- Private AI Services ---
+
+variable "pais_admin_password_hash" {
+  type        = string
+  description = "SHA-512 crypt hash of the password for the Private AI Services user admin. Make one with: openssl passwd -6. Null skips the Secret."
+  sensitive   = true
+  default     = null
+}

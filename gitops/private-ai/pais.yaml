@@ -1,0 +1,106 @@
+# Private AI Services, and one model.
+#
+# Sync order: the database in postgres.yaml first, then Private AI
+# Services, then the model. Argo CD waits for each wave to be healthy.
+
+# The CA of the Supervisor's Harbor registry. The model and its engine
+# image are pulled from there.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supervisor-harbor-ca
+data:
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIDLDCCAhSgAwIBAgIUOFehfKLcC5eTOQOiNpKywsv5zOYwDQYJKoZIhvcNAQEL
+    BQAwFDESMBAGA1UEAxMJSGFyYm9yIENBMB4XDTI2MDkxNjE2MjEwNloXDTM2MDkx
+    MzE2MjEwNlowFDESMBAGA1UEAxMJSGFyYm9yIENBMIIBIjANBgkqhkiG9w0BAQEF
+    AAOCAQ8AMIIBCgKCAQEAp1xx04I+CESSxsJjHEnkerisyiRHf7iqrSyVI4Klxd9G
+    is2/cpOxzd6nIpSbXIAR4a7J2Jh2+KTNtFaOsEajEDK1vJK5pdCrckvhIksqd9LI
+    ePqxrGLWMUTdFgm9Z9V+tKaG/295JpMTHrgmdgRNRvSoaskL3qZGyTAMyUejloTo
+    U3wLZX+wkA3BLqBcFJtrOFwiDYqagsnMkUiCRKBQFUUpeBz5Pzc4tsxfROiosJfC
+    Vnn2AKQwZQ7nL6cp2xWneiMhQf5y7oKiyTj03tMSzEVaKn0yZ3TzehB8t9mrxyZg
+    GPTo7lDmtGX03SJeGhZUoma3wSyxNn8FLcsQPtXggQIDAQABo3YwdDAOBgNVHQ8B
+    Af8EBAMCAgQwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMA8GA1UdEwEB
+    /wQFMAMBAf8wHQYDVR0OBBYEFNsN9z1um0lOSJIGGO8YzgkEcek3MBMGA1UdEQQM
+    MAqCCGhhcmJvcmNhMA0GCSqGSIb3DQEBCwUAA4IBAQAxGro0B3YNbkQOGSZe2qo9
+    jSlISSil0jf6/1Y+NkHoQnNXII3/CcFVTT4Cnb8YUQzBrXInpT0Rn5KScSVsdI5p
+    2SR5qHkQyxfjnX8aDG7U50gqzfgUplflwNGA7avQFngJNixTCbLyf86yFPfDt1qM
+    az2B1cklJQDLchCNdcSnt/7+7nHejpCgHzgSFEYyGdtjVD3DzOcl6kL84f5AX8aQ
+    l3m7/cssO6iGTs3+TS7lSp3Z2X7JaDZjRl5NicDuZ0UvCZxfwwUMFwATfKyuBlp1
+    v0TRbdAblA5VdNrPSFhaMsBWL/sQP6EhtPTEHUHgQjiRo7c0mjqq2l8r1tkdUVWp
+    -----END CERTIFICATE-----
+---
+apiVersion: pais.vmware.com/v1alpha1
+kind: PAISConfiguration
+metadata:
+  name: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    pais.vmware.com/default-failure-domain: west-1
+spec:
+  # The database from postgres.yaml. DSM assigns the address when it
+  # creates the database, so it is written here afterwards. DSM creates
+  # the Secret pg-pais-db, with the password and the CA.
+  database:
+    host: 10.47.7.72
+    port: 5432
+    dbname: pais
+    username: pgadmin
+    passwordRef:
+      name: pg-pais-db
+      fieldPath: password
+    sslMode: VerifyFull
+  # One local administrator. terraform/platform-engineer creates the
+  # Secret; a password hash does not belong in git.
+  auth:
+    providers:
+      - name: sc
+        staticCredentials:
+          credentialsSecretRef:
+            name: pais-static-credentials
+            key: credentials.json
+          apiTokens:
+            expirationDefault: 8760h
+            expirationMax: 8760h
+  clientTls:
+    caBundleRefs:
+      - kind: ConfigMap
+        name: supervisor-harbor-ca
+  ingress:
+    serviceType: LoadBalancer
+  defaultStorageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
+  observability:
+    prometheusRuntime:
+      metricsRetention: 7d
+      storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
+  upgradeStrategy:
+    automatic: {}
+  # The smallest control plane that runs: 2 vCPU, 8 GB.
+  vksControlPlane:
+    virtualMachineClassName: best-effort-medium
+    storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
+---
+# Qwen 2.5, 1.5B, on CPU: 2 vCPU, 8 GB. No GPU.
+apiVersion: pais.vmware.com/v1alpha1
+kind: ModelEndpoint
+metadata:
+  name: qwen
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  type: Completions
+  routingName: qwen
+  engine: LlamaCPP
+  replicas: 1
+  # Cannot be changed later. To resize, delete the endpoint and create it
+  # again.
+  virtualMachineClassName: best-effort-medium
+  storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
+  model:
+    ociRef: depot.kube-system.svc/pais/qwen/qwen2.5-1.5b-instruct-gguf:v1.0
+  inferenceServerCustomization:
+    engineImage: depot.kube-system.svc/pais/3rd-party/model-runtime-engines@sha256:86475a113d75b25693b209d6df77b8af9316afee7284d9bdf02a5a4a3a3f52d5
+    engineImageCompressedSize: 15Gi
+    sharedMemoryMountSize: 64Mi
+    tempMountSize: 1Gi

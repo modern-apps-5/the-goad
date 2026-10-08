@@ -27,6 +27,13 @@ What changed in this repository, newest first. The reasons are in
   access to this repository.
 - `gitops/private-ai/postgres.yaml`: the DSM `PostgresCluster` for
   Private AI Services.
+- `gitops/private-ai/pais.yaml`: Private AI Services and one model, Qwen
+  2.5 1.5B on CPU.
+- `terraform/platform-engineer/pais.tf`: the Secret with the Private AI
+  Services administrator.
+- `terraform/platform-engineer/manifests/argocd.yaml`: a health check for
+  a DSM `PostgresCluster`, so Argo CD shows a database as progressing
+  until DSM says it is ready.
 
 ### Fixed
 
@@ -42,7 +49,7 @@ What changed in this repository, newest first. The reasons are in
 
 - OIDC for the org (`terraform/cloud-admin/oidc.tf`) is written and not
   tested. No identity provider is chosen.
-- Private AI Services and its models are not in `gitops/` yet.
+- The embeddings model is not in `gitops/` yet. Only Qwen is.
 - The music store application is not deployed by Argo CD yet.
 - `docs/walkthrough-script.md` still says the cloud admin creates the
   region. The Terraform reads an existing region.

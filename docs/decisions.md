@@ -186,3 +186,42 @@ Look again when: a second person needs to apply. Choose a backend then.
 
 Not `this`. A rename of a resource that is already in state gets a
 `moved` block. `terraform/cloud-admin` still has resources named `this`.
+
+## 18. Argo CD has a health check for a DSM database
+
+Argo CD has no built-in check for `PostgresCluster` and called it
+healthy as soon as the object existed. The Argo CD manifest adds a Lua
+check on the database's `Ready` condition.
+
+It reports progressing, never degraded. While DSM builds a database it
+sets `Provisioning` to reason `Failed`, and that clears by itself.
+
+Why: sync waves depend on it. Private AI Services must not start before
+its database is ready.
+
+Cost: a database that is truly stuck shows as progressing, with the real
+reason in the message.
+
+## 19. The database address is written into git after the database exists
+
+`PAISConfiguration` takes the database host as a plain string. DSM
+assigns the address when it creates the database. So `pais.yaml` holds
+the address, and it was committed after `postgres.yaml` had been synced.
+
+Why: it keeps Private AI Services in git with no extra machinery.
+
+Cost: a rebuild from nothing needs two commits, and the address in git
+is wrong until the second one.
+
+Look again if: the demo is rebuilt often. Then give the database a DNS
+name, or have Terraform read the address.
+
+## 20. Terraform creates the Private AI Services login Secret
+
+`pais-static-credentials` holds a password hash. Terraform creates it in
+the `private-ai` namespace from `terraform.tfvars`. Argo CD does not
+manage it.
+
+Why: a hash does not belong in git, and one Secret does not justify a
+secrets manager.
+

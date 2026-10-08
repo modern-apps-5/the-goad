@@ -25,3 +25,32 @@ spec:
     defaultPolicy: role:readonly
     policy: |
       g, platform-admin, role:admin
+
+  # Argo CD has no built-in health check for a DSM database, and without
+  # one it shows "Healthy" as soon as the object exists. This reads the
+  # database's Ready condition.
+  #
+  # It never reports Degraded: while a database is still being built, DSM
+  # sets Provisioning to reason "Failed", which is normal and clears.
+  resourceHealthChecks:
+    - group: databases.dataservices.vmware.com
+      kind: PostgresCluster
+      check: |
+        local hs = { status = "Progressing", message = "Waiting for DSM to report status" }
+        if obj.status == nil or obj.status.conditions == nil then
+          return hs
+        end
+        for _, condition in ipairs(obj.status.conditions) do
+          if condition.type == "Ready" and condition.status == "True" then
+            hs.status = "Healthy"
+            hs.message = "Database is ready"
+            return hs
+          end
+        end
+        for _, condition in ipairs(obj.status.conditions) do
+          if condition.status ~= "True" and condition.message ~= nil and condition.message ~= "" then
+            hs.message = condition.type .. ": " .. condition.message
+            return hs
+          end
+        end
+        return hs
