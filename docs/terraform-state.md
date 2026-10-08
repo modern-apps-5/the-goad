@@ -20,16 +20,58 @@ In Gitea, the states are under the organization's Packages.
 
 None of these are in git. Each has an `.example` beside it that is.
 
-| File | Read at | Holds | Same for everyone |
-|---|---|---|---|
-| `backend.hcl` | `terraform init` | Where the state is, and the shared token | Yes |
-| `terraform.tfvars` | `terraform plan` and `apply` | Lab values and your passwords | No |
-| `.secrets/gitops-deploy-key` | `terraform apply` | Argo CD's deploy key (platform engineer only) | Yes |
+| File | Read at | Holds |
+|---|---|---|
+| `backend.hcl` | `terraform init` | Where the state is, and the shared token |
+| `terraform.tfvars` | `terraform plan` and `apply` | Lab values, and the passwords of the shared accounts |
+| `.secrets/gitops-deploy-key` | `terraform apply` | Argo CD's deploy key (platform engineer only) |
 
 The token cannot go in `terraform.tfvars`. Terraform reads the backend
 settings before it reads any variable, so a `backend` block cannot use
 one. `backend.tf` is empty for that reason, and the settings come from
 `backend.hcl` at `init`.
+
+## Everyone must use the same values
+
+The state is shared, and Terraform makes the lab match the inputs of
+whoever applies. If your inputs differ from a teammate's, your apply
+changes what theirs set, and their next apply changes it back.
+
+So these are team files, not personal ones. Get them from a teammate
+and do not make your own.
+
+| Value | Where | If yours differs |
+|---|---|---|
+| Deploy key | `terraform/platform-engineer/.secrets/gitops-deploy-key` | Terraform replaces the key in Argo CD's repository Secret with yours. Yours is not on the GitHub repository, so Argo CD can no longer read git and stops syncing. |
+| `gitops_repo_ssh_key_file` | `terraform/platform-engineer/terraform.tfvars` | Left out, Terraform deletes the repository Secret. Same result. |
+| `pais_admin_password_hash` | `terraform/platform-engineer/terraform.tfvars` | The hash is salted. A new hash of the same password is still a different value, so Terraform rewrites the Secret and Private AI Services restarts pods. Copy the hash itself. |
+| `org_admin_password` | `terraform/cloud-admin/terraform.tfvars` | Terraform changes the password of `platform-admin`. Everyone else's platform engineer login then fails. |
+| `vcfa_password` | Both `terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is the password of a shared account in both roots. |
+| Everything else in `terraform.tfvars` | Both roots | Quota, VM classes, zone, and policy names are applied as written. A different number is a change to the org. |
+
+The simplest rule: keep one copy of each of these in the team's password
+manager, and copy the whole file.
+
+- `terraform/cloud-admin/terraform.tfvars`
+- `terraform/platform-engineer/terraform.tfvars`
+- `terraform/platform-engineer/.secrets/gitops-deploy-key`
+- The token for `backend.hcl`
+
+Before you apply, run `terraform plan`. With the shared files it shows
+no changes, or only the change you mean to make. If it shows a change to
+`gitops_repository`, `pais_static_credentials`, or `vcfa_org_local_user`
+that you did not intend, your files differ. Stop and compare them.
+
+### The deploy key
+
+It is one key pair. The public half is on the GitHub repository, under
+Settings, Deploy keys, as `goad-argocd-read`, read-only. The private half
+is the file above. Terraform puts it in the Secret `gitops-repo` in the
+`platform` namespace, and Argo CD uses it to read this repository.
+
+Make a new key pair only when you mean to replace it for everyone: add
+the new public half to the repository, give the new private half to the
+team, apply, then delete the old deploy key on GitHub.
 
 ## Set up a machine
 
@@ -46,6 +88,9 @@ Fill in `backend.hcl`:
 - `password`: the token of the Gitea user `goad-terraform`. Get it from
   a teammate, through a password manager or a direct message. Never
   through git or email.
+
+Then get the shared `terraform.tfvars` files and the deploy key the same
+way: see "Everyone must use the same values" above.
 - Remove the `#` from `skip_cert_verification = true`. The lab git
   server has a self-signed certificate.
 

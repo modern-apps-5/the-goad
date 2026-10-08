@@ -18,6 +18,11 @@ What changed in this repository, newest first. The reasons are in
 
 ### Changed
 
+- `docs/terraform-state.md`, `README.md`: the deploy key,
+  `terraform.tfvars`, and the password hash are shared by the team. The
+  documents say so, and say what breaks when someone applies with their
+  own.
+
 - `docs/execution-plan.md` and `docs/walkthrough-script.md`: each has a
   dated note of what has changed since it was written. Their original
   text is kept.

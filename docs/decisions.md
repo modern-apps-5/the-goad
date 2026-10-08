@@ -327,3 +327,24 @@ What was tried and dropped:
   resource for each namespace Terraform uses.
 - A module per namespace. It works for the same reason the local value
   does, and it is more to read.
+
+## 24. The inputs are shared files, not personal ones
+
+With remote state, everyone applies to the same lab from their own
+machine. Terraform makes the lab match the inputs of whoever applies.
+So `terraform.tfvars` in both roots, the deploy key, and the Private AI
+Services password hash are one copy for the team, kept in the password
+manager.
+
+Why: a different deploy key replaces the one in Argo CD's repository
+Secret, and Argo CD stops reading git. A new hash of the same password
+is still a different value, because the hash is salted. A different
+`org_admin_password` changes the password everyone else logs in with.
+
+This follows from two earlier choices: shared accounts instead of one
+per person (4, 22), and secrets kept out of git (16).
+
+Look again if: this drifts in practice. The non-secret lab values could
+then go in a committed `*.auto.tfvars`, leaving only real secrets to be
+passed around.
+

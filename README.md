@@ -57,7 +57,8 @@ cd terraform/cloud-admin
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Fill in `terraform.tfvars`:
+Fill in `terraform.tfvars`. If the demo is already built, copy the
+team's file and skip the table.
 
 | Variable | What to put |
 |---|---|
@@ -81,7 +82,15 @@ regional networking is not realized, wait a minute and run
 
 ### 2. Give Argo CD read access to this repository
 
-A read-only deploy key. Run this once, from the repository root:
+A read-only deploy key.
+
+**If the demo is already built, do not do this step.** The key exists and
+the team shares it. Get the file
+`terraform/platform-engineer/.secrets/gitops-deploy-key` from a
+teammate. A new key of your own would replace the one Argo CD uses, and
+Argo CD would stop reading git.
+
+Only for a first build, once, from the repository root:
 
 ```sh
 mkdir -p terraform/platform-engineer/.secrets
@@ -101,7 +110,8 @@ cd terraform/platform-engineer
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Fill in `terraform.tfvars`:
+Fill in `terraform.tfvars`. If the demo is already built, copy the
+team's file and skip the table.
 
 | Variable | What to put |
 |---|---|
@@ -223,8 +233,12 @@ Manifests under `gitops/` do not set a namespace.
 ## Things to know
 
 - **Secrets stay out of git.** `terraform.tfvars`, `backend.hcl`, and
-  `.secrets/` are ignored by git. Each person fills in their own
-  `terraform.tfvars`.
+  `.secrets/` are ignored by git.
+- **Those files are shared, not personal.** State is shared, so everyone
+  must apply with the same `terraform.tfvars`, the same deploy key, and
+  the same password hash. Copy them from a teammate; do not make your
+  own. With different values, each apply undoes the last person's.
+  [docs/terraform-state.md](docs/terraform-state.md) lists what breaks.
 - **The lab is shared.** `terraform apply` and `terraform destroy` in
   `cloud-admin` create and delete a real org.
 - **No GPU.** The model runs on CPU. Do not say GPU on camera until one

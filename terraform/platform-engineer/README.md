@@ -42,6 +42,12 @@ namespace, add it to `namespaces` and add the directory `gitops/<key>/`.
 Argo CD reads the repository with a read-only deploy key. The private
 half stays in `.secrets/`, which git ignores.
 
+The key is shared by the team, and so is `terraform.tfvars`. Terraform
+writes the key and the Private AI Services password hash into Secrets.
+If you apply with a key or a hash of your own, Terraform replaces the
+team's, and Argo CD can no longer read git. Copy both files from a
+teammate. `docs/terraform-state.md` has the list.
+
 ## Which provider applies what
 
 - `kubectl_manifest`: every Kubernetes object. The org API has a fixed
