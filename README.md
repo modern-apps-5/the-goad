@@ -67,7 +67,8 @@ Fill in `terraform.tfvars`:
 | `dsm_infrastructure_policy_names` | The DSM infrastructure policy for the org's databases |
 
 ```sh
-terraform init
+cp backend.hcl.example backend.hcl             # then fill in: see "Terraform state"
+terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
@@ -111,7 +112,8 @@ Fill in `terraform.tfvars`:
 | `pais_admin_password_hash` | Output of `openssl passwd -6`, for the Private AI Services user `admin` |
 
 ```sh
-terraform init
+cp backend.hcl.example backend.hcl
+terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
@@ -164,6 +166,30 @@ cd ../cloud-admin && terraform destroy
 Deleting the `private-ai` namespace deletes the database, Private AI
 Services, and the model with it.
 
+## Terraform state
+
+State is remote, in the Terraform state registry of the lab's Gitea
+server, under the organization `the-goad`. Terraform's `http` backend
+talks to it, with locking. Gitea keeps every version of the state.
+
+| Root | State name |
+|---|---|
+| `terraform/cloud-admin` | `goad-cloud-admin` |
+| `terraform/platform-engineer` | `goad-platform-engineer` |
+
+`backend.tf` in each root is empty on purpose. The address and the login
+are in `backend.hcl`, which git ignores. To set up a machine:
+
+1. Copy `backend.hcl.example` to `backend.hcl` in each root.
+2. Fill in the Gitea host and the owner.
+3. Fill in the token of the shared Gitea user `goad-terraform`. Get it
+   from a teammate, through a password manager or a direct message.
+   Never through git or email.
+4. `terraform init -backend-config=backend.hcl`
+
+The state holds passwords and a private key. Anyone with that token can
+read them.
+
 ## Layout
 
 ```
@@ -184,9 +210,9 @@ Manifests under `gitops/` do not set a namespace.
 
 ## Things to know
 
-- **Secrets stay local.** `terraform.tfvars`, `.secrets/`, and Terraform
-  state are ignored by git. State holds secrets. Choose a backend before
-  a second person applies.
+- **Secrets stay out of git.** `terraform.tfvars`, `backend.hcl`, and
+  `.secrets/` are ignored by git. Each person fills in their own
+  `terraform.tfvars`.
 - **The lab is shared.** `terraform apply` and `terraform destroy` in
   `cloud-admin` create and delete a real org.
 - **No GPU.** The model runs on CPU. Do not say GPU on camera until one

@@ -1,0 +1,20 @@
+# Copy to backend.hcl and fill in. backend.hcl is ignored by git. Then:
+#
+#   terraform init -backend-config=backend.hcl
+#
+# State is kept in the Terraform state registry of a Gitea server. OWNER
+# is the Gitea organization that owns the state.
+address        = "https://GITEA-HOST/api/packages/OWNER/terraform/state/goad-platform-engineer"
+lock_address   = "https://GITEA-HOST/api/packages/OWNER/terraform/state/goad-platform-engineer/lock"
+unlock_address = "https://GITEA-HOST/api/packages/OWNER/terraform/state/goad-platform-engineer/lock"
+lock_method    = "POST"
+unlock_method  = "DELETE"
+
+# One shared Gitea user holds the state for the team. It is a member of
+# OWNER with write access to packages. Get its token from a teammate; do
+# not put it anywhere but backend.hcl.
+username = "goad-terraform"
+password = "CHANGE-ME"
+
+# Only for a server with a self-signed certificate.
+# skip_cert_verification = true

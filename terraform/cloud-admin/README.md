@@ -23,7 +23,8 @@ Supervisor Namespaces in.
 
 ```sh
 cp terraform.tfvars.example terraform.tfvars   # then fill in
-terraform init
+cp backend.hcl.example backend.hcl             # then fill in
+terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
 ```
@@ -67,9 +68,8 @@ detects drift on this one.
   organization administrator: VCF Automation answers
   `ACCESS_TO_RESOURCE_IS_FORBIDDEN`.
 - State holds the organization administrator password and the OIDC
-  client secret. This root uses local state, and `.gitignore` keeps it
-  out of the repository. Choose a backend before more than one person
-  applies.
+  client secret. State is remote: see "Terraform state" in the top-level
+  README.
 
 ## Not covered
 

@@ -66,6 +66,10 @@ What changed in this repository, newest first. The reasons are in
 
 ### Changed
 
+- Terraform state for both roots moved from local files to the lab's
+  Gitea, through the `http` backend. `backend.hcl.example` shows the
+  settings.
+
 - `README.md`: a quickstart from an empty org to a served model, the
   repository layout, and teardown.
 - The repository moved from the lab git server to

@@ -175,12 +175,10 @@ reserves 15 GHz and 16 GiB, and the org's quota allows it.
 Why: 5 GHz is the documented minimum. At 5 GHz a rolling update has no
 room for the new pods.
 
-## 16. Secrets and state stay local
+## 16. Secrets stay local; state is remote: see 22
 
-Passwords and keys are in `terraform.tfvars` and `.secrets/`, both
-ignored by git. State is local and ignored too. State holds secrets.
-
-Look again when: a second person needs to apply. Choose a backend then.
+Passwords and keys are in `terraform.tfvars`, `backend.hcl`, and
+`.secrets/`, all ignored by git.
 
 ## 17. Terraform resources have descriptive names
 
@@ -261,4 +259,35 @@ them. Argo CD syncs `gitops/music-store/`, not that directory.
 The chat secret is not in git, for the same reason as the Private AI
 Services password hash. Its base URL is the ingress of the Private AI
 Services this repository deploys, and the model name is `qwen`.
+## 22. Terraform state is in the lab's Gitea
+
+Both roots use Terraform's `http` backend against the Terraform state
+registry of the lab's Gitea server, under the organization `the-goad`.
+It stores the state, locks it, and keeps every version.
+
+One shared Gitea user, `goad-terraform`, holds the token. It is in a
+team of the organization with write access to packages. The address and
+the token are in `backend.hcl`, which git ignores; `backend.tf` is
+empty.
+
+Why: more than one person applies now, and state had to leave one
+laptop. No S3 is available. GitHub has no Terraform backend. Gitea was
+already running, so there was no new service and no new account.
+
+Why not the Kubernetes backend in another org: VCF Automation tokens are
+short-lived, so every run would need a wrapper to make a fresh
+kubeconfig, and the state would depend on that other org.
+
+Why a shared user: nobody has to be set up in Gitea to apply.
+
+Cost: no record of who changed state. One token leak exposes all of it,
+and the state holds passwords and a private key. The token allows
+package writes in the whole organization; Gitea has no finer scope. The
+state is safe from a teardown of the `goad` org, not from the loss of
+the lab git server.
+
+Found on the way: membership of the organization is not enough. The
+user's team must have the Packages unit set to Write. With less, reads
+work and the lock call answers `401 reqPackageAccess`, which Terraform
+reports as "HTTP remote state endpoint requires auth".
 

@@ -20,7 +20,8 @@ Apply `terraform/cloud-admin` first.
 
 ```sh
 cp terraform.tfvars.example terraform.tfvars   # then fill in
-terraform init
+cp backend.hcl.example backend.hcl             # then fill in
+terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
