@@ -125,4 +125,4 @@ Everyone puts the new one in both `backend.hcl` files and runs
 `terraform init -reconfigure -backend-config=backend.hcl`.
 
 The reasons for this backend are in [decisions.md](decisions.md), number
-21.
+22.
