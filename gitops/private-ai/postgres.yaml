@@ -12,8 +12,10 @@ spec:
   adminUsername: pgadmin
   # One node, no replica.
   replicas: 0
+  # DSM refuses a class under 4 CPU for PostgreSQL. This is the smallest
+  # that passes: 4 vCPU, 16 GB.
   vmClass:
-    name: best-effort-medium
+    name: best-effort-large
   storageSpace: 20Gi
   storagePolicyName: MGMT-cl01 - Optimal Datastore Default Policy - AutoRAID
   # The DSM policy for the org must allow this infrastructure policy.
