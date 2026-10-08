@@ -37,7 +37,8 @@ What changed in this repository, newest first. The reasons are in
 - `terraform/platform-engineer/manifests/argocd.yaml`: health checks for
   a DSM `PostgresCluster`, a `PAISConfiguration`, and a `ModelEndpoint`.
   Argo CD shows each as progressing until its `Ready` condition is true.
-- `gitops/private-ai/`: sync waves. Database, then Private AI Services,
+- `gitops/private-ai/`: sync waves. Database and its Service, then the
+  Job that points the Service at the database, then Private AI Services,
   then the model.
 
 ### Fixed
@@ -49,7 +50,6 @@ What changed in this repository, newest first. The reasons are in
 
 - `README.md`: a quickstart from an empty org to a served model, the
   repository layout, and teardown.
-
 - The repository moved from the lab git server to
   `github.com/modern-apps-5/the-goad`. History was kept.
 
@@ -58,6 +58,11 @@ What changed in this repository, newest first. The reasons are in
 - OIDC for the org (`terraform/cloud-admin/oidc.tf`) is written and not
   tested. No identity provider is chosen.
 - The embeddings model is not in `gitops/` yet. Only Qwen is.
+- No inference request has been sent to Qwen yet.
+- The quickstart in `README.md` has not been run from top to bottom, and
+  a full teardown has not been tested since Private AI Services was
+  added.
+- Security admin, developer, and the IT Ops agents are not started.
 - The music store application is not deployed by Argo CD yet.
 - `docs/walkthrough-script.md` still says the cloud admin creates the
   region. The Terraform reads an existing region.
