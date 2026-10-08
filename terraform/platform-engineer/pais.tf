@@ -4,7 +4,7 @@
 # is the one piece it needs that cannot be in git.
 data "vcfa_kubeconfig" "private_ai" {
   project_name              = var.project_name
-  supervisor_namespace_name = vcfa_supervisor_namespace.namespaces["private-ai"].name
+  supervisor_namespace_name = local.namespace_names["private-ai"]
 }
 
 provider "kubectl" {
@@ -26,7 +26,7 @@ resource "kubectl_manifest" "pais_static_credentials" {
     kind       = "Secret"
     metadata = {
       name      = "pais-static-credentials"
-      namespace = vcfa_supervisor_namespace.namespaces["private-ai"].name
+      namespace = local.namespace_names["private-ai"]
     }
     stringData = {
       "credentials.json" = jsonencode([{

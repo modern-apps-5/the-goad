@@ -111,8 +111,8 @@ variable "namespaces" {
   }
 
   validation {
-    condition     = contains(keys(var.namespaces), "platform")
-    error_message = "namespaces must include \"platform\". Argo CD runs there."
+    condition     = contains(keys(var.namespaces), "platform") && contains(keys(var.namespaces), "private-ai")
+    error_message = "namespaces must include \"platform\" and \"private-ai\". Terraform applies objects in both."
   }
 }
 

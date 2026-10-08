@@ -2,7 +2,7 @@
 resource "kubectl_manifest" "argocd" {
   provider           = kubectl.platform
   yaml_body          = file("${path.module}/manifests/argocd.yaml")
-  override_namespace = vcfa_supervisor_namespace.namespaces["platform"].name
+  override_namespace = local.namespace_names["platform"]
   validate_schema    = false
 }
 
@@ -20,7 +20,7 @@ locals {
 # part uses TerraCurl.
 
 locals {
-  namespace_api = "${data.vcfa_kubeconfig.platform.host}/api/v1/namespaces/${vcfa_supervisor_namespace.namespaces["platform"].name}"
+  namespace_api = "${data.vcfa_kubeconfig.platform.host}/api/v1/namespaces/${local.namespace_names["platform"]}"
   cloudapi      = "${trimsuffix(var.vcfa_url, "/")}/cloudapi/1.0.0"
   cloudapi_headers = {
     Accept        = "application/json;version=9.1.0"
@@ -49,7 +49,7 @@ resource "terracurl_request" "argocd_service_account_ready" {
 data "terracurl_request" "argocd_status" {
   name            = "argocd-status"
   method          = "GET"
-  url             = "${data.vcfa_kubeconfig.platform.host}/apis/argocd-service.vsphere.vmware.com/v1alpha1/namespaces/${vcfa_supervisor_namespace.namespaces["platform"].name}/argocds/${local.argocd_name}"
+  url             = "${data.vcfa_kubeconfig.platform.host}/apis/argocd-service.vsphere.vmware.com/v1alpha1/namespaces/${local.namespace_names["platform"]}/argocds/${local.argocd_name}"
   headers         = { Authorization = "Bearer ${data.vcfa_kubeconfig.platform.token}" }
   response_codes  = ["200"]
   skip_tls_verify = data.vcfa_kubeconfig.platform.insecure_skip_tls_verify

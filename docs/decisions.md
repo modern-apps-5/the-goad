@@ -291,3 +291,39 @@ user's team must have the Packages unit set to Write. With less, reads
 work and the lock call answers `401 reqPackageAccess`, which Terraform
 reports as "HTTP remote state endpoint requires auth".
 
+## 23. Namespace names are read through one local value
+
+`local.namespace_names` in `terraform/platform-engineer/namespace.tf` is
+a map of every namespace's generated name. The kubeconfig lookups, and
+everything else that needs a name, read it from there and not from the
+namespace resource.
+
+Why: Terraform looks up the address of a namespace's Kubernetes API with
+a data source. A data source that refers straight to a resource is not
+read until apply when that resource has any pending change. Adding a
+namespace, or resizing one, is a pending change. The lookups were put
+off, and with no address every existing Kubernetes object failed to
+refresh:
+
+    Get "http://localhost/api": dial tcp 127.0.0.1:80: connection refused
+
+A data source that reaches the same value through a local value is read
+at plan time, as long as the value is known. The names are known: they
+do not change when a namespace is resized or a sibling is added.
+
+`lazy_load` on the `kubectl` provider is still needed for a build from
+nothing, where the names do not exist yet.
+
+Checked in throwaway configurations and then in the lab, plan only: add
+a namespace, resize `platform`, resize another namespace, all in one
+plan.
+
+What was tried and dropped:
+
+- `depends_on`. It makes Terraform put the lookup off in more cases.
+- Two resources for the namespaces, the ones Terraform uses and the
+  rest. It fixed adding a namespace and not resizing one.
+- A `terraform_data` resource per name. It works, and it is one extra
+  resource for each namespace Terraform uses.
+- A module per namespace. It works for the same reason the local value
+  does, and it is more to read.

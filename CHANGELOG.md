@@ -61,6 +61,10 @@ What changed in this repository, newest first. The reasons are in
 
 ### Fixed
 
+- `terraform/platform-engineer`: adding or resizing a namespace made the
+  plan fail with "dial tcp 127.0.0.1:80: connection refused". Namespace
+  names are now read through one local value, so the kubeconfig lookups
+  are not put off until apply.
 - `gitops/private-ai/postgres.yaml`: the VM class is `best-effort-large`.
   DSM refuses a class under 4 CPU for PostgreSQL.
 

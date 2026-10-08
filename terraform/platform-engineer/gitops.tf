@@ -7,8 +7,8 @@
 # (private-ai-xxxxx) and only Terraform knows them.
 
 locals {
-  platform_namespace = vcfa_supervisor_namespace.namespaces["platform"].name
-  gitops_namespaces  = { for key, namespace in vcfa_supervisor_namespace.namespaces : key => namespace.name if key != "platform" }
+  platform_namespace = local.namespace_names["platform"]
+  gitops_namespaces  = { for key, name in local.namespace_names : key => name if key != "platform" }
 }
 
 # Registers the namespace with Argo CD as a cluster named by its key.

@@ -25,7 +25,7 @@ provider "kubectl" {
 # lets the provider plan without it.
 data "vcfa_kubeconfig" "platform" {
   project_name              = var.project_name
-  supervisor_namespace_name = vcfa_supervisor_namespace.namespaces["platform"].name
+  supervisor_namespace_name = local.namespace_names["platform"]
 }
 
 provider "kubectl" {

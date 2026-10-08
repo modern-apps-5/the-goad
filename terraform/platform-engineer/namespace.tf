@@ -30,7 +30,19 @@ resource "vcfa_supervisor_namespace" "namespaces" {
   depends_on = [time_sleep.service_engine_group]
 }
 
-moved {
-  from = vcfa_supervisor_namespace.this
-  to   = vcfa_supervisor_namespace.namespaces
+# The generated names, by key. Everything else in this root reads names
+# from here, not from the resource above.
+#
+# That is on purpose. Terraform looks up the address of a namespace's
+# Kubernetes API with a data source. A data source that refers straight to
+# a resource is not read until apply when that resource has any pending
+# change, and adding or resizing a namespace is one. With no address,
+# every existing Kubernetes object then fails to refresh:
+#
+#   Get "http://localhost/api": dial tcp 127.0.0.1:80: connection refused
+#
+# Going through this local value avoids that. The names themselves are
+# already known, so the lookups are read at plan time.
+locals {
+  namespace_names = { for key, namespace in vcfa_supervisor_namespace.namespaces : key => namespace.name }
 }

@@ -51,6 +51,9 @@ half stays in `.secrets/`, which git ignores.
   Automation REST API, not to Kubernetes.
 - Not `kubernetes_manifest`: the org API publishes no OpenAPI schema for
   these kinds, and it fails with "resource not found in OpenAPI index".
+- Read a namespace's name from `local.namespace_names`, never straight
+  from the namespace resource. It keeps the plan working when a
+  namespace is added or resized. `namespace.tf` says why.
 - No `wait_for` on the Service Engine Group: it waits with a watch, and
   an organization administrator cannot watch that kind.
 
