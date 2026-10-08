@@ -1,6 +1,6 @@
 # Decisions
 
-Choices made while building this repository, and why. Each one names
+Choices made while building this repository, and why. Each one lists
 what would make it worth a second look. Newest last.
 
 Lab facts these rest on: VCF Automation 9.1.1, one region backed by one
