@@ -18,6 +18,9 @@ What changed in this repository, newest first. The reasons are in
 
 ### Changed
 
+- `terraform/*/backend.tf`: the state address and settings are now in
+  git. `backend.hcl` holds only the token.
+
 - `terraform/*/lab.auto.tfvars`: the lab values that are not secret are
   now in git. `terraform.tfvars` holds secrets only.
 

@@ -267,8 +267,9 @@ It stores the state, locks it, and keeps every version.
 
 One shared Gitea user, `goad-terraform`, holds the token. It is in a
 team of the organization with write access to packages. The address and
-the token are in `backend.hcl`, which git ignores; `backend.tf` is
-empty.
+the settings are in `backend.tf`, in git. Only the token is in
+`backend.hcl`, which git ignores. At first the address was kept out of
+git too; it moved in when the other lab values did (24).
 
 Why: more than one person applies now, and state had to leave one
 laptop. No S3 is available. GitHub has no Terraform backend. Gitea was

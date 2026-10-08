@@ -21,7 +21,8 @@ In Gitea, the states are under the organization's Packages.
 | File | In git | Read at | Holds |
 |---|---|---|---|
 | `lab.auto.tfvars` | yes | `terraform plan` and `apply` | Every lab value that is not secret |
-| `backend.hcl` | no | `terraform init` | Where the state is, and the shared token |
+| `backend.tf` | yes | `terraform init` | Where the state is, how to lock it, and the shared user's name |
+| `backend.hcl` | no | `terraform init` | The shared user's token, and nothing else |
 | `terraform.tfvars` | no | `terraform plan` and `apply` | The passwords of the shared accounts, and the password hash |
 | `.secrets/gitops-deploy-key` | no | `terraform apply` | Argo CD's deploy key (platform engineer only) |
 
@@ -33,8 +34,8 @@ what is secret has to be passed around.
 
 The token cannot go in `terraform.tfvars`. Terraform reads the backend
 settings before it reads any variable, so a `backend` block cannot use
-one. `backend.tf` is empty for that reason, and the settings come from
-`backend.hcl` at `init`.
+one. So `backend.tf` holds everything about the backend that is not
+secret, and the token alone comes from `backend.hcl` at `init`.
 
 ## Everyone must use the same values
 
@@ -88,15 +89,12 @@ In each root:
 
 ```sh
 cp backend.hcl.example backend.hcl
+chmod 600 backend.hcl
 ```
 
-Fill in `backend.hcl`:
-
-- `GITEA-HOST`: the lab git server.
-- `OWNER`: `the-goad`.
-- `password`: the token of the Gitea user `goad-terraform`. Get it from
-  a teammate, through a password manager or a direct message. Never
-  through git or email.
+Put the token of the Gitea user `goad-terraform` in `backend.hcl`. It is
+the only line. Get the token from a teammate, through a password manager
+or a direct message. Never through git or email.
 
 Then get the shared `terraform.tfvars` files and the deploy key the same
 way: see "Everyone must use the same values" above.
@@ -104,7 +102,6 @@ way: see "Everyone must use the same values" above.
   server has a self-signed certificate.
 
 ```sh
-chmod 600 backend.hcl
 terraform init -backend-config=backend.hcl
 terraform plan
 ```
@@ -143,7 +140,7 @@ first `terraform init` that migrates or writes one.
 | `Backend initialization required` | No `terraform init` on this machine since the backend was added | `terraform init -backend-config=backend.hcl` |
 | `HTTP remote state endpoint requires auth`, at the lock | Gitea answered `401 reqPackageAccess`. Wrong token, or the user's team does not have Packages set to Write. Reading can still work in the second case. | Check the token. Then check the team. |
 | `Error acquiring the state lock`, with a lock ID | Someone is applying, or a run was killed and left its lock | Wait. If the run is dead: `terraform force-unlock <ID>` |
-| A certificate error | `skip_cert_verification` is not set | Set it in `backend.hcl` and run `init` again |
+| A certificate error | `skip_cert_verification` is not set | It is set in `backend.tf`. Pull, and run `init` again. |
 
 To check the token without Terraform:
 
@@ -177,6 +174,13 @@ when you know why the current state is wrong.
 Create a new token for `goad-terraform` in Gitea and delete the old one.
 Everyone puts the new one in both `backend.hcl` files and runs
 `terraform init -reconfigure -backend-config=backend.hcl`.
+
+## Pointing at another Gitea, organization, or state name
+
+Change `backend.tf` and commit it. Everyone then runs
+`terraform init -reconfigure -backend-config=backend.hcl`. Changing the
+address does not move the state: copy it first with
+`terraform init -migrate-state`.
 
 The reasons for this backend are in [decisions.md](decisions.md), number
 22.

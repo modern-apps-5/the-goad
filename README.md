@@ -69,7 +69,7 @@ Two files hold the inputs:
   the team's file.
 
 ```sh
-cp backend.hcl.example backend.hcl             # then fill in: see "Terraform state"
+cp backend.hcl.example backend.hcl             # then put the state token in it
 terraform init -backend-config=backend.hcl
 terraform apply
 ```
@@ -190,13 +190,13 @@ talks to it, with locking. Gitea keeps every version of the state.
 | `terraform/cloud-admin` | `goad-cloud-admin` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
 
-`backend.tf` in each root is empty on purpose. The address and the
-shared token are in `backend.hcl`, which git ignores. A token cannot be
-a Terraform variable: the backend is read before any variable is.
+`backend.tf` in each root holds the address and the settings, in git.
+The one secret, the token of the shared Gitea user `goad-terraform`, is
+in `backend.hcl`, which git ignores. A token cannot be a Terraform
+variable: the backend is read before any variable is.
 
 To set up a machine, in each root: copy `backend.hcl.example` to
-`backend.hcl`, fill in the Gitea host, the owner `the-goad`, and the
-token of the shared Gitea user `goad-terraform`, then run
+`backend.hcl`, put the token in it, then run
 `terraform init -backend-config=backend.hcl`. Get the token from a
 teammate, never through git or email.
 

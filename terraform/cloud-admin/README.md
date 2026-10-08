@@ -23,7 +23,7 @@ Supervisor Namespaces in.
 
 ```sh
 cp terraform.tfvars.example terraform.tfvars   # secrets only; copy the team's if the demo is built
-cp backend.hcl.example backend.hcl             # then fill in
+cp backend.hcl.example backend.hcl             # then put the state token in it
 terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
