@@ -177,18 +177,21 @@ talks to it, with locking. Gitea keeps every version of the state.
 | `terraform/cloud-admin` | `goad-cloud-admin` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
 
-`backend.tf` in each root is empty on purpose. The address and the login
-are in `backend.hcl`, which git ignores. To set up a machine:
+`backend.tf` in each root is empty on purpose. The address and the
+shared token are in `backend.hcl`, which git ignores. A token cannot be
+a Terraform variable: the backend is read before any variable is.
 
-1. Copy `backend.hcl.example` to `backend.hcl` in each root.
-2. Fill in the Gitea host and the owner.
-3. Fill in the token of the shared Gitea user `goad-terraform`. Get it
-   from a teammate, through a password manager or a direct message.
-   Never through git or email.
-4. `terraform init -backend-config=backend.hcl`
+To set up a machine, in each root: copy `backend.hcl.example` to
+`backend.hcl`, fill in the Gitea host, the owner `the-goad`, and the
+token of the shared Gitea user `goad-terraform`, then run
+`terraform init -backend-config=backend.hcl`. Get the token from a
+teammate, never through git or email.
 
 The state holds passwords and a private key. Anyone with that token can
 read them.
+
+[docs/terraform-state.md](docs/terraform-state.md) has the full setup,
+what to do when it goes wrong, and how to go back to an earlier state.
 
 ## Layout
 
@@ -230,6 +233,7 @@ Manifests under `gitops/` do not set a namespace.
 | [docs/walkthrough-script.md](docs/walkthrough-script.md) | The five-video script, including the unfinished beats |
 | [docs/execution-plan.md](docs/execution-plan.md) | Suggested order of work |
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
+| [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
 | [terraform/cloud-admin/README.md](terraform/cloud-admin/README.md) | The cloud admin Terraform in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |
