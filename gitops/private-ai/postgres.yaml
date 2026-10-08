@@ -13,6 +13,10 @@ metadata:
 spec:
   version: 16.14+vmware.v9.1.1.0
   databaseName: pais
+  # A name for the database, added to its certificate. Private AI Services
+  # connects to this name, not to the address DSM assigns.
+  dnsNames:
+    - pais-db
   adminUsername: pgadmin
   # One node, no replica.
   replicas: 0
