@@ -5,6 +5,10 @@ terraform {
       source  = "vmware/vcfa"
       version = "~> 1.2"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.38"
+    }
     terracurl = {
       source  = "devops-rob/terracurl"
       version = "~> 2.11"

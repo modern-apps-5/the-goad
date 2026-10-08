@@ -1,0 +1,21 @@
+# The database for Private AI Services, from Data Services Manager (DSM).
+#
+# DSM creates the Secret pg-pais-db in this namespace, with the keys
+# password and ca.crt. Private AI Services reads both.
+apiVersion: databases.dataservices.vmware.com/v1alpha1
+kind: PostgresCluster
+metadata:
+  name: pais-db
+spec:
+  version: 16.14+vmware.v9.1.1.0
+  databaseName: pais
+  adminUsername: pgadmin
+  # One node, no replica.
+  replicas: 0
+  vmClass:
+    name: best-effort-medium
+  storageSpace: 20Gi
+  storagePolicyName: MGMT-cl01 - Optimal Datastore Default Policy - AutoRAID
+  # The DSM policy for the org must allow this infrastructure policy.
+  infrastructurePolicy:
+    name: dsm-infra-xscl5

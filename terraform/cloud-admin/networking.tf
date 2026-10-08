@@ -122,3 +122,34 @@ check "org_regional_networking_realized" {
     error_message = "Regional networking for org ${var.org_name} is not realized yet. Run terraform plan again in a minute to check."
   }
 }
+
+# Turns on the Avi load balancer for the org in this region. Until this is
+# set, the org cannot create a Service Engine Group, and a Supervisor
+# Namespace that names one is refused.
+#
+# TENANT_MANAGED: the org creates and sizes its own Service Engine Groups,
+# up to the quota. The platform engineer does that.
+#
+# The setting hangs off the regional networking setting, which may still be
+# configuring. The retries wait for it.
+resource "terracurl_request" "org_avi_setting" {
+  count = var.avi_service_engine_group_quota == 0 ? 0 : 1
+
+  name    = "org-avi-setting"
+  method  = "PUT"
+  url     = "${local.vcfa_api}/vcf/regionalNetworkingSettings/${jsondecode(terracurl_request.org_regional_networking.response).values[0].id}/aviSetting"
+  headers = { "Content-Type" = "application/json" }
+  request_body = jsonencode({
+    active                 = true
+    serviceEngineGroupMode = "TENANT_MANAGED"
+    serviceEngineQuota     = var.avi_service_engine_group_quota
+  })
+  response_codes  = ["200", "201", "202"]
+  max_retry       = 20
+  retry_interval  = 15
+  skip_tls_verify = var.allow_unverified_ssl
+
+  # Nothing to send on destroy: the setting goes with the regional
+  # networking setting.
+  skip_destroy = true
+}

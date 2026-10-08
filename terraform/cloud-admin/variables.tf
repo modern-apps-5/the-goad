@@ -99,6 +99,22 @@ variable "storage_policy_limits_mib" {
   description = "Storage limit in MiB, keyed by storage policy name. Each key must be a storage policy the region offers."
 }
 
+# --- Avi load balancer ---
+
+variable "avi_service_engine_group_quota" {
+  type        = number
+  description = "Service Engine quota the org gets for the Avi load balancer in this region. 0 leaves the load balancer off for the org."
+  default     = 1
+}
+
+# --- Data Services Manager ---
+
+variable "dsm_infrastructure_policy_names" {
+  type        = list(string)
+  description = "DSM infrastructure policies the org can place databases on. Empty skips the data service policy."
+  default     = []
+}
+
 # --- OIDC ---
 
 variable "oidc" {

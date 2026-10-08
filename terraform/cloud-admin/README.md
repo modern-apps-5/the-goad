@@ -11,7 +11,8 @@ exist in the lab. This root starts at the org and attaches it to them.
 | `existing.tf` | Nothing. Reads the existing region and Distributed VLAN Connection. |
 | `org.tf` | The org and its first organization administrator. |
 | `quota.tf` | The org's region quota: CPU and memory per zone, VM classes, storage. |
-| `networking.tf` | The org's networking settings and its connection to the Distributed VLAN Connection. |
+| `networking.tf` | The org's networking settings, its connection to the Distributed VLAN Connection, and the Avi load balancer setting. |
+| `dsm.tf` | The org's DSM data service policy for PostgreSQL. Skipped until `dsm_infrastructure_policy_names` is set. |
 | `oidc.tf` | The org's OIDC identity provider. Skipped until `oidc` is set. |
 
 The outputs are what the platform engineer needs: the org to log in to,
@@ -46,6 +47,19 @@ VLAN Connection, so `networking.tf` calls
 
 Replace these resources with `vcfa_org_regional_networking` when the
 provider supports the connection.
+
+## The DSM policy uses the kubernetes provider
+
+A data service policy lives in DSM, not in VCF Automation. DSM serves a
+Kubernetes API, and VCF Automation proxies it at
+`/proxy/external-endpoint/api/dsm/regions/<region>/` with the same
+provider token. Terraform does not need a route to the DSM appliance.
+
+`dsm.tf` manages one `DataServicePolicy` as a `kubernetes_manifest`. It
+matches the org by ID and allows PostgreSQL on the listed DSM
+infrastructure policies. Every namespace of the org then sees it in its
+`DataServicePolicyBinding`. Unlike the TerraCurl objects, Terraform
+detects drift on this one.
 
 ## Before the first apply
 

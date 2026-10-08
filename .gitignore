@@ -5,3 +5,6 @@
 *.tfvars
 !*.tfvars.example
 crash.log
+
+# Local secrets
+.secrets/

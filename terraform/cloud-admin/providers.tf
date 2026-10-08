@@ -11,8 +11,8 @@ provider "vcfa" {
   allow_unverified_ssl = var.allow_unverified_ssl
 }
 
-# TerraCurl covers the one API the vcfa provider does not: see networking.tf.
-# It needs a bearer token. This login runs on every plan, apply, and destroy,
+# TerraCurl (networking.tf) and the kubernetes provider (dsm.tf) cover what
+# the vcfa provider does not. Both need a bearer token. This login runs on every plan, apply, and destroy,
 # so the token is always fresh.
 data "http" "vcfa_session" {
   url      = "${local.vcfa_api}/1.0.0/sessions/provider"

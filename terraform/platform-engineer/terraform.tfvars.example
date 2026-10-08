@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars holds secrets
+# and is ignored by git.
+
+vcfa_url = "https://CHANGE-ME"
+# allow_unverified_ssl = true
+
+# The organization administrator the cloud admin created.
+vcfa_password = "CHANGE-ME"
+
+region_name               = "CHANGE-ME"
+vpc_name                  = "default-CHANGE-ME"
+zone_name                 = "CHANGE-ME"
+storage_class_name        = "CHANGE-ME"
+
+# Private half of a read-only deploy key for the GitOps repository.
+# Leave out for a public repository. Create one with:
+#   ssh-keygen -t ed25519 -N '' -f .secrets/gitops-deploy-key
+#   gh repo deploy-key add .secrets/gitops-deploy-key.pub --repo OWNER/REPO
+# gitops_repo_ssh_key_file = ".secrets/gitops-deploy-key"

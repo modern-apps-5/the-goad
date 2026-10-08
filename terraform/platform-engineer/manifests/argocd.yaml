@@ -1,0 +1,27 @@
+# Manifest 9: the Argo CD instance.
+#
+# The Argo CD Supervisor Service is part of VCF. This asks it for an
+# instance. argocd.tf applies this file into the platform namespace; the
+# namespace name is generated, so it is not set here.
+apiVersion: argocd-service.vsphere.vmware.com/v1alpha1
+kind: ArgoCD
+metadata:
+  name: argocd
+spec:
+  # A version the Argo CD Supervisor Service offers.
+  version: 3.4.4+vmware.1-vks.1
+  applicationSet:
+    enabled: true
+
+  # OIDC login. With a load balancer address, the service registers this
+  # instance with VCF Automation as an OIDC relying party and writes the
+  # issuer, client, and redirect URL into Argo CD. No oidc block is needed:
+  # users of the org log in with "VCF Automation" on the Argo CD login page.
+  enableLoadBalancer: true
+
+  # OIDC decides who the user is. This decides what the user can do.
+  rbac:
+    scopes: "[groups, preferred_username, email]"
+    defaultPolicy: role:readonly
+    policy: |
+      g, platform-admin, role:admin
