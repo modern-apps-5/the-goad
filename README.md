@@ -25,10 +25,33 @@ that directory into it. The shop login is `admin` / `admin`. The catalog
 Service is `postgres-service`, which is the `DB_HOST` the containers
 already use.
 
+## Joining a demo that is already built
+
+The lab is shared and the demo is running. To work on it from your
+machine you do not build anything. You need four secrets that the team
+shares, and nothing else that is not in git:
+
+1. Get them from a teammate: the two `terraform.tfvars` files, the
+   deploy key, and the state token. They come as one text to paste at
+   the root of your clone.
+2. In `terraform/cloud-admin` and in `terraform/platform-engineer`:
+
+   ```sh
+   terraform init -backend-config=backend.hcl
+   terraform plan
+   ```
+
+3. Both plans must show no changes. If one shows a change you did not
+   make, stop: your files differ from the team's.
+   [docs/terraform-state.md](docs/terraform-state.md) says which
+   difference causes which change.
+
+Do not create your own deploy key, password hash, or passwords.
+
 ## Quickstart
 
-From an empty org to a served model. About 20 minutes, most of it
-waiting.
+For a first build: from an empty org to a served model. About 20
+minutes, most of it waiting.
 
 ### Before you start
 
@@ -45,10 +68,11 @@ The lab must already have:
 - The Argo CD Supervisor Service.
 
 Your machine needs `terraform` 1.11 or later, `git`, `gh`, `openssl`, and
-a network path to VCF Automation.
+a network path to VCF Automation and to the lab's Gitea server.
 
 You need the password of the provider administrator (`admin` in the
-`System` org), and admin rights on this GitHub repository.
+`System` org), admin rights on this GitHub repository, and the token of
+the Gitea user that holds the Terraform state: see "Terraform state".
 
 ### 1. Cloud admin: create the org
 
@@ -239,11 +263,12 @@ Manifests under `gitops/` do not set a namespace.
   `cloud-admin` create and delete a real org.
 - **No GPU.** The model runs on CPU. Do not say GPU on camera until one
   is allocated.
-- **This repository is tied to one lab.** `lab.auto.tfvars` and the
-  manifests in `gitops/` name this lab's region, storage policy, and DSM
-  infrastructure policy.
-- **The lab pulls one public image.** The Job in `gitops/private-ai/`
-  uses `alpine/k8s` from Docker Hub.
+- **This repository is tied to one lab.** `lab.auto.tfvars`,
+  `backend.tf`, and the manifests in `gitops/` name this lab's VCF
+  Automation and Gitea addresses, region, storage policy, and DSM
+  infrastructure policy. For another lab, change those and commit.
+- **The lab pulls public images.** The Jobs in `gitops/` use `alpine/k8s`
+  and `postgres` from Docker Hub.
 
 ## Documents
 

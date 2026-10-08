@@ -18,6 +18,8 @@ What changed in this repository, newest first. The reasons are in
 
 ### Changed
 
+- `README.md`: a section for joining a demo that is already built.
+
 - `terraform/*/backend.tf`: the state address and settings are now in
   git. `backend.hcl` holds only the token.
 

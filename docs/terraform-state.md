@@ -98,8 +98,6 @@ or a direct message. Never through git or email.
 
 Then get the shared `terraform.tfvars` files and the deploy key the same
 way: see "Everyone must use the same values" above.
-- Remove the `#` from `skip_cert_verification = true`. The lab git
-  server has a self-signed certificate.
 
 ```sh
 terraform init -backend-config=backend.hcl
@@ -146,7 +144,7 @@ To check the token without Terraform:
 
 ```sh
 curl -sk -o /dev/null -w '%{http_code}\n' -u goad-terraform:TOKEN \
-  https://GITEA-HOST/api/packages/the-goad/terraform/state/goad-cloud-admin
+  https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-cloud-admin
 ```
 
 `200` is good. `401` is a wrong token. A `404` means the token is
@@ -158,10 +156,10 @@ Gitea keeps each version under its serial number.
 
 ```sh
 # The current state. Its "serial" is the newest version.
-curl -sk -u goad-terraform:TOKEN https://GITEA-HOST/api/packages/the-goad/terraform/state/NAME
+curl -sk -u goad-terraform:TOKEN https://git.gpu.set.lab/api/packages/the-goad/terraform/state/NAME
 
 # An earlier one
-curl -sk -u goad-terraform:TOKEN https://GITEA-HOST/api/packages/the-goad/terraform/state/NAME/versions/SERIAL \
+curl -sk -u goad-terraform:TOKEN https://git.gpu.set.lab/api/packages/the-goad/terraform/state/NAME/versions/SERIAL \
   -o earlier.tfstate
 ```
 
