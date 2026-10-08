@@ -5,13 +5,15 @@ walkthrough live here. A lab git server pulls a replica from this
 remote.
 
 The demo shows VMware Cloud Foundation across an application's life,
-through four personas. Two of them are built so far.
+through four personas. Two of them are built so far: the cloud admin
+and the platform engineer.
 
 | Persona | Tool | What it builds | Where |
 |---|---|---|---|
 | Cloud admin | Terraform | The org: quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin](terraform/cloud-admin) |
 | Platform engineer | Terraform | Service Engine Group, Supervisor Namespaces, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
+| Platform engineer | Argo CD | The shop's users VM and its DSM catalog database | [gitops/music-store](gitops/music-store) |
 
 The music-store application is in [app/music-store](app/music-store) as
 plain container manifests. Argo CD does not deploy those containers yet.
@@ -117,13 +119,14 @@ terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
-It creates the Service Engine Group, the namespaces `platform-xxxxx` and
-`private-ai-xxxxx`, the Argo CD instance, and one Argo CD Application
-that syncs `gitops/private-ai/` into the `private-ai` namespace.
+It creates the Service Engine Group, the namespaces `platform-xxxxx`,
+`private-ai-xxxxx`, and `music-store-xxxxx`, and the Argo CD instance.
+For each namespace other than `platform` it creates one Argo CD
+Application that syncs `gitops/<namespace key>/` into it.
 
 `terraform output namespaces` prints the generated namespace names.
 
-### 4. Argo CD: database, Private AI Services, model
+### 4. Argo CD: database, Private AI Services, model, and the shop
 
 Nothing to run. Argo CD syncs `gitops/private-ai/` from `main` in waves
 and waits for each to be healthy:
@@ -140,9 +143,13 @@ holds that address: Private AI Services connects to the Service name
 `pais-db`, and the Job in wave 1 writes the address into the Service's
 Endpoints.
 
+Argo CD syncs `gitops/music-store/` the same way, into the `music-store`
+namespace: the catalog database and the users VM, with the same kind of
+Service name in front of the database.
+
 ### 5. Check it
 
-- **VCF Automation**, as `platform-admin` in the org `goad`: two
+- **VCF Automation**, as `platform-admin` in the org `goad`: three
   namespaces in the default project.
 - **Argo CD**: the address is the `externalIP` in the status of the
   `ArgoCD` object in the `platform` namespace. Log in with "VCF
@@ -152,6 +159,7 @@ Endpoints.
 - **Private AI Services**: the address is the external IP of the Service
   `pais-ingress-default` in the `private-ai` namespace. Log in as
   `admin`. The model `qwen` is listed and ready.
+- **Terraform**: `terraform plan` in each root shows no changes.
 
 ### Tear down
 
@@ -163,8 +171,8 @@ cd terraform/platform-engineer && terraform destroy
 cd ../cloud-admin && terraform destroy
 ```
 
-Deleting the `private-ai` namespace deletes the database, Private AI
-Services, and the model with it.
+Deleting a namespace deletes what Argo CD put in it: for `private-ai`,
+the database, Private AI Services, and the model.
 
 ## Terraform state
 
@@ -209,6 +217,7 @@ One rule decides where a file goes: if Terraform applies it, it is under
 
 To give Argo CD another namespace, add it to `namespaces` in
 `terraform/platform-engineer` and add the directory `gitops/<key>/`.
+`music-store` was added that way.
 Manifests under `gitops/` do not set a namespace.
 
 ## Things to know

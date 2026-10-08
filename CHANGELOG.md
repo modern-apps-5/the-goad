@@ -18,6 +18,10 @@ What changed in this repository, newest first. The reasons are in
 
 ### Changed
 
+- `docs/execution-plan.md` and `docs/walkthrough-script.md`: each has a
+  dated note of what has changed since it was written. Their original
+  text is kept.
+
 - `app/music-store` chat sets `OPENAI_TLS_VERIFY=false` and documents
   the model secret. The secret is still not in git.
 
@@ -89,6 +93,7 @@ What changed in this repository, newest first. The reasons are in
   a full teardown has not been tested since Private AI Services was
   added.
 - Security admin, developer, and the IT Ops agents are not started.
-- The music store application is not deployed by Argo CD yet.
-- `docs/walkthrough-script.md` still says the cloud admin creates the
-  region. The Terraform reads an existing region.
+- The store, cart, orders, and chat containers are not deployed by
+  Argo CD yet. The users VM and the catalog are.
+- `docs/walkthrough-script.md` is not rewritten. It now lists where it
+  differs from what is built.

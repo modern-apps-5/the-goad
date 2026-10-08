@@ -7,7 +7,7 @@ has something to sync.
 | File | What it creates |
 |---|---|
 | `avi.tf` | The org's Avi Service Engine Group. |
-| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its databases. |
+| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM and catalog. |
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
 | `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application. |

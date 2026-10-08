@@ -4,6 +4,30 @@ Suggested order. The design is the target. The script is ahead of
 the software. Build one true scene, then write the narration for
 that scene. Do not film a product that is not installed.
 
+## Status on 2026-10-08
+
+This plan was written before any of the software in this repository
+existed. It is kept as written below. What has changed since:
+
+- **Built and running in the lab:** the cloud admin and platform
+  engineer Terraform, Argo CD, a DSM database, and Private AI Services
+  with the Qwen model on CPU. The quickstart in the top-level README
+  builds all of it. This covers "Terraform plus Argo CD against VCF
+  Automation" and DSM from the list of what was not there.
+- **In git, handed to Argo CD:** the users VM Service VM and the DSM
+  catalog database, in `gitops/music-store/`. This is both moves of
+  step 4.
+- **Not started:** the store, cart, and orders containers on VKS
+  through Argo CD (step 2), the Oracle on Tanzu (step 3), and the
+  security episode (step 6).
+- **Still true:** no GPU. Istio, OPA, Headlamp, SSP, vDefend DFW, and
+  Antrea policy are not in the repository.
+- **Changed:** the master is on GitHub. The lab git server holds the
+  Terraform state: see `docs/terraform-state.md`.
+
+Where this plan and `docs/decisions.md` disagree, the decisions are
+newer.
+
 ## What can be shown now
 
 - A VCF lab with a Supervisor and a VKS cluster.

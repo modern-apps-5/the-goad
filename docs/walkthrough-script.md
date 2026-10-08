@@ -7,6 +7,30 @@ Videos 2, 3, and 4 are titles only. Video 1 is a sketch, and one
 page of Scene 5 is missing. This file is the script as it stands,
 not a finished shoot script.
 
+## Where this script differs from what is built
+
+As of 2026-10-08. The lines below are the script as written. They have
+not been changed to match. Fix these when Video 1 is rewritten.
+
+- **Scene 2, Cloud Admin.** The script has the cloud admin deploy the
+  namespace, bootstrap Argo CD, and create the VKS cluster. As built, the
+  cloud admin creates the org, its quota, its networking, the Avi
+  setting, and the DSM policy. The platform engineer creates the
+  namespaces and Argo CD. The region is not created by anyone on camera;
+  it exists already.
+- **Scene 2, Platform Engineer.** Argo CD does deploy the DSM database.
+  It also deploys Private AI Services and the model, which the script
+  does not mention. AKO is part of VCF and is not deployed by Argo CD.
+- **Scene 2, Developer.** The chatbot on Tanzu is not built. The model
+  that exists is Qwen in Private AI Services.
+- **Scene 3, Cloud Admin.** The namespace shown is the platform
+  engineer's work, not the cloud admin's. No GPU is allocated, so "GPU
+  tenancy" cannot be said.
+- **Scene 4.** Nothing of the security admin is built.
+
+The commands that exist today are `terraform apply` twice (cloud admin,
+then platform engineer) and `git push`. There is no `cf push` yet.
+
 ## Video 1 — Day 0, instantiation and architecture
 
 **Goal.** Start with the architecture, show the manifests and the
