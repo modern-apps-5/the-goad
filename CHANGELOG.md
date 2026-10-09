@@ -3,6 +3,13 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-09
+
+### Added
+
+- `README.md`: a diagram of the automation flow, from the cloud admin's
+  Terraform to the Argo CD sync waves.
+
 ## 2026-10-08 later
 
 ### Added
