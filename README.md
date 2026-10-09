@@ -25,6 +25,66 @@ that directory into it. The shop login is `admin` / `admin`. The catalog
 Service is `postgres-service`, which is the `DB_HOST` the containers
 already use.
 
+## Automation flow
+
+Two Terraform applies, then Argo CD. An arrow means the first box is
+done before the second one starts.
+
+```mermaid
+flowchart TD
+    subgraph cloud_admin["1. Cloud admin: terraform/cloud-admin"]
+        org["Org goad and its administrator platform-admin"]
+        quota["Region quota: zone, VM classes, storage"]
+        networking["Org networking and regional networking"]
+        avi_setting["Avi load balancer setting"]
+        dsm_policy["DSM PostgreSQL policy"]
+        org --> quota --> networking --> avi_setting
+        org --> dsm_policy
+    end
+
+    subgraph platform_engineer["2. Platform engineer: terraform/platform-engineer"]
+        seg["Service Engine Group"]
+        namespaces["Supervisor Namespaces: platform, private-ai, music-store"]
+        argocd["Argo CD instance, in platform"]
+        role["Role for the Argo CD service account"]
+        repo_secret["Repository Secret, with the deploy key"]
+        pais_secret["Secret pais-static-credentials, in private-ai"]
+        handoff["Per namespace: ManagedEntity, then Application"]
+        seg --> namespaces --> argocd --> role --> handoff
+        namespaces --> repo_secret
+        namespaces --> pais_secret
+    end
+
+    git[("GitHub: gitops/ on main")]
+
+    subgraph private_ai["3. Argo CD: gitops/private-ai"]
+        pais_wave0["Wave 0: PostgresCluster pais-db and its Service"]
+        pais_wave1["Wave 1: Job writes the database address into the Service"]
+        pais_wave2["Wave 2: PAISConfiguration"]
+        pais_wave3["Wave 3: ModelEndpoint qwen"]
+        pais_wave0 --> pais_wave1 --> pais_wave2 --> pais_wave3
+    end
+
+    subgraph music_store["3. Argo CD: gitops/music-store"]
+        shop_wave0["Wave 0: PostgresCluster catalog, its Service, and the users VM"]
+        shop_wave1["Wave 1: Job writes the database address into the Service"]
+        shop_wave2["Wave 2: Job catalog-init fills the catalog"]
+        shop_wave0 --> shop_wave1 --> shop_wave2
+    end
+
+    cloud_admin -->|"org_admin_password becomes vcfa_password"| platform_engineer
+    repo_secret -.->|"read access"| git
+    git -.->|"Argo CD pulls"| handoff
+    handoff -->|"Application private-ai"| private_ai
+    handoff -->|"Application music-store"| music_store
+    pais_secret -.->|"login for admin"| pais_wave2
+```
+
+Solid arrows are that order. Dotted arrows are what one part reads from
+another. After the handoff, Terraform does not touch what runs in
+`private-ai` and `music-store`: a commit to `gitops/` on `main` is the
+change.
+
 ## Joining a demo that is already built
 
 The lab is shared and the demo is running. To work on it from your
