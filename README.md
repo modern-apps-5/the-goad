@@ -273,6 +273,7 @@ talks to it, with locking. Gitea keeps every version of the state.
 |---|---|
 | `terraform/cloud-admin` | `goad-cloud-admin` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
+| `terraform/runner` | `goad-runner` |
 
 `backend.tf` in each root holds the address and the settings, in git.
 The one secret, the token of the shared Gitea user `goad-terraform`, is
@@ -295,14 +296,18 @@ what to do when it goes wrong, and how to go back to an earlier state.
 ```
 terraform/cloud-admin/         Provider (System) org scope
 terraform/platform-engineer/   Inside the org; stops at the handoff to Argo CD
+terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
   manifests/                   Manifests that Terraform applies
 gitops/<namespace key>/        What Argo CD syncs into that namespace
+scripts/                       What a person runs by hand, once
 app/music-store/               The application's container manifests
+.github/workflows/             One Terraform workflow for each persona
 docs/                          Design, script, plan, decisions
 ```
 
 One rule decides where a file goes: if Terraform applies it, it is under
-`terraform/`. If Argo CD syncs it, it is under `gitops/`.
+`terraform/`. If Argo CD syncs it, it is under `gitops/`. If a person
+runs it, it is under `scripts/`.
 
 To give Argo CD another namespace, add it to `namespaces` in
 `terraform/platform-engineer` and add the directory `gitops/<key>/`.
@@ -340,5 +345,6 @@ Manifests under `gitops/` do not set a namespace.
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
+| [terraform/runner/README.md](terraform/runner/README.md) | The self-hosted runner that the workflows run on, and how to build it |
 | [terraform/cloud-admin/README.md](terraform/cloud-admin/README.md) | The cloud admin Terraform in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |

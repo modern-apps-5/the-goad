@@ -1,0 +1,14 @@
+# Secrets for the runner root. Copy to terraform.tfvars, which git ignores.
+#
+# These are shared by the team. If the runner is already built, copy the
+# team's terraform.tfvars and do not write your own.
+#
+# Everything that is not secret is in lab.auto.tfvars, in git.
+
+# Password of the vCenter user in lab.auto.tfvars.
+vcenter_password = "CHANGE-ME"
+
+# The other secret this root needs is a file, not a variable:
+#   .secrets/private-key.pem
+# It is the private key of the GitHub App. scripts/create-github-app.py writes it.
+# If the runner is already built, copy the team's file there.

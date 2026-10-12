@@ -1,6 +1,6 @@
 # Terraform state
 
-Where the state of the two Terraform roots lives, how to set up a
+Where the state of the three Terraform roots lives, how to set up a
 machine to use it, and how it was set up in Gitea.
 
 ## Where it is
@@ -13,6 +13,7 @@ keeps every version.
 |---|---|---|
 | `terraform/cloud-admin` | `the-goad` | `goad-cloud-admin` |
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
+| `terraform/runner` | `the-goad` | `goad-runner` |
 
 In Gitea, the states are under the organization's Packages.
 
