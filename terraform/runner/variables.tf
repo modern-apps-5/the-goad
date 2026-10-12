@@ -80,9 +80,3 @@ variable "runner_replicas" {
   description = "How many runners. One runner takes one job at a time."
   default     = 2
 }
-
-variable "runner_work_disk" {
-  type        = string
-  description = "Disk for a job's files: the checkout, the Terraform binary, and the providers. Deleted with the pod."
-  default     = "4Gi"
-}

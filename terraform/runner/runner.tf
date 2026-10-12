@@ -59,32 +59,10 @@ locals {
 
   upstream_deployment = yamldecode(data.http.runner_deployment.response_body)
 
-  upstream_pod = local.upstream_deployment.spec.template.spec
-
-  # A vSphere Pod gets about 250 MB of disk unless it asks for more, and the
-  # providers of one Terraform root are more than that. The disk is the
-  # pod's own: it is made with the pod and deleted with it. No volume claim,
-  # so nothing is left behind.
-  #
-  # The pod asks for the disk in two places, and needs both: the container's
-  # ephemeral-storage, and the size of the work volume.
-  runner_containers = [
-    for container in local.upstream_pod.containers : merge(container, {
-      resources = {
-        requests = merge(container.resources.requests, { "ephemeral-storage" = var.runner_work_disk })
-        limits   = merge(container.resources.limits, { "ephemeral-storage" = var.runner_work_disk })
-      }
-    })
-  ]
-  runner_volumes = concat(
-    [for volume in local.upstream_pod.volumes : volume if volume.name != "work"],
-    [{ name = "work", emptyDir = { sizeLimit = var.runner_work_disk } }],
-  )
-
-  # The upstream Deployment, with three things changed: the number of
-  # replicas, the size of the work disk, and an annotation on the pod. A pod
-  # reads the script and the settings only when it starts. The annotation
-  # changes when they do, and that restarts the pods.
+  # The upstream Deployment, with two things changed: the number of
+  # replicas, and an annotation on the pod. A pod reads the script and the
+  # settings only when it starts. The annotation changes when they do, and
+  # that restarts the pods.
   runner_deployment = merge(local.upstream_deployment, {
     spec = merge(local.upstream_deployment.spec, {
       replicas = var.runner_replicas
@@ -94,10 +72,6 @@ locals {
             "goad/entrypoint-sha256" = sha256(data.http.runner_entrypoint.response_body)
             "goad/settings-sha256"   = sha256(jsonencode(local.runner_settings))
           }
-        })
-        spec = merge(local.upstream_pod, {
-          containers = local.runner_containers
-          volumes    = local.runner_volumes
         })
       })
     })

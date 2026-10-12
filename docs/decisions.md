@@ -403,7 +403,9 @@ Why the job's disk is the pod's own, and not a volume claim: a claim
 outlives its pod, and someone must delete it. The pod's own disk is
 deleted with the pod. A job keeps nothing there anyway: state is in
 Gitea. The default, about 250 MB, is too small for one root's
-providers, so the pod asks for 4 GB.
+providers, so the pod asks for 4 GB. That is set in
+supervisor-github-runner, not here: every user of that runner has the
+same problem.
 
 Why by hand, and not on a pull request or a push: not yet. The lab is
 shared, and an apply creates and deletes a real org. Until the team has
