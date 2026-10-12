@@ -26,8 +26,9 @@ reasons.
 
 The Deployment and the script are not in this repository. Terraform reads
 them from supervisor-github-runner at the commit `runner_commit`, and
-changes two things: the number of replicas, and an annotation that
-restarts the pods when the script or the settings change.
+changes three things: the number of replicas, the size of the work disk,
+and an annotation that restarts the pods when the script or the settings
+change.
 
 The namespace has one storage policy and the Supervisor's workload
 network, which is the default. It has no VM classes and no limits. It has
@@ -152,6 +153,7 @@ kubectl -n goad-runner logs deploy/github-runner --tail=5
 | The runner image, or the script | `runner_commit` in `lab.auto.tfvars`, to a newer commit of supervisor-github-runner |
 | How many jobs run at once | `runner_replicas` |
 | The labels | `runner_labels`, and `runs-on` in both workflows |
+| The disk a job has | `runner_work_disk` |
 
 ## Remove it
 
@@ -168,5 +170,12 @@ Then delete the App in the organization's settings, under GitHub Apps.
 - **The state holds the App's private key and a Supervisor session
   token.** The token lasts hours. The key lasts until it is deleted in
   the App's settings.
+- **A job has 4 GB of disk, and it is not kept.** A vSphere Pod gets
+  about 250 MB unless it asks for more. The providers of the platform
+  engineer root are 320 MB, so `terraform init` failed with `no space
+  left on device`. The pod now asks for `runner_work_disk`. The disk is
+  the pod's own, made and deleted with it: there is no volume claim, and
+  nothing is left behind. The pod must ask in two places, the
+  container's `ephemeral-storage` and the work volume's `sizeLimit`.
 - **Terraform reads two files from GitHub on every plan.** Without a path
   to `raw.githubusercontent.com`, the plan fails.

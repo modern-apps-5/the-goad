@@ -399,6 +399,12 @@ released `alekc/kubectl` provider, 2.4.1, has no kustomize data source,
 so Terraform reads the two files with `http` and sets the replicas
 itself.
 
+Why the job's disk is the pod's own, and not a volume claim: a claim
+outlives its pod, and someone must delete it. The pod's own disk is
+deleted with the pod. A job keeps nothing there anyway: state is in
+Gitea. The default, about 250 MB, is too small for one root's
+providers, so the pod asks for 4 GB.
+
 Why by hand, and not on a pull request or a push: not yet. The lab is
 shared, and an apply creates and deletes a real org. Until the team has
 seen the runs work, a person decides each one. Cost: a merge to `main`

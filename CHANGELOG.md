@@ -5,6 +5,13 @@ What changed in this repository, newest first. The reasons are in
 
 ## 2026-10-12
 
+### Fixed
+
+- The runner's pods had about 250 MB of disk, and `terraform init` in a
+  workflow failed with `no space left on device`. `terraform/runner`
+  now gives each pod `runner_work_disk`, 4 GB, deleted with the pod.
+  Both workflows then planned with no changes.
+
 ### Added
 
 - `.github/workflows/cloud-admin.yml` and `platform-engineer.yml`: one
