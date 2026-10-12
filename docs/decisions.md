@@ -353,3 +353,80 @@ hash, the deploy key, and the state token are passed around.
 Cost: the repository now names one lab: its VCF Automation address,
 region, and policy names. `gitops/` already did. It is a private
 repository; this is not for a public one.
+
+## 25. Terraform runs in GitHub Actions, on a runner in a vCenter namespace
+
+There is one workflow for each persona:
+`.github/workflows/cloud-admin.yml` and `platform-engineer.yml`. Each
+runs only its own Terraform root, and only when a person starts it, from
+the Actions page or with `gh workflow run`. A run plans. It applies only
+if `apply` is ticked, and only on `main`.
+
+The jobs run on a self-hosted runner in the lab. GitHub's own runners
+cannot reach VCF Automation or the lab's Gitea server. The runner is
+[supervisor-github-runner](https://github.com/warroyo/supervisor-github-runner):
+a plain Deployment of vSphere Pods, registered to the GitHub
+organization.
+
+A third Terraform root, `terraform/runner`, builds the runner: its
+Supervisor Namespace, the Secret, and the Deployment. That namespace is
+made in vCenter, not through VCF Automation.
+
+Why a vCenter namespace: the runner is what runs Terraform, so it cannot
+depend on anything the two persona roots make. The cloud admin root
+creates the org `goad` and can destroy it. A runner in a namespace of
+that org could not do the first build, and a destroy would delete the
+runner in the middle of its own job. A namespace in another VCF
+Automation org would survive that, but it would still need VCF
+Automation to be up, and the cloud admin root changes provider-scope
+settings there. A vCenter namespace depends only on the Supervisor.
+
+Why Terraform for the runner, and not a script and `kubectl apply`: the
+rest of the repository is Terraform. A plan shows drift, and a destroy
+removes all of it.
+
+Why that root is applied by hand: no workflow can run it, because it
+builds what the workflows run on. It is not a persona.
+
+Why its state is in Gitea with the other two, and not local: the state is
+shared, like the others. There is no circle. Gitea does not depend on the
+runner, and a machine reaches Gitea without it.
+
+Why the root reads the Deployment from supervisor-github-runner at a
+pinned commit, and does not copy it or follow `main`: a copy goes stale,
+and `main` would restart the runner in an apply for something else. The
+released `alekc/kubectl` provider, 2.4.1, has no kustomize data source,
+so Terraform reads the two files with `http` and sets the replicas
+itself.
+
+Why by hand, and not on a pull request or a push: not yet. The lab is
+shared, and an apply creates and deletes a real org. Until the team has
+seen the runs work, a person decides each one. Cost: a merge to `main`
+does not apply itself, so `main` and the lab can differ until someone
+runs the workflow.
+
+Why one workflow for each persona, and not one with two jobs: the demo
+shows each persona doing its own work. The cloud admin's run must not
+also be the platform engineer's. Cost: nothing orders the two. On a
+first build the platform engineer's fails until the org exists. Run the
+cloud admin's first.
+
+The split is for the story, not for security. The secrets are the
+repository's, so each workflow could read the other persona's. That is
+accepted: this is a mock of two teams, not a real separation.
+
+Why not Atlantis: it needs a webhook from GitHub into the lab. A runner
+only makes outbound connections.
+
+Cost: the GitHub App is made by hand, with one confirmation in a browser,
+because GitHub has no API for it. `scripts/create-github-app.py` does
+the rest. The team shares two more secrets: the vCenter password and
+the App's private key. The organization is on the free plan and the
+repository is private, so there is no required review before an apply:
+anyone who can write to the repository can start one.
+
+Second look when: the team trusts the runs, the organization has a plan
+with environment protection rules, or the runner needs more than a few
+replicas. The first is when a pull request can plan and a push to `main` can apply.
+The second allows a reviewer before apply. The third is where a controller
+that scales on the job queue is worth its weight.

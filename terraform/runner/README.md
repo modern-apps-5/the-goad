@@ -1,0 +1,172 @@
+# The self-hosted runner
+
+The two workflows in [.github/workflows](../../.github/workflows) run on
+this runner. GitHub's own runners cannot reach VCF Automation or the lab's
+Gitea server. The root [README](../../README.md) says how to start a
+workflow.
+
+It is [supervisor-github-runner](https://github.com/warroyo/supervisor-github-runner):
+a Deployment of vSphere Pods that registers to the GitHub organization
+`modern-apps-5` with the labels `self-hosted` and `lab`.
+
+This root is not a persona and not part of the demo. It is applied by
+hand, from a machine, once. No workflow runs it, because it builds what
+the workflows run on. [Decision 25](../../docs/decisions.md) has the
+reasons.
+
+## What it creates
+
+| Resource | What it is |
+|---|---|
+| `vsphere_namespace.runner` | The Supervisor Namespace `goad-runner`, made in vCenter, not through VCF Automation |
+| `kubectl_manifest.github_app` | The Secret `github-app`: the GitHub App's ID and private key |
+| `kubectl_manifest.runner_settings` | The ConfigMap `github-runner`: the organization and the labels |
+| `kubectl_manifest.runner_entrypoint` | The ConfigMap with the script the container starts with |
+| `kubectl_manifest.runner_deployment` | The Deployment `github-runner`, two replicas |
+
+The Deployment and the script are not in this repository. Terraform reads
+them from supervisor-github-runner at the commit `runner_commit`, and
+changes two things: the number of replicas, and an annotation that
+restarts the pods when the script or the settings change.
+
+The namespace has one storage policy and the Supervisor's workload
+network, which is the default. It has no VM classes and no limits. It has
+no project and no `-xxxxx` suffix, and VCF Automation does not list it.
+
+Until `github_app_id` is set, Terraform creates the namespace and nothing
+else.
+
+## Logins
+
+This root logs in to vCenter. For the Supervisor it uses the same login:
+on every run it asks the Supervisor for a new session token. An expired
+`vcf` session on your machine does not matter here, and `kubectl` does not
+need to be logged in.
+
+## Build it
+
+Once for the lab. If `terraform plan` here shows no changes and
+`terraform output runner_enabled` is `true`, it is built: do none of this.
+
+You need `terraform` 1.11 or later, `gh`, the vCenter password, the state
+token, and to be an owner of the GitHub organization.
+
+### 1. The namespace
+
+```sh
+cd terraform/runner
+cp terraform.tfvars.example terraform.tfvars   # then put the vCenter password in it
+cp backend.hcl.example backend.hcl             # then put the state token in it
+terraform init -backend-config=backend.hcl
+terraform apply
+```
+
+The plan is one resource, the namespace.
+
+### 2. The GitHub App
+
+GitHub has no API that creates an App. A person confirms it in a browser.
+
+From the repository root:
+
+```sh
+scripts/create-github-app.py
+```
+
+Open `http://localhost:8765/` in a browser on the same machine. From
+another machine, first run `ssh -L 8765:localhost:8765 <that machine>`.
+
+1. GitHub shows the App `goad-supervisor-runner`. Click **Create GitHub
+   App**.
+2. GitHub then shows the install page. Choose `modern-apps-5` and click
+   **Install**.
+
+The App is private, has no webhook, and has one permission: Self-hosted
+runners, read and write, for the organization.
+
+The script prints the App's ID, and writes the private key to
+`terraform/runner/.secrets/private-key.pem`. Git ignores `.secrets/`.
+
+### 3. The runner
+
+Put the App's ID in `lab.auto.tfvars`, as `github_app_id`, and commit it.
+The ID is not a secret. Then:
+
+```sh
+terraform apply
+```
+
+The plan is four resources. The apply waits until both pods are ready.
+To see them register:
+
+```sh
+kubectl -n goad-runner logs deploy/github-runner
+```
+
+Each pod prints `Registered runner`, then `Listening for Jobs`. In GitHub,
+the organization's Settings, Actions, Runners lists two runners with the
+labels `self-hosted` and `lab`.
+
+A `404` on `/installation` means that the App is not installed on the
+organization: do the install in step 2. A `403` on `generate-jitconfig`
+means that the App does not have the permission.
+
+### 4. The workflows' secrets
+
+The workflows read five repository secrets. They are the team's shared
+values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.md).
+
+| Secret | Where the value is |
+|---|---|
+| `GITEA_STATE_TOKEN` | `password` in any `backend.hcl` |
+| `VCFA_ADMIN_PASSWORD` | `vcfa_password` in `terraform/cloud-admin/terraform.tfvars` |
+| `ORG_ADMIN_PASSWORD` | `org_admin_password` in `terraform/cloud-admin/terraform.tfvars` |
+| `PAIS_ADMIN_PASSWORD_HASH` | `pais_admin_password_hash` in `terraform/platform-engineer/terraform.tfvars` |
+| `GITOPS_DEPLOY_KEY` | The file `terraform/platform-engineer/.secrets/gitops-deploy-key` |
+
+Set each one with `gh secret set <name> --repo modern-apps-5/the-goad`.
+For the deploy key, add `< terraform/platform-engineer/.secrets/gitops-deploy-key`.
+
+## Joining, when it is already built
+
+The same as the other two roots. Get from a teammate: this root's
+`terraform.tfvars`, the file `.secrets/private-key.pem`, and the state
+token. Then `terraform init -backend-config=backend.hcl` and
+`terraform plan`, which must show no changes.
+
+## Change it
+
+A plan that changes `kubectl_manifest.runner_deployment` restarts the
+pods. A restart stops a running job: a `terraform apply` stopped in the
+middle leaves a state lock that nobody holds. Before you apply such a
+plan, check that no job is running:
+
+```sh
+kubectl -n goad-runner logs deploy/github-runner --tail=5
+```
+
+`Listening for Jobs` is safe. `Running job` is not.
+
+| To change | Change |
+|---|---|
+| The runner image, or the script | `runner_commit` in `lab.auto.tfvars`, to a newer commit of supervisor-github-runner |
+| How many jobs run at once | `runner_replicas` |
+| The labels | `runner_labels`, and `runs-on` in both workflows |
+
+## Remove it
+
+```sh
+terraform destroy
+```
+
+Then delete the App in the organization's settings, under GitHub Apps.
+
+## Things to know
+
+- **`vsphere_namespace` cannot be imported.** A namespace of this name
+  that Terraform did not create must be deleted first.
+- **The state holds the App's private key and a Supervisor session
+  token.** The token lasts hours. The key lasts until it is deleted in
+  the App's settings.
+- **Terraform reads two files from GitHub on every plan.** Without a path
+  to `raw.githubusercontent.com`, the plan fails.

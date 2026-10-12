@@ -1,6 +1,6 @@
 # Terraform state
 
-Where the state of the two Terraform roots lives, how to set up a
+Where the state of the three Terraform roots lives, how to set up a
 machine to use it, and how it was set up in Gitea.
 
 ## Where it is
@@ -13,6 +13,7 @@ keeps every version.
 |---|---|---|
 | `terraform/cloud-admin` | `the-goad` | `goad-cloud-admin` |
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
+| `terraform/runner` | `the-goad` | `goad-runner` |
 
 In Gitea, the states are under the organization's Packages.
 
@@ -25,9 +26,10 @@ In Gitea, the states are under the organization's Packages.
 | `backend.hcl` | no | `terraform init` | The shared user's token, and nothing else |
 | `terraform.tfvars` | no | `terraform plan` and `apply` | The passwords of the shared accounts, and the password hash |
 | `.secrets/gitops-deploy-key` | no | `terraform apply` | Argo CD's deploy key (platform engineer only) |
+| `.secrets/private-key.pem` | no | `terraform apply` | The GitHub App's private key (runner only) |
 
-The three that are not in git each have an `.example` beside them that
-is, or for the key, instructions in `terraform.tfvars.example`.
+Those that are not in git each have an `.example` beside them that is,
+or for the two keys, instructions in `terraform.tfvars.example`.
 
 Lab values are in git so that they cannot differ between people. Only
 what is secret has to be passed around.
@@ -51,7 +53,15 @@ and do not make your own.
 | Deploy key | `terraform/platform-engineer/.secrets/gitops-deploy-key` | Terraform replaces the key in Argo CD's repository Secret with yours. Yours is not on the GitHub repository, so Argo CD can no longer read git and stops syncing. |
 | `pais_admin_password_hash` | `terraform/platform-engineer/terraform.tfvars` | The hash is salted. A new hash of the same password is still a different value, so Terraform rewrites the Secret and Private AI Services restarts pods. Copy the hash itself. |
 | `org_admin_password` | `terraform/cloud-admin/terraform.tfvars` | Terraform changes the password of `platform-admin`. Everyone else's platform engineer login then fails. |
-| `vcfa_password` | Both `terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is the password of a shared account in both roots. |
+| `vcfa_password` | `terraform.tfvars` of cloud admin and of platform engineer | Not written to the lab, but a wrong one fails the login. It is the password of a shared account in both roots. |
+| `vcenter_password` | `terraform/runner/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. |
+| GitHub App's private key | `terraform/runner/.secrets/private-key.pem` | Terraform replaces the key in the Secret `github-app` with yours. If yours is not a key of that App, the runner's pods cannot register after their next restart. |
+
+The repository secrets in GitHub are one more copy of the first four
+values, and of the state token. The workflows apply with them. When one
+of these values changes, change the repository secret too:
+[terraform/runner/README.md](../terraform/runner/README.md) lists which
+secret holds which value.
 
 Quota, VM classes, zone, and policy names are not on this list any more.
 They are in `lab.auto.tfvars`, in git, so everyone has the same ones. To

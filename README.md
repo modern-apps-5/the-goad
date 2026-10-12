@@ -27,7 +27,7 @@ already use.
 
 ## Automation flow
 
-Two Terraform applies, then Argo CD. An arrow means the first box is
+Two Terraform applies, from a machine or from GitHub, then Argo CD. An arrow means the first box is
 done before the second one starts.
 
 ```mermaid
@@ -107,6 +107,45 @@ shares, and nothing else that is not in git:
    difference causes which change.
 
 Do not create your own deploy key, password hash, or passwords.
+
+That is all for the demo. `terraform/runner` is a third root, for the
+runner that the GitHub workflows run on. You need it only to change the
+runner. It has two more shared secrets, the vCenter password and the
+GitHub App's private key: see
+[terraform/runner/README.md](terraform/runner/README.md).
+
+## Running Terraform from GitHub
+
+The two persona roots can also run in GitHub Actions, on a runner in the
+lab. There is one workflow for each persona:
+
+| Workflow | Root |
+|---|---|
+| `cloud-admin` | `terraform/cloud-admin` |
+| `platform-engineer` | `terraform/platform-engineer` |
+
+A workflow runs only when a person starts it. Nothing runs on a pull
+request or on a push. In GitHub: Actions, the workflow, **Run workflow**.
+Or:
+
+```sh
+gh workflow run cloud-admin.yml                 # plan
+gh workflow run cloud-admin.yml -f apply=true   # plan, then apply
+```
+
+A run plans, and the plan is on the run's summary page. It applies only
+with `apply`, and only on `main`: a run on another branch can plan and
+cannot apply.
+
+Nothing orders the two workflows. On a first build, let `cloud-admin`
+finish, then start `platform-engineer`.
+
+The workflows use the same state and the same shared secrets as a
+machine does, so a run and a teammate's `terraform apply` are the same
+thing. The secrets are repository secrets in GitHub.
+[terraform/runner/README.md](terraform/runner/README.md) lists them and
+says how the runner is built.
+[Decision 25](docs/decisions.md) has the reasons.
 
 ## Quickstart
 
@@ -273,6 +312,7 @@ talks to it, with locking. Gitea keeps every version of the state.
 |---|---|
 | `terraform/cloud-admin` | `goad-cloud-admin` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
+| `terraform/runner` | `goad-runner` |
 
 `backend.tf` in each root holds the address and the settings, in git.
 The one secret, the token of the shared Gitea user `goad-terraform`, is
@@ -295,14 +335,18 @@ what to do when it goes wrong, and how to go back to an earlier state.
 ```
 terraform/cloud-admin/         Provider (System) org scope
 terraform/platform-engineer/   Inside the org; stops at the handoff to Argo CD
+terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
   manifests/                   Manifests that Terraform applies
 gitops/<namespace key>/        What Argo CD syncs into that namespace
+scripts/                       What a person runs by hand, once
 app/music-store/               The application's container manifests
+.github/workflows/             One Terraform workflow for each persona
 docs/                          Design, script, plan, decisions
 ```
 
 One rule decides where a file goes: if Terraform applies it, it is under
-`terraform/`. If Argo CD syncs it, it is under `gitops/`.
+`terraform/`. If Argo CD syncs it, it is under `gitops/`. If a person
+runs it, it is under `scripts/`.
 
 To give Argo CD another namespace, add it to `namespaces` in
 `terraform/platform-engineer` and add the directory `gitops/<key>/`.
@@ -340,5 +384,6 @@ Manifests under `gitops/` do not set a namespace.
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
+| [terraform/runner/README.md](terraform/runner/README.md) | The self-hosted runner that the workflows run on, and how to build it |
 | [terraform/cloud-admin/README.md](terraform/cloud-admin/README.md) | The cloud admin Terraform in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |
