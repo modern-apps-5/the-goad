@@ -24,7 +24,7 @@ github_url = "https://github.com/modern-apps-5"
 runner_replicas = 2
 
 # To take a newer runner image, put a newer commit here.
-runner_commit = "fcca73b8b108e03d6145f8a9c2fab4df8a0946e8"
+runner_commit = "8ff90daaf1b624195c82a20d0a9293e8cd02252b"
 
 # The GitHub App goad-supervisor-runner. scripts/create-github-app.py
 # prints the ID when it creates the App. The ID is not a secret. Without

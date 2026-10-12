@@ -152,6 +152,7 @@ kubectl -n goad-runner logs deploy/github-runner --tail=5
 | The runner image, or the script | `runner_commit` in `lab.auto.tfvars`, to a newer commit of supervisor-github-runner |
 | How many jobs run at once | `runner_replicas` |
 | The labels | `runner_labels`, and `runs-on` in both workflows |
+| The disk a job has | In supervisor-github-runner, then `runner_commit` |
 
 ## Remove it
 
@@ -168,5 +169,12 @@ Then delete the App in the organization's settings, under GitHub Apps.
 - **The state holds the App's private key and a Supervisor session
   token.** The token lasts hours. The key lasts until it is deleted in
   the App's settings.
+- **A job has 4 GB of disk, and it is not kept.** A vSphere Pod gets
+  about 250 MB unless it asks for more. The providers of the platform
+  engineer root are 320 MB, so `terraform init` failed with `no space
+  left on device`. supervisor-github-runner now asks for 4 GB, and
+  `runner_commit` is a commit that has that. The disk is the pod's own,
+  made and deleted with it: there is no volume claim, and nothing is
+  left behind.
 - **Terraform reads two files from GitHub on every plan.** Without a path
   to `raw.githubusercontent.com`, the plan fails.
