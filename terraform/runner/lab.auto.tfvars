@@ -26,8 +26,7 @@ runner_replicas = 2
 # To take a newer runner image, put a newer commit here.
 runner_commit = "fcca73b8b108e03d6145f8a9c2fab4df8a0946e8"
 
-# Set this once the GitHub App exists: scripts/create-github-app.py
-# prints the ID.
-# The ID is not a secret. Until it is set, Terraform creates the namespace
-# and no runner.
+# The GitHub App goad-supervisor-runner. scripts/create-github-app.py
+# prints the ID when it creates the App. The ID is not a secret. Without
+# it, Terraform creates the namespace and no runner.
 github_app_id = "5288268"

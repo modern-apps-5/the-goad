@@ -2,7 +2,8 @@
 
 The two workflows in [.github/workflows](../../.github/workflows) run on
 this runner. GitHub's own runners cannot reach VCF Automation or the lab's
-Gitea server.
+Gitea server. The root [README](../../README.md) says how to start a
+workflow.
 
 It is [supervisor-github-runner](https://github.com/warroyo/supervisor-github-runner):
 a Deployment of vSphere Pods that registers to the GitHub organization

@@ -3,14 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
-## 2026-10-11
+## 2026-10-12
 
 ### Added
 
 - `.github/workflows/cloud-admin.yml` and `platform-engineer.yml`: one
-  workflow for each persona. Each runs its own Terraform root when a person starts
-  it: a plan, and an apply if asked for, on `main` only. Nothing runs on
-  a pull request or a push yet. Both run on the lab's self-hosted runner.
+  workflow for each persona. Each runs its own Terraform root when a
+  person starts it: a plan, and an apply if asked for, on `main` only.
+  Nothing runs on a pull request or a push yet. Both run on the lab's
+  self-hosted runner.
 - `terraform/runner`: a third Terraform root, applied by hand, that
   builds that runner. The Supervisor Namespace `goad-runner`, made in
   vCenter, and in it the Secret and a Deployment of two replicas
@@ -18,6 +19,9 @@ What changed in this repository, newest first. The reasons are in
 - `scripts/create-github-app.py`: creates the GitHub App that the
   runner logs in with. Run by a person, once.
 - `docs/decisions.md`: decision 25, why the runner is there.
+- `README.md`: how to start a workflow. `docs/terraform-state.md`: the
+  runner root's two secrets, and that the repository secrets in GitHub
+  are one more copy of the shared values.
 
 ## 2026-10-09
 
