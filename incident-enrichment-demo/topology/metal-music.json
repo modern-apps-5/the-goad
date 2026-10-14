@@ -1,0 +1,38 @@
+{
+  "name": "Metal Music Store",
+  "order": ["store", "pods", "vms", "datastore"],
+  "checked_at": "2026-10-12T19:01:29Z",
+  "checked_through": "Kubernetes door metal-k8s-mcp (k8s_list_pods, k8s_get) and VCF door metal-vcf-mcp (vcf_list_vms, vcf_list_datastores)",
+  "note": "A static map. Pods that a Deployment owns change name when they restart, so each pod row names its workload. The four pods ending in -demo are pinned by name to one node.",
+  "store": {
+    "name": "Metal Music Store",
+    "url": "https://${STORE_HOST}/",
+    "cluster": "agentminder (VKS guest cluster)",
+    "namespace": "metal-music-store",
+    "ingress_class": "nginx"
+  },
+  "pods": [
+    {"name": "music-store-1", "workload": "Deployment music-store-1", "role": "store front end", "vm": "${K8S_NODE_A}"},
+    {"name": "order-service", "workload": "Deployment order-service", "role": "orders", "vm": "${K8S_NODE_A}"},
+    {"name": "users-service", "workload": "Deployment users-service", "role": "users", "vm": "${K8S_NODE_A}"},
+    {"name": "cart-service", "workload": "Deployment cart-service", "role": "cart", "vm": "${K8S_NODE_B}"},
+    {"name": "traffic-generator", "workload": "Deployment traffic-generator", "role": "shopper traffic", "vm": "${K8S_NODE_B}"},
+    {"name": "postgres-demo", "workload": "Pod postgres-demo, built from Deployment postgres", "role": "database", "vm": "${K8S_NODE_C}"},
+    {"name": "cart-service-demo", "workload": "Pod cart-service-demo", "role": "cart", "vm": "${K8S_NODE_C}"},
+    {"name": "order-service-demo", "workload": "Pod order-service-demo", "role": "orders", "vm": "${K8S_NODE_C}"},
+    {"name": "users-service-demo", "workload": "Pod users-service-demo", "role": "users", "vm": "${K8S_NODE_C}"}
+  ],
+  "vms": [
+    {"name": "${K8S_NODE_A}", "vcenter_id": "vm-155", "node_ip": "${K8S_NODE_A_IP}", "role": "worker", "datastore": "${VSAN_DATASTORE}"},
+    {"name": "${K8S_NODE_B}", "vcenter_id": "vm-153", "node_ip": "${K8S_NODE_B_IP}", "role": "worker", "datastore": "${VSAN_DATASTORE}"},
+    {"name": "${K8S_NODE_C}", "vcenter_id": "vm-154", "node_ip": "${K8S_NODE_C_IP}", "role": "worker", "datastore": "${VSAN_DATASTORE}"},
+    {"name": "${K8S_NODE_CP}", "vcenter_id": "vm-152", "node_ip": null, "role": "control plane", "datastore": "${VSAN_DATASTORE}"}
+  ],
+  "datastore": {
+    "name": "${VSAN_DATASTORE}",
+    "vcenter_id": "datastore-15",
+    "type": "VSAN",
+    "capacity_bytes": 4723595804672,
+    "shared_with": "All 44 VMs in the nest. vCenter lists this one datastore."
+  }
+}

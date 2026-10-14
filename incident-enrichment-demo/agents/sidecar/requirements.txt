@@ -1,0 +1,10 @@
+# Product extras for `pip install agentminder[sidecar]` on Diego (glibc).
+# The `agentminder` package itself is extracted from the official SDK image
+# (not on public PyPI). python_buildpack installs these wheels at stage time.
+# Do not add a homemade proxy.
+uvicorn>=0.30.0
+httpx>=0.27.0
+anyio>=4.0.0
+cryptography>=42.0.0
+PyJWT[crypto]>=2.8.0
+PyYAML>=6.0

@@ -1,0 +1,5 @@
+# VCFA target. Org is Goad. Space is blank until the Captain names it in the approved PLAN.md.
+# The cloud-admin terraform in this repo defaults the org resource name to goad
+# (display name GOAD). Step 0 must confirm the live org identifier before any command.
+vcfa_org: Goad
+vcfa_space: ""
