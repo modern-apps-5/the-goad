@@ -13,18 +13,19 @@ and the platform engineer.
 | Cloud admin | Terraform | Stage 1: the org, VCF SSO, quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin/org](terraform/cloud-admin/org) |
 | Cloud admin | Terraform | Stage 2: inside the org, the users and their roles, the Service Engine Group, and a project with a VKS cluster for AgentMinder | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
 | Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](terraform/cloud-admin/agentminder) |
-| Platform engineer | Terraform | Supervisor Namespaces, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
+| Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
-| Platform engineer | Argo CD | The shop's users VM and its DSM catalog database | [gitops/music-store](gitops/music-store) |
+| Platform engineer | Argo CD | The shop's users VM, its DSM catalog database, and its VKS cluster | [gitops/music-store](gitops/music-store) |
 
 The music-store application is in [app/music-store](app/music-store) as
-plain container manifests. Argo CD does not deploy those containers yet.
+plain container manifests. Argo CD builds the VKS cluster `music-store`
+for them, but does not deploy the containers onto it yet.
 
-[gitops/music-store](gitops/music-store) is the users VM Service and the
-DSM catalog. Neither file sets a namespace or an address. Terraform
-creates the `music-store` namespace with the others, and Argo CD syncs
-that directory into it. The shop login is `admin` / `admin`. The catalog
-Service is `postgres-service`, which is the `DB_HOST` the containers
+[gitops/music-store](gitops/music-store) is the users VM Service, the
+DSM catalog, and the VKS cluster `music-store`. No file sets a namespace
+or an address. Terraform creates the `music-store` namespace with the
+others, and Argo CD syncs that directory into it. The shop login is
+`admin` / `admin`. The catalog Service is `postgres-service`, which is the `DB_HOST` the containers
 already use.
 
 ## Automation flow
@@ -64,9 +65,11 @@ flowchart TD
         repo_secret["Repository Secret, with the deploy key"]
         pais_secret["Secret pais-static-credentials, in private-ai"]
         handoff["Per namespace: ManagedEntity, then Application"]
+        images["Content library goad-images, with the Ubuntu image"]
         namespaces --> argocd --> role --> handoff
         namespaces --> repo_secret
         namespaces --> pais_secret
+        namespaces --> images
     end
 
     git[("GitHub: gitops/ on main")]
@@ -80,7 +83,7 @@ flowchart TD
     end
 
     subgraph music_store["5. Argo CD: gitops/music-store"]
-        shop_wave0["Wave 0: PostgresCluster catalog, its Service, and the users VM"]
+        shop_wave0["Wave 0: PostgresCluster catalog, its Service, the users VM, and the VKS cluster music-store"]
         shop_wave1["Wave 1: Job writes the database address into the Service"]
         shop_wave2["Wave 2: Job catalog-init fills the catalog"]
         shop_wave0 --> shop_wave1 --> shop_wave2
@@ -94,6 +97,7 @@ flowchart TD
     handoff -->|"Application private-ai"| private_ai
     handoff -->|"Application music-store"| music_store
     pais_secret -.->|"login for admin"| pais_wave2
+    images -.->|"image for the users VM"| shop_wave0
 ```
 
 Solid arrows are that order. Dotted arrows are what one part reads from
@@ -188,7 +192,7 @@ The lab must already have:
   model and the engine image in the Supervisor's Harbor.
 - The Argo CD Supervisor Service.
 
-Your machine needs `terraform` 1.11 or later, `git`, `gh`, `openssl`, and
+Your machine needs `terraform` 1.11 or later, `git`, `gh`, `openssl`, `curl`, and
 a network path to VCF Automation and to the lab's Gitea server.
 
 You need the password of the provider administrator (`admin` in the
@@ -318,7 +322,10 @@ terraform apply
 It creates the namespaces `platform-xxxxx`,
 `private-ai-xxxxx`, and `music-store-xxxxx`, and the Argo CD instance.
 For each namespace other than `platform` it creates one Argo CD
-Application that syncs `gitops/<namespace key>/` into it.
+Application that syncs `gitops/<namespace key>/` into it. It also creates
+the content library `goad-images` and uploads the Ubuntu image to it, for
+the users VM. The first apply downloads about 570 MiB with `curl`, so the
+machine needs internet access to cloud-images.ubuntu.com.
 
 `terraform output namespaces` prints the generated namespace names.
 
@@ -340,8 +347,9 @@ holds that address: Private AI Services connects to the Service name
 Endpoints.
 
 Argo CD syncs `gitops/music-store/` the same way, into the `music-store`
-namespace: the catalog database and the users VM, with the same kind of
-Service name in front of the database.
+namespace: the catalog database, the users VM, and the VKS cluster
+`music-store`, with the same kind of Service name in front of the
+database. The cluster takes about 15 minutes to build.
 
 ### 5. Check it
 
@@ -358,6 +366,8 @@ Service name in front of the database.
 - **AgentMinder**: `kubectl -n ssp get pods` on the cluster
   `agentminder` shows every pod running. Then
   `https://agentminder.goad.gpu.set.lab` answers.
+- **VKS cluster**: the Cluster `music-store` in the `music-store`
+  namespace is Available (`kubectl get clusters` in that namespace).
 - **Terraform**: `terraform plan` in each root shows no changes.
 
 ### Tear down

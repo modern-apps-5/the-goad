@@ -13,9 +13,10 @@ As of 2026-10-08. The lines below are the script as written. They have
 not been changed to match. Fix these when Video 1 is rewritten.
 
 - **Scene 2, Cloud Admin.** The script has the cloud admin deploy the
-  namespace, bootstrap Argo CD, and create the VKS cluster. As built, the
-  cloud admin creates the org, its quota, its networking, the Avi
-  setting, and the DSM policy. The platform engineer creates the
+  namespace, bootstrap Argo CD, and create the VKS cluster. As built,
+  Argo CD creates the music-store VKS cluster from `gitops/music-store`,
+  which is the platform engineer's work. The cloud admin creates the org,
+  its quota, its networking, the Avi setting, and the DSM policy. The platform engineer creates the
   namespaces and Argo CD. The region is not created by anyone on camera;
   it exists already.
 - **Scene 2, Platform Engineer.** Argo CD does deploy the DSM database.

@@ -17,6 +17,9 @@ existed. It is kept as written below. What has changed since:
 - **In git, handed to Argo CD:** the users VM Service VM and the DSM
   catalog database, in `gitops/music-store/`. This is both moves of
   step 4.
+- **In git, handed to Argo CD:** the music-store VKS cluster, in
+  `gitops/music-store/cluster.yaml`. The containers (step 2) are still
+  not deployed onto it.
 - **Not started:** the store, cart, and orders containers on VKS
   through Argo CD (step 2), the Oracle on Tanzu (step 3), and the
   security episode (step 6).

@@ -11,3 +11,6 @@ crash.log
 
 # Local secrets
 .secrets/
+
+# VM images Terraform downloads to upload
+.images/

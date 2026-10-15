@@ -5,10 +5,12 @@
 # the name the shop already calls.
 #
 # imageName is the display name of a VirtualMachineImage in that
-# namespace. VM Operator resolves a display name. Import the Ubuntu
-# 24.04 cloud image into the namespace under this name first.
-# className and storageClass are the Supervisor's, the same names
-# gitops/private-ai uses. They are not an organization name.
+# namespace. VM Operator resolves a display name.
+# terraform/platform-engineer/images.tf uploads the Ubuntu 24.04 cloud
+# image under this name, to a content library attached to every
+# namespace in the org. className must be among vm_class_names of
+# terraform/cloud-admin/org. className and storageClass are the
+# Supervisor's names, not an organization name.
 apiVersion: v1
 kind: Secret
 metadata:
@@ -157,7 +159,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  className: best-effort-xsmall
+  className: best-effort-small
   imageName: ubuntu-24.04-cloud
   storageClass: mgmt-cl01-optimal-datastore-default-policy-autoraid
   powerState: PoweredOn

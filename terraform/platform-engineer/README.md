@@ -9,7 +9,8 @@ account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
 
 | File | What it creates |
 |---|---|
-| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM and catalog. |
+| `images.tf` | The org content library `goad-images` and the Ubuntu image in it, for the users VM. The library is attached to every namespace in the org. A `terraform_data` downloads the OVA with `curl` into `.images/` (ignored by git) on the first apply, so that machine or runner needs `curl` and internet access to cloud-images.ubuntu.com. The storage policy is the lab value `content_library_storage_policy`; `ubuntu_image` sets the image name and URL. |
+| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM, catalog, and VKS cluster. |
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
 | `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application. |
