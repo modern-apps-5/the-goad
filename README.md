@@ -11,8 +11,9 @@ and the platform engineer.
 | Persona | Tool | What it builds | Where |
 |---|---|---|---|
 | Cloud admin | Terraform | Stage 1: the org, VCF SSO, quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin/org](terraform/cloud-admin/org) |
-| Cloud admin | Terraform | Stage 2: inside the org, the users and their roles | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
-| Platform engineer | Terraform | Service Engine Group, Supervisor Namespaces, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
+| Cloud admin | Terraform | Stage 2: inside the org, the users and their roles, the Service Engine Group, and a project with a VKS cluster for AgentMinder | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
+| Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](terraform/cloud-admin/agentminder) |
+| Platform engineer | Terraform | Supervisor Namespaces, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 | Platform engineer | Argo CD | The shop's users VM and its DSM catalog database | [gitops/music-store](gitops/music-store) |
 
@@ -28,7 +29,7 @@ already use.
 
 ## Automation flow
 
-Three Terraform applies, from a machine or from GitHub, then Argo CD. An arrow means the first box is
+Four Terraform applies, from a machine or from GitHub, then Argo CD. An arrow means the first box is
 done before the second one starts.
 
 ```mermaid
@@ -47,24 +48,30 @@ flowchart TD
 
     subgraph org_config["2. Cloud admin: terraform/cloud-admin/org-config"]
         users["VCF SSO users, roles, and project admin"]
+        seg["Service Engine Group"]
+        am_cluster["Project cloud-admin, namespace agentminder, VKS cluster agentminder"]
+        seg --> am_cluster
     end
 
-    subgraph platform_engineer["3. Platform engineer: terraform/platform-engineer"]
-        seg["Service Engine Group"]
+    subgraph agentminder["3. Cloud admin: terraform/cloud-admin/agentminder"]
+        am_helm["Helm: ingress-nginx, infra-ssp, ssp"]
+    end
+
+    subgraph platform_engineer["4. Platform engineer: terraform/platform-engineer"]
         namespaces["Supervisor Namespaces: platform, private-ai, music-store"]
         argocd["Argo CD instance, in platform"]
         role["Role for the Argo CD service account"]
         repo_secret["Repository Secret, with the deploy key"]
         pais_secret["Secret pais-static-credentials, in private-ai"]
         handoff["Per namespace: ManagedEntity, then Application"]
-        seg --> namespaces --> argocd --> role --> handoff
+        namespaces --> argocd --> role --> handoff
         namespaces --> repo_secret
         namespaces --> pais_secret
     end
 
     git[("GitHub: gitops/ on main")]
 
-    subgraph private_ai["4. Argo CD: gitops/private-ai"]
+    subgraph private_ai["5. Argo CD: gitops/private-ai"]
         pais_wave0["Wave 0: PostgresCluster pais-db and its Service"]
         pais_wave1["Wave 1: Job writes the database address into the Service"]
         pais_wave2["Wave 2: PAISConfiguration"]
@@ -72,7 +79,7 @@ flowchart TD
         pais_wave0 --> pais_wave1 --> pais_wave2 --> pais_wave3
     end
 
-    subgraph music_store["4. Argo CD: gitops/music-store"]
+    subgraph music_store["5. Argo CD: gitops/music-store"]
         shop_wave0["Wave 0: PostgresCluster catalog, its Service, and the users VM"]
         shop_wave1["Wave 1: Job writes the database address into the Service"]
         shop_wave2["Wave 2: Job catalog-init fills the catalog"]
@@ -80,7 +87,8 @@ flowchart TD
     end
 
     cloud_admin --> org_config
-    org_config -->|"svc.platform_engineer API token becomes vcfa_api_token"| platform_engineer
+    org_config -->|"cluster agentminder"| agentminder
+    org_config -->|"Service Engine Group, and the svc.platform_engineer API token"| platform_engineer
     repo_secret -.->|"read access"| git
     git -.->|"Argo CD pulls"| handoff
     handoff -->|"Application private-ai"| private_ai
@@ -99,17 +107,21 @@ The lab is shared and the demo is running. To work on it from your
 machine you do not build anything. You need the secrets that the team
 shares, and nothing else that is not in git:
 
-1. Get them from a teammate: the three `terraform.tfvars` files, the
+1. Get them from a teammate: the four `terraform.tfvars` files, the
    deploy key, and the state token. They come as one text to paste at
    the root of your clone. Put the cloud admin's files in
-   `terraform/cloud-admin/org` and `terraform/cloud-admin/org-config`.
+   `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`, and
+   `terraform/cloud-admin/agentminder`.
 2. In `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
-   and `terraform/platform-engineer`:
+   `terraform/cloud-admin/agentminder`, and `terraform/platform-engineer`:
 
    ```sh
    terraform init -backend-config=backend.hcl
    terraform plan
    ```
+
+   In `terraform/cloud-admin/agentminder`, also run
+   `export TF_HTTP_PASSWORD=<the state token>` first.
 
 3. All plans must show no changes. If one shows a change you did not
    make, stop: your files differ from the team's.
@@ -131,7 +143,7 @@ lab. There is one workflow for each persona:
 
 | Workflow | Root |
 |---|---|
-| `cloud-admin` | Two jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config` |
+| `cloud-admin` | Three jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder` |
 | `platform-engineer` | `terraform/platform-engineer` |
 
 A workflow runs only when a person starts it. Nothing runs on a pull
@@ -231,7 +243,26 @@ terraform apply
 It logs in to the org as `cloud-admin` and imports the VCF SSO users:
 the platform engineers, who become admins of the project
 `default-project`, and the AD service account
-`svc.platform_engineer@set.lab`.
+`svc.platform_engineer@set.lab`. It also creates the Service Engine
+Group, the project `cloud-admin`, a namespace in it, and the VKS cluster
+`agentminder`. The cluster takes a while to come up.
+
+### 1c. Cloud admin: install AgentMinder
+
+```sh
+cd ../agentminder
+cp terraform.tfvars.example terraform.tfvars   # cloud_admin_password and the registry login
+cp backend.hcl.example backend.hcl             # then put the state token in it
+export TF_HTTP_PASSWORD=<the same token>       # the remote state read cannot use backend.hcl
+terraform init -backend-config=backend.hcl
+terraform apply
+```
+
+It reads the cluster from the state of `org-config` and installs
+`ingress-nginx` and AgentMinder with Helm. AgentMinder is installed
+small, with no agents configured:
+[decision 30](docs/decisions.md). Avi DNS makes the record for
+`agentminder.goad.gpu.set.lab` by itself: see decision 31.
 
 ### 2. Give Argo CD read access to this repository
 
@@ -284,7 +315,7 @@ terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
-It creates the Service Engine Group, the namespaces `platform-xxxxx`,
+It creates the namespaces `platform-xxxxx`,
 `private-ai-xxxxx`, and `music-store-xxxxx`, and the Argo CD instance.
 For each namespace other than `platform` it creates one Argo CD
 Application that syncs `gitops/<namespace key>/` into it.
@@ -324,17 +355,23 @@ Service name in front of the database.
 - **Private AI Services**: the address is the external IP of the Service
   `pais-ingress-default` in the `private-ai` namespace. Log in as
   `admin`. The model `qwen` is listed and ready.
+- **AgentMinder**: `kubectl -n ssp get pods` on the cluster
+  `agentminder` shows every pod running. Then
+  `https://agentminder.goad.gpu.set.lab` answers.
 - **Terraform**: `terraform plan` in each root shows no changes.
 
 ### Tear down
 
-Reverse order. The platform engineer first, because the org cannot be
-deleted while it has namespaces and a Service Engine Group. Then
+Reverse order. The platform engineer first, because its namespaces use
+the Service Engine Group, and the org cannot be deleted while it has
+namespaces and a Service Engine Group. Then `agentminder`, because its
+cluster must exist for Helm to remove what it installed. Then
 `org-config`, then `org`.
 
 ```sh
 cd terraform/platform-engineer && terraform destroy
-cd ../cloud-admin/org-config && terraform destroy
+cd ../cloud-admin/agentminder && terraform destroy
+cd ../org-config && terraform destroy
 cd ../org && terraform destroy
 ```
 
@@ -351,6 +388,7 @@ talks to it, with locking. Gitea keeps every version of the state.
 |---|---|
 | `terraform/cloud-admin/org` | `goad-cloud-admin` |
 | `terraform/cloud-admin/org-config` | `goad-cloud-admin-org-config` |
+| `terraform/cloud-admin/agentminder` | `goad-cloud-admin-agentminder` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
 | `terraform/runner` | `goad-runner` |
 
@@ -374,7 +412,8 @@ what to do when it goes wrong, and how to go back to an earlier state.
 
 ```
 terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
-terraform/cloud-admin/org-config/  Stage 2, inside the org: users and roles
+terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, AgentMinder's cluster
+terraform/cloud-admin/agentminder/ Stage 3, AgentMinder on that cluster, with Helm
 terraform/platform-engineer/   Inside the org; stops at the handoff to Argo CD
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
   manifests/                   Manifests that Terraform applies
@@ -412,6 +451,10 @@ Manifests under `gitops/` do not set a namespace.
   `backend.tf`, and the manifests in `gitops/` name this lab's VCF
   Automation and Gitea addresses, region, storage policy, and DSM
   infrastructure policy. For another lab, change those and commit.
+- **AgentMinder needs a registry login.** Its images come from Broadcom's
+  registry. `terraform/cloud-admin/agentminder` takes the login as
+  `ssp_registry_username` and `ssp_registry_password`. Copy the team's
+  `terraform.tfvars`.
 - **The lab pulls public images.** The Jobs in `gitops/` use `alpine/k8s`
   and `postgres` from Docker Hub.
 
@@ -428,4 +471,5 @@ Manifests under `gitops/` do not set a namespace.
 | [terraform/runner/README.md](terraform/runner/README.md) | The self-hosted runner that the workflows run on, and how to build it |
 | [terraform/cloud-admin/org/README.md](terraform/cloud-admin/org/README.md) | The cloud admin Terraform, stage 1 (the org), in detail |
 | [terraform/cloud-admin/org-config/README.md](terraform/cloud-admin/org-config/README.md) | The cloud admin Terraform, stage 2 (inside the org), in detail |
+| [terraform/cloud-admin/agentminder/README.md](terraform/cloud-admin/agentminder/README.md) | The cloud admin Terraform, stage 3 (AgentMinder), in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |

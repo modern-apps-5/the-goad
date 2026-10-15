@@ -1,8 +1,10 @@
 # The cloud admin's two Terraform roots, on the lab's self-hosted runner.
 # GitHub's own runners cannot reach VCF Automation or the lab's Gitea server.
 #
-# Two jobs, in order: org creates the org (terraform/cloud-admin/org), then
-# org-config configures things inside it (terraform/cloud-admin/org-config).
+# Three jobs, in order: org creates the org (terraform/cloud-admin/org),
+# org-config configures things inside it (terraform/cloud-admin/org-config),
+# and agentminder installs AgentMinder on the cluster org-config made
+# (terraform/cloud-admin/agentminder).
 #
 # It runs only when a person starts it: Actions, this workflow, Run workflow.
 # It plans. It applies only if "apply" is ticked, and only on main. A pull
@@ -94,6 +96,35 @@ jobs:
         run: |
           terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
           { echo '## org-config'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply
+        if: env.APPLY == 'true'
+        run: terraform apply -no-color -lock-timeout=5m tfplan
+
+  agentminder:
+    needs: org-config
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/cloud-admin/agentminder
+    env:
+      # cloud-admin, the user the org job made. Same value as there.
+      TF_VAR_cloud_admin_password: ${{ secrets.CLOUD_ADMIN_PASSWORD }}
+      # Login for Broadcom's AgentMinder image registry.
+      TF_VAR_ssp_registry_username: ${{ secrets.SSP_REGISTRY_USERNAME }}
+      TF_VAR_ssp_registry_password: ${{ secrets.SSP_REGISTRY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "~1.15"
+          terraform_wrapper: false
+      - run: terraform init
+      - name: Plan
+        run: |
+          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
+          { echo '## agentminder'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan

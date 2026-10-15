@@ -72,12 +72,22 @@ appliance directly with TerraCurl.
 ## 6. Avi is tenant managed
 
 The cloud admin turns the load balancer on for the org with a Service
-Engine quota. The platform engineer creates the org's Service Engine
-Group.
+Engine quota and creates the org's Service Engine Group, in
+`terraform/cloud-admin/org-config`. The platform engineer's namespaces
+name the group.
 
-Why: that is how the lab region already runs, and it puts sizing with
-the persona that owns the workloads. A Supervisor Namespace that names
-a group is refused until both exist.
+Why: that is how the lab region already runs. A Supervisor Namespace
+that names a group is refused until both exist. The platform engineer
+used to create the group. It moved when the cloud admin got a namespace
+of its own for AgentMinder (29): that namespace needs the group, and the
+cloud admin runs first.
+
+Cost: a one-shot `import` block in `org-config` and `removed` blocks in
+`terraform/platform-engineer/namespace.tf` moved the existing group
+between states without deleting it. They were applied once in the lab
+and then deleted from the code.
+Teardown has one more rule: destroy the platform engineer before
+`org-config`, because its namespaces use the group.
 
 ## 7. Which provider applies a Kubernetes object
 
@@ -495,3 +505,75 @@ the cloud admin. The old local user `platform-admin` is deleted.
 Cost: one manual step, and the token is a shared secret
 (`PLATFORM_ENGINEER_VCFA_TOKEN` in GitHub). A new AD user can log in only
 after the Identity Broker syncs the directory.
+
+## 29. AgentMinder is installed by its own cloud admin root
+
+`terraform/cloud-admin/agentminder` (state `goad-cloud-admin-agentminder`)
+installs AgentMinder with Helm. The cluster it runs on, with its project
+and namespace, is made by `org-config`. `cloud-admin.yml` runs it as a
+third job, `agentminder`, after `org-config`.
+
+The root reads the project, namespace, and cluster names from the state
+of `org-config` with `terraform_remote_state`. It gets the cluster's
+admin kubeconfig with `vcfa_vks_cluster_kubeconfig`, a client
+certificate that does not expire during a long install. It makes one
+pull secret, `ssp-registry`, for Broadcom's registry, and both charts
+read it through `existingSecrets`.
+
+Why a separate root: the Helm and Kubernetes providers need the
+cluster's address. A provider configured from a resource that the same
+apply creates fails at plan. It is the same problem as decision 23. A
+second root plans only after the cluster exists.
+
+Cost: a third state and a third `terraform.tfvars`. The remote state
+read cannot use `backend.hcl`, so a person must also
+`export TF_HTTP_PASSWORD=<the state token>`. The workflow already sets
+it. Two more repository secrets, `SSP_REGISTRY_USERNAME` and
+`SSP_REGISTRY_PASSWORD`.
+Teardown order: platform engineer, `agentminder`, `org-config`, `org`.
+
+Look again if: the provider can configure Helm from a cluster that the
+same apply creates.
+
+## 30. AgentMinder is installed small
+
+The `ssp` chart runs with `ssp.deployment.size` `demo`, one Hazelcast
+member, and `aigateway` and `mcpserver` on. `otelCollector`,
+`custommetrics`, `selfserviceconsole`, and `fluent-bit` are off.
+`localLlm`, the model for the MCP playground, and `global.observe` are
+off by default. The database volume is 20Gi, not 80Gi. The VKS cluster
+has one control plane and two workers.
+
+Why: this install is for the demo only. It shows the agent gateway and
+the MCP server, not the observability pipeline or the console. Fewer
+components need fewer nodes and less disk, and the lab is shared.
+
+Cost: no metrics, no log shipping, no local model, and one replica of
+each service, so nothing survives a lost node. The namespace `ssp` is
+Pod Security `privileged`, like the lab's other AgentMinder, because a
+stricter profile has not been tried.
+
+Look again if: the demo needs the playground or the dashboards, or the
+cluster runs out of room.
+
+## 31. AgentMinder's DNS name comes from Avi, through AKO
+
+The ingress controller's Service in the AgentMinder cluster has
+`loadBalancerClass: ako.vmware.com/avi-lb` and the annotation
+`external-dns.alpha.kubernetes.io/hostname: agentminder.goad.gpu.set.lab`.
+The cluster's own AKO serves it and puts the name on the Avi virtual
+service. Avi DNS is authoritative for `goad.gpu.set.lab`, and the lab DNS
+delegates that zone to it, so the record exists as soon as the virtual
+service does.
+
+Why: no DNS step by hand, and the record follows the address if the
+Service is made again. A VKS cluster's AKO has `defaultLBController`
+`false`, so a LoadBalancer Service with no class goes to the Supervisor,
+whose virtual services get no FQDN. Tested first with a throwaway
+Service: address and record within a minute, and nginx answered through
+it.
+
+Cost: the name must be in `goad.gpu.set.lab`. `loadBalancerClass` cannot
+change on an existing Service, so moving a Service from the Supervisor to
+AKO means deleting it first. ingress-nginx is no longer the default
+IngressClass; AKO's `avi-lb` is.

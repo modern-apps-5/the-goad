@@ -9,13 +9,16 @@ account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
 
 | File | What it creates |
 |---|---|
-| `avi.tf` | The org's Avi Service Engine Group. |
 | `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM and catalog. |
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
 | `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application. |
 
-It uses the org's default project and default VPC.
+It uses the org's default project and default VPC. It does not create the
+Avi Service Engine Group: the namespaces only name it
+(`service_engine_group_name`). `terraform/cloud-admin/org-config` creates
+it. Destroy this root before `org-config`, because the namespaces use the
+group.
 
 ## Apply
 
@@ -76,8 +79,6 @@ teammate. `docs/terraform-state.md` has the list.
 - Read a namespace's name from `local.namespace_names`, never straight
   from the namespace resource. It keeps the plan working when a
   namespace is added or resized. `namespace.tf` says why.
-- No `wait_for` on the Service Engine Group: it waits with a watch, and
-  an organization administrator cannot watch that kind.
 
 ## Argo CD login
 

@@ -42,7 +42,7 @@ variable "storage_class_name" {
 
 variable "service_engine_group_name" {
   type        = string
-  description = "Name of the Avi Service Engine Group this root creates for the org."
+  description = "Name of the org's Avi Service Engine Group. terraform/cloud-admin/org-config creates it."
   default     = "goad-se-group"
 }
 
