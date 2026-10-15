@@ -35,3 +35,7 @@ storage_policy_limits_mib = {
 }
 
 dsm_infrastructure_policy_names = ["dsm-infra-xscl5"]
+
+ops_url = "https://ops01.gpu.set.lab"
+
+vidb_hostname = "vidb.gpu.set.lab"

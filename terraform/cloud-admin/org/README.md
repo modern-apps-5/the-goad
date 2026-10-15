@@ -1,7 +1,9 @@
-# Cloud admin foundation
+# Cloud admin foundation, stage 1: the org
 
-The cloud admin's Day 0 Terraform. It runs against the VCF Automation
-provider (System) org and stops at the tenant boundary.
+The cloud admin's Day 0 Terraform, first of two roots. It runs against the VCF Automation
+provider (System) org and stops at the tenant boundary. Stage 2, [../org-config](../org-config),
+configures things inside the org and runs after this one. The state is
+`goad-cloud-admin`.
 
 The region, its Distributed VLAN Connection, and the IP space already
 exist in the lab. This root starts at the org and attaches it to them.
@@ -9,11 +11,11 @@ exist in the lab. This root starts at the org and attaches it to them.
 | File | What it creates |
 |---|---|
 | `existing.tf` | Nothing. Reads the existing region and Distributed VLAN Connection. |
-| `org.tf` | The org and its first organization administrator. |
+| `org.tf` | The org and its one local user, `cloud-admin`, an Organization Administrator. |
 | `quota.tf` | The org's region quota: CPU and memory per zone, VM classes, storage. |
 | `networking.tf` | The org's networking settings, its connection to the Distributed VLAN Connection, and the Avi load balancer setting. |
 | `dsm.tf` | The org's DSM data service policy for PostgreSQL. Skipped until `dsm_infrastructure_policy_names` is set. |
-| `oidc.tf` | The org's OIDC identity provider. Skipped until `oidc` is set. |
+| `oidc.tf` | VCF SSO for the org: its OIDC client in the VCF Identity Broker, then the org's OIDC setting. Skipped when `vcf_sso` is false. |
 
 The outputs are what the platform engineer needs: the org to log in to,
 and the region, zones, VM classes, and storage policies to place
@@ -28,6 +30,16 @@ terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
 ```
+
+This root used to be `terraform/cloud-admin`. If you have the old one,
+move your ignored `backend.hcl` and `terraform.tfvars` into `org/` and run
+`terraform init -backend-config=backend.hcl` there again.
+
+The secrets in `terraform.tfvars`: `vcfa_password` (provider
+administrator), `cloud_admin_password` (the team's shared password for
+`cloud-admin`), and `ops_password` (VCF Operations administrator). The
+inputs for VCF SSO are `ops_url`, `vidb_hostname`, and `vcf_sso`
+(default `true`). `cloud_admin_username` defaults to `cloud-admin`.
 
 ## Regional networking uses TerraCurl
 
@@ -62,20 +74,35 @@ infrastructure policies. Every namespace of the org then sees it in its
 `DataServicePolicyBinding`. Unlike the TerraCurl objects, Terraform
 detects drift on this one.
 
+## VCF SSO uses VCF Operations' internal API
+
+An org can have only one local user, so everyone else signs in with VCF
+SSO: their AD account, through the VCF Identity Broker (`vidb_hostname`).
+The org needs an OIDC client in the broker. No provider can create one,
+and the documented broker API needs a client token of a tenant
+administrator. The portal makes it in VCF Operations.
+
+`oidc.tf` logs in to VCF Operations and creates the client with the
+`terracurl` provider at `/suite-api/internal/vidb/oauthclients`, with the
+header `X-vRealizeOps-API-use-unsupported`. Then it sets `vcfa_org_oidc`
+with that client.
+
+The API is internal and unsupported. It can change in another release.
+If it does, `oidc.tf` fails and needs a fix.
+
 ## Before the first apply
 
 - Login is user and password. An API token session cannot create the
-  organization administrator: VCF Automation answers
+  org's local user: VCF Automation answers
   `ACCESS_TO_RESOURCE_IS_FORBIDDEN`.
-- State holds the organization administrator password and the OIDC
-  client secret. State is remote: see "Terraform state" in the top-level
+- State holds the `cloud-admin` password and the OIDC client secret.
+  State is remote: see "Terraform state" in the top-level
   README.
 
 ## Not covered
 
 - GPU. No GPU VM class is in the example quota. Add the class name to
   `vm_class_names` when a GPU is allocated.
-- OIDC group to role mapping. The provider configures the identity
-  provider for the org but has no resource to import an OIDC group and
-  give it a role. That step is manual in the UI until it is automated
-  another way.
+- OIDC group to role mapping. The provider has no resource to import
+  an OIDC group and give it a role. Stage 2 imports users one by one
+  instead.

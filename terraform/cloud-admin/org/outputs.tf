@@ -1,5 +1,5 @@
-# The contract with the platform engineer. Their Terraform and Argo CD
-# need the org to log in to and the region to place namespaces in.
+# The contract with terraform/cloud-admin/org-config and the platform
+# engineer.
 
 output "org_name" {
   value = vcfa_org.this.name
@@ -29,6 +29,6 @@ output "storage_policy_names" {
   value = keys(var.storage_policy_limits_mib)
 }
 
-output "org_admin_username" {
-  value = vcfa_org_local_user.admin.username
+output "cloud_admin_username" {
+  value = vcfa_org_local_user.cloud_admin.username
 }

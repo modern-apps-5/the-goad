@@ -1,6 +1,6 @@
 # Terraform state
 
-Where the state of the three Terraform roots lives, how to set up a
+Where the state of the Terraform roots lives, how to set up a
 machine to use it, and how it was set up in Gitea.
 
 ## Where it is
@@ -11,7 +11,8 @@ keeps every version.
 
 | Root | Gitea organization | State name |
 |---|---|---|
-| `terraform/cloud-admin` | `the-goad` | `goad-cloud-admin` |
+| `terraform/cloud-admin/org` | `the-goad` | `goad-cloud-admin` |
+| `terraform/cloud-admin/org-config` | `the-goad` | `goad-cloud-admin-org-config` |
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
 | `terraform/runner` | `the-goad` | `goad-runner` |
 
@@ -52,13 +53,15 @@ and do not make your own.
 |---|---|---|
 | Deploy key | `terraform/platform-engineer/.secrets/gitops-deploy-key` | Terraform replaces the key in Argo CD's repository Secret with yours. Yours is not on the GitHub repository, so Argo CD can no longer read git and stops syncing. |
 | `pais_admin_password_hash` | `terraform/platform-engineer/terraform.tfvars` | The hash is salted. A new hash of the same password is still a different value, so Terraform rewrites the Secret and Private AI Services restarts pods. Copy the hash itself. |
-| `org_admin_password` | `terraform/cloud-admin/terraform.tfvars` | Terraform changes the password of `platform-admin`. Everyone else's platform engineer login then fails. |
-| `vcfa_password` | `terraform.tfvars` of cloud admin and of platform engineer | Not written to the lab, but a wrong one fails the login. It is the password of a shared account in both roots. |
+| `cloud_admin_password` | `terraform/cloud-admin/org/terraform.tfvars` and `terraform/cloud-admin/org-config/terraform.tfvars` | Terraform changes the password of `cloud-admin`, the org's one local user. Stage 2 and everyone else's login then fail. It is the same value in both files. |
+| `ops_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the VCF Operations login that makes the org's VCF SSO client. |
+| `vcfa_api_token` | `terraform/platform-engineer/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is an API token of `svc.platform_engineer@set.lab`, made by hand once. |
+| `vcfa_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is the provider administrator's password. |
 | `vcenter_password` | `terraform/runner/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. |
 | GitHub App's private key | `terraform/runner/.secrets/private-key.pem` | Terraform replaces the key in the Secret `github-app` with yours. If yours is not a key of that App, the runner's pods cannot register after their next restart. |
 
-The repository secrets in GitHub are one more copy of the first four
-values, and of the state token. The workflows apply with them. When one
+The repository secrets in GitHub are one more copy of these values
+and of the state token. The workflows apply with them. When one
 of these values changes, change the repository secret too:
 [terraform/runner/README.md](../terraform/runner/README.md) lists which
 secret holds which value.
@@ -71,8 +74,9 @@ like any other.
 The simplest rule: keep one copy of each of these in the team's password
 manager, and copy the whole file.
 
-- `terraform/cloud-admin/terraform.tfvars` (two passwords)
-- `terraform/platform-engineer/terraform.tfvars` (one password, one
+- `terraform/cloud-admin/org/terraform.tfvars` (three passwords)
+- `terraform/cloud-admin/org-config/terraform.tfvars` (one password)
+- `terraform/platform-engineer/terraform.tfvars` (one API token, one
   hash)
 - `terraform/platform-engineer/.secrets/gitops-deploy-key`
 - The token for `backend.hcl`
@@ -122,8 +126,9 @@ too.
 
 ## What the state holds
 
-Passwords and a private key: the VCF Automation provider administrator
-password, the org administrator password, the Argo CD deploy key, and
+Passwords, a token, and a private key: the VCF Automation provider
+administrator password, the `cloud-admin` password, the VCF Operations
+password, the platform engineer's API token, the Argo CD deploy key, and
 the Private AI Services password hash. Anyone with the shared token can
 read them. Treat the token as you would those.
 
@@ -180,7 +185,7 @@ when you know why the current state is wrong.
 ## Replacing the token
 
 Create a new token for `goad-terraform` in Gitea and delete the old one.
-Everyone puts the new one in both `backend.hcl` files and runs
+Everyone puts the new one in every `backend.hcl` file and runs
 `terraform init -reconfigure -backend-config=backend.hcl`.
 
 ## Pointing at another Gitea, organization, or state name

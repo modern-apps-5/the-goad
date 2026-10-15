@@ -10,7 +10,8 @@ and the platform engineer.
 
 | Persona | Tool | What it builds | Where |
 |---|---|---|---|
-| Cloud admin | Terraform | The org: quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin](terraform/cloud-admin) |
+| Cloud admin | Terraform | Stage 1: the org, VCF SSO, quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin/org](terraform/cloud-admin/org) |
+| Cloud admin | Terraform | Stage 2: inside the org, the users and their roles | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
 | Platform engineer | Terraform | Service Engine Group, Supervisor Namespaces, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 | Platform engineer | Argo CD | The shop's users VM and its DSM catalog database | [gitops/music-store](gitops/music-store) |
@@ -27,22 +28,28 @@ already use.
 
 ## Automation flow
 
-Two Terraform applies, from a machine or from GitHub, then Argo CD. An arrow means the first box is
+Three Terraform applies, from a machine or from GitHub, then Argo CD. An arrow means the first box is
 done before the second one starts.
 
 ```mermaid
 flowchart TD
-    subgraph cloud_admin["1. Cloud admin: terraform/cloud-admin"]
-        org["Org goad and its administrator platform-admin"]
+    subgraph cloud_admin["1. Cloud admin: terraform/cloud-admin/org"]
+        org["Org goad and its local user cloud-admin"]
+        sso["VCF SSO: OIDC client in the Identity Broker"]
         quota["Region quota: zone, VM classes, storage"]
         networking["Org networking and regional networking"]
         avi_setting["Avi load balancer setting"]
         dsm_policy["DSM PostgreSQL policy"]
+        org --> sso
         org --> quota --> networking --> avi_setting
         org --> dsm_policy
     end
 
-    subgraph platform_engineer["2. Platform engineer: terraform/platform-engineer"]
+    subgraph org_config["2. Cloud admin: terraform/cloud-admin/org-config"]
+        users["VCF SSO users, roles, and project admin"]
+    end
+
+    subgraph platform_engineer["3. Platform engineer: terraform/platform-engineer"]
         seg["Service Engine Group"]
         namespaces["Supervisor Namespaces: platform, private-ai, music-store"]
         argocd["Argo CD instance, in platform"]
@@ -57,7 +64,7 @@ flowchart TD
 
     git[("GitHub: gitops/ on main")]
 
-    subgraph private_ai["3. Argo CD: gitops/private-ai"]
+    subgraph private_ai["4. Argo CD: gitops/private-ai"]
         pais_wave0["Wave 0: PostgresCluster pais-db and its Service"]
         pais_wave1["Wave 1: Job writes the database address into the Service"]
         pais_wave2["Wave 2: PAISConfiguration"]
@@ -65,14 +72,15 @@ flowchart TD
         pais_wave0 --> pais_wave1 --> pais_wave2 --> pais_wave3
     end
 
-    subgraph music_store["3. Argo CD: gitops/music-store"]
+    subgraph music_store["4. Argo CD: gitops/music-store"]
         shop_wave0["Wave 0: PostgresCluster catalog, its Service, and the users VM"]
         shop_wave1["Wave 1: Job writes the database address into the Service"]
         shop_wave2["Wave 2: Job catalog-init fills the catalog"]
         shop_wave0 --> shop_wave1 --> shop_wave2
     end
 
-    cloud_admin -->|"org_admin_password becomes vcfa_password"| platform_engineer
+    cloud_admin --> org_config
+    org_config -->|"svc.platform_engineer API token becomes vcfa_api_token"| platform_engineer
     repo_secret -.->|"read access"| git
     git -.->|"Argo CD pulls"| handoff
     handoff -->|"Application private-ai"| private_ai
@@ -88,20 +96,22 @@ change.
 ## Joining a demo that is already built
 
 The lab is shared and the demo is running. To work on it from your
-machine you do not build anything. You need four secrets that the team
+machine you do not build anything. You need the secrets that the team
 shares, and nothing else that is not in git:
 
-1. Get them from a teammate: the two `terraform.tfvars` files, the
+1. Get them from a teammate: the three `terraform.tfvars` files, the
    deploy key, and the state token. They come as one text to paste at
-   the root of your clone.
-2. In `terraform/cloud-admin` and in `terraform/platform-engineer`:
+   the root of your clone. Put the cloud admin's files in
+   `terraform/cloud-admin/org` and `terraform/cloud-admin/org-config`.
+2. In `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
+   and `terraform/platform-engineer`:
 
    ```sh
    terraform init -backend-config=backend.hcl
    terraform plan
    ```
 
-3. Both plans must show no changes. If one shows a change you did not
+3. All plans must show no changes. If one shows a change you did not
    make, stop: your files differ from the team's.
    [docs/terraform-state.md](docs/terraform-state.md) says which
    difference causes which change.
@@ -116,12 +126,12 @@ GitHub App's private key: see
 
 ## Running Terraform from GitHub
 
-The two persona roots can also run in GitHub Actions, on a runner in the
+The persona roots can also run in GitHub Actions, on a runner in the
 lab. There is one workflow for each persona:
 
 | Workflow | Root |
 |---|---|
-| `cloud-admin` | `terraform/cloud-admin` |
+| `cloud-admin` | Two jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config` |
 | `platform-engineer` | `terraform/platform-engineer` |
 
 A workflow runs only when a person starts it. Nothing runs on a pull
@@ -176,7 +186,7 @@ the Gitea user that holds the Terraform state: see "Terraform state".
 ### 1. Cloud admin: create the org
 
 ```sh
-cd terraform/cloud-admin
+cd terraform/cloud-admin/org
 cp terraform.tfvars.example terraform.tfvars
 ```
 
@@ -187,9 +197,10 @@ Two files hold the inputs:
   limits, VM classes, storage, and the DSM infrastructure policy. For a
   different lab, change this file and commit it.
 - `terraform.tfvars`, not in git: `vcfa_password`, the provider
-  administrator's password, and `org_admin_password`, which Terraform
-  sets for the user `platform-admin`. If the demo is already built, copy
-  the team's file.
+  administrator's password, `cloud_admin_password`, which Terraform sets
+  for the org's one local user `cloud-admin`, and `ops_password`, the
+  VCF Operations administrator's password. If the demo is already built,
+  copy the team's file.
 
 ```sh
 cp backend.hcl.example backend.hcl             # then put the state token in it
@@ -197,10 +208,30 @@ terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
-It creates the org `goad`, its administrator, quota, networking, the Avi
-setting, and the DSM policy. If the last line of the plan warns that
-regional networking is not realized, wait a minute and run
-`terraform plan` until the warning is gone.
+It creates the org `goad`, its local user `cloud-admin` (Organization
+Administrator), VCF SSO for the org, quota, networking, the Avi setting,
+and the DSM policy. If the last line of the plan warns that regional
+networking is not realized, wait a minute and run `terraform plan` until
+the warning is gone.
+
+The VCF SSO part makes the org's OIDC client in the VCF Identity Broker
+through VCF Operations' internal API, which is unsupported and can change
+in another release. See [decision 27](docs/decisions.md).
+
+### 1b. Cloud admin: configure the org
+
+```sh
+cd ../org-config
+cp terraform.tfvars.example terraform.tfvars   # cloud_admin_password, the same as in org
+cp backend.hcl.example backend.hcl             # then put the state token in it
+terraform init -backend-config=backend.hcl
+terraform apply
+```
+
+It logs in to the org as `cloud-admin` and imports the VCF SSO users:
+the platform engineers, who become admins of the project
+`default-project`, and the AD service account
+`svc.platform_engineer@set.lab`.
 
 ### 2. Give Argo CD read access to this repository
 
@@ -227,6 +258,12 @@ the organization's settings.
 
 ### 3. Platform engineer: namespaces, Argo CD, handoff
 
+Make the API token first, once, by hand: log in to the org `goad` with
+VCF SSO as `svc.platform_engineer@set.lab`, then User Preferences, API
+Tokens. A new AD user can log in only after the Identity Broker syncs the
+directory (VCF Operations, Fleet Management, Identity & Access, VCF SSO).
+If the demo is already built, the team's `terraform.tfvars` has the token.
+
 ```sh
 cd terraform/platform-engineer
 cp terraform.tfvars.example terraform.tfvars
@@ -236,8 +273,8 @@ Again two files:
 
 - `lab.auto.tfvars`, in git: the region, zone, VPC, storage class, and
   the path of the deploy key.
-- `terraform.tfvars`, not in git: `vcfa_password`, which is the
-  `org_admin_password` from step 1, and `pais_admin_password_hash`, the
+- `terraform.tfvars`, not in git: `vcfa_api_token`, the API token above,
+  and `pais_admin_password_hash`, the
   output of `openssl passwd -6` for the Private AI Services user
   `admin`. If the demo is already built, copy the team's file.
 
@@ -277,11 +314,11 @@ Service name in front of the database.
 
 ### 5. Check it
 
-- **VCF Automation**, as `platform-admin` in the org `goad`: three
+- **VCF Automation**, as `william.arroyo@set.lab` in the org `goad`: three
   namespaces in the default project.
 - **Argo CD**: the address is the `externalIP` in the status of the
   `ArgoCD` object in the `platform` namespace. Log in with "VCF
-  Automation" as `platform-admin`. The Application `private-ai` is
+  Automation" as `william.arroyo@set.lab`. The Application `private-ai` is
   `Synced` and `Healthy`. On a first deploy the page answers only after
   Avi has started its Service Engines.
 - **Private AI Services**: the address is the external IP of the Service
@@ -292,11 +329,13 @@ Service name in front of the database.
 ### Tear down
 
 Reverse order. The platform engineer first, because the org cannot be
-deleted while it has namespaces and a Service Engine Group.
+deleted while it has namespaces and a Service Engine Group. Then
+`org-config`, then `org`.
 
 ```sh
 cd terraform/platform-engineer && terraform destroy
-cd ../cloud-admin && terraform destroy
+cd ../cloud-admin/org-config && terraform destroy
+cd ../org && terraform destroy
 ```
 
 Deleting a namespace deletes what Argo CD put in it: for `private-ai`,
@@ -310,7 +349,8 @@ talks to it, with locking. Gitea keeps every version of the state.
 
 | Root | State name |
 |---|---|
-| `terraform/cloud-admin` | `goad-cloud-admin` |
+| `terraform/cloud-admin/org` | `goad-cloud-admin` |
+| `terraform/cloud-admin/org-config` | `goad-cloud-admin-org-config` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
 | `terraform/runner` | `goad-runner` |
 
@@ -333,7 +373,8 @@ what to do when it goes wrong, and how to go back to an earlier state.
 ## Layout
 
 ```
-terraform/cloud-admin/         Provider (System) org scope
+terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
+terraform/cloud-admin/org-config/  Stage 2, inside the org: users and roles
 terraform/platform-engineer/   Inside the org; stops at the handoff to Argo CD
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
   manifests/                   Manifests that Terraform applies
@@ -364,7 +405,7 @@ Manifests under `gitops/` do not set a namespace.
   own. With different values, each apply undoes the last person's.
   [docs/terraform-state.md](docs/terraform-state.md) lists what breaks.
 - **The lab is shared.** `terraform apply` and `terraform destroy` in
-  `cloud-admin` create and delete a real org.
+  `cloud-admin/org` create and delete a real org.
 - **No GPU.** The model runs on CPU. Do not say GPU on camera until one
   is allocated.
 - **This repository is tied to one lab.** `lab.auto.tfvars`,
@@ -385,5 +426,6 @@ Manifests under `gitops/` do not set a namespace.
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
 | [terraform/runner/README.md](terraform/runner/README.md) | The self-hosted runner that the workflows run on, and how to build it |
-| [terraform/cloud-admin/README.md](terraform/cloud-admin/README.md) | The cloud admin Terraform in detail |
+| [terraform/cloud-admin/org/README.md](terraform/cloud-admin/org/README.md) | The cloud admin Terraform, stage 1 (the org), in detail |
+| [terraform/cloud-admin/org-config/README.md](terraform/cloud-admin/org-config/README.md) | The cloud admin Terraform, stage 2 (inside the org), in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |
