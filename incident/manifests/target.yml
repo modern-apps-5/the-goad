@@ -1,0 +1,9 @@
+# Captain approved 2026-10-14.
+# Live org identifier is goad. Do not create a second org named Goad.
+# Runtime is VKS cluster goad-store, not Cloud Foundry.
+# GOAD_VCFA_SPACE stays empty. Do not run manifests/tanzu/push.py.
+vcfa_org: goad
+vcfa_space: ""
+runtime: vks
+cluster: goad-store
+namespace: metal-music-app-agentic-system

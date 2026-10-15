@@ -1,0 +1,24 @@
+# DO NOT APPLY from this pull request.
+#
+# One ingress for the shop, on the service engine group that already
+# exists. Do not create a service engine group. ingressClassName avi is
+# the class name to try. If the cluster rejects it, stop.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metal-store
+  annotations:
+    ako.vmware.com/service-engine-group: goad-se-group
+spec:
+  ingressClassName: avi
+  rules:
+    - host: ${STORE_HOST}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: music-store-1-service
+                port:
+                  number: 5000

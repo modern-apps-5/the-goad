@@ -1,0 +1,16 @@
+# Namespace metal-music-store on cluster goad-store.
+# Do not apply from this pull request.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: metal-music-store
+
+resources:
+  - k8s-cart-deployment.yaml
+  - k8s-database-deployment.yaml
+  - k8s-deployment.yaml
+  - k8s-order-deployment.yaml
+  - k8s-users-deployment.yaml
+  - k8s-chat-deployment.yaml
+  - k8s-traffic-generator-deployment.yaml
+  - ingress.yaml

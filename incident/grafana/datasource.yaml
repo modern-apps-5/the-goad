@@ -1,0 +1,12 @@
+# DO NOT APPLY from this pull request.
+# Prometheus in namespace grafana does not exist yet. The uid matches
+# the boards and alerts. There is no GPU exporter.
+apiVersion: 1
+datasources:
+  - name: Goad Prometheus
+    type: prometheus
+    uid: goad-prometheus
+    access: proxy
+    url: http://prometheus.grafana.svc.cluster.local:9090
+    isDefault: true
+    editable: false
