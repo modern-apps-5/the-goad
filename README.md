@@ -25,8 +25,8 @@ for them, but does not deploy the containers onto it yet.
 DSM catalog, and the VKS cluster `music-store`. No file sets a namespace
 or an address. Terraform creates the `music-store` namespace with the
 others, and Argo CD syncs that directory into it. The shop login is
-`admin` / `admin`. The catalog Service is `postgres-service`, which is the `DB_HOST` the containers
-already use.
+`admin` / `admin`. The catalog Service is `postgres-service`, which is
+the `DB_HOST` the containers already use.
 
 ## Automation flow
 
