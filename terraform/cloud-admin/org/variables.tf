@@ -65,15 +65,15 @@ variable "org_log_name" {
   }
 }
 
-variable "org_admin_username" {
+variable "cloud_admin_username" {
   type        = string
-  description = "Username of the first organization administrator."
-  default     = "platform-admin"
+  description = "Username of the org's first administrator, for the cloud admin."
+  default     = "cloud-admin"
 }
 
-variable "org_admin_password" {
+variable "cloud_admin_password" {
   type        = string
-  description = "Password for org_admin_username."
+  description = "Password for cloud_admin_username. The team's shared password."
   sensitive   = true
 }
 
@@ -115,22 +115,32 @@ variable "dsm_infrastructure_policy_names" {
   default     = []
 }
 
-# --- OIDC ---
+# --- VCF SSO ---
 
-variable "oidc" {
-  type = object({
-    wellknown_endpoint = string
-    client_id          = string
-    prefer_id_token    = optional(bool, true)
-    ui_button_label    = optional(string, "Sign in with SSO")
-  })
-  description = "OIDC identity provider for the org. Null skips OIDC."
-  default     = null
+variable "vcf_sso" {
+  type        = bool
+  description = "Log in to the org with VCF SSO, through the VCF Identity Broker. False leaves the org with its local user only."
+  default     = true
 }
 
-variable "oidc_client_secret" {
+variable "vidb_hostname" {
   type        = string
-  description = "OIDC client secret."
+  description = "Host name of the VCF Identity Broker that holds the org's OIDC client."
+}
+
+variable "ops_url" {
+  type        = string
+  description = "VCF Operations URL, for example https://ops.lab.example. Terraform creates the org's OIDC client through it."
+}
+
+variable "ops_username" {
+  type        = string
+  description = "VCF Operations local administrator."
+  default     = "admin"
+}
+
+variable "ops_password" {
+  type        = string
+  description = "Password for ops_username."
   sensitive   = true
-  default     = null
 }

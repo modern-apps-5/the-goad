@@ -113,14 +113,16 @@ means that the App does not have the permission.
 
 ### 4. The workflows' secrets
 
-The workflows read five repository secrets. They are the team's shared
+The workflows read eight repository secrets. They are the team's shared
 values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.md).
 
 | Secret | Where the value is |
 |---|---|
 | `GITEA_STATE_TOKEN` | `password` in any `backend.hcl` |
-| `VCFA_ADMIN_PASSWORD` | `vcfa_password` in `terraform/cloud-admin/terraform.tfvars` |
-| `ORG_ADMIN_PASSWORD` | `org_admin_password` in `terraform/cloud-admin/terraform.tfvars` |
+| `VCFA_ADMIN_PASSWORD` | `vcfa_password` in `terraform/cloud-admin/org/terraform.tfvars` |
+| `CLOUD_ADMIN_PASSWORD` | `cloud_admin_password` in `terraform/cloud-admin/org/terraform.tfvars` |
+| `OPS_ADMIN_PASSWORD` | `ops_password` in `terraform/cloud-admin/org/terraform.tfvars` |
+| `PLATFORM_ENGINEER_VCFA_TOKEN` | `vcfa_api_token` in `terraform/platform-engineer/terraform.tfvars` |
 | `PAIS_ADMIN_PASSWORD_HASH` | `pais_admin_password_hash` in `terraform/platform-engineer/terraform.tfvars` |
 | `GITOPS_DEPLOY_KEY` | The file `terraform/platform-engineer/.secrets/gitops-deploy-key` |
 

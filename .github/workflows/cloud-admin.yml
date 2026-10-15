@@ -1,5 +1,8 @@
-# The cloud admin's Terraform root, on the lab's self-hosted runner. GitHub's
-# own runners cannot reach VCF Automation or the lab's Gitea server.
+# The cloud admin's two Terraform roots, on the lab's self-hosted runner.
+# GitHub's own runners cannot reach VCF Automation or the lab's Gitea server.
+#
+# Two jobs, in order: org creates the org (terraform/cloud-admin/org), then
+# org-config configures things inside it (terraform/cloud-admin/org-config).
 #
 # It runs only when a person starts it: Actions, this workflow, Run workflow.
 # It plans. It applies only if "apply" is ticked, and only on main. A pull
@@ -39,18 +42,21 @@ env:
   APPLY: ${{ github.ref == 'refs/heads/main' && inputs.apply }}
 
 jobs:
-  terraform:
+  org:
     runs-on: [self-hosted, lab]
     timeout-minutes: 30
     defaults:
       run:
         shell: bash
-        working-directory: terraform/cloud-admin
+        working-directory: terraform/cloud-admin/org
     env:
       # The provider administrator, admin in the System org.
       TF_VAR_vcfa_password: ${{ secrets.VCFA_ADMIN_PASSWORD }}
-      # What Terraform sets for platform-admin, the org's administrator.
-      TF_VAR_org_admin_password: ${{ secrets.ORG_ADMIN_PASSWORD }}
+      # What Terraform sets for cloud-admin, the org's one local user.
+      TF_VAR_cloud_admin_password: ${{ secrets.CLOUD_ADMIN_PASSWORD }}
+      # The VCF Operations administrator. Terraform makes the org's VCF SSO
+      # client through VCF Operations.
+      TF_VAR_ops_password: ${{ secrets.OPS_ADMIN_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4
@@ -61,7 +67,33 @@ jobs:
       - name: Plan
         run: |
           terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
-          { echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '## org'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply
+        if: env.APPLY == 'true'
+        run: terraform apply -no-color -lock-timeout=5m tfplan
+
+  org-config:
+    needs: org
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/cloud-admin/org-config
+    env:
+      # cloud-admin, the user the org job made. Same value as there.
+      TF_VAR_cloud_admin_password: ${{ secrets.CLOUD_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "~1.15"
+          terraform_wrapper: false
+      - run: terraform init
+      - name: Plan
+        run: |
+          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
+          { echo '## org-config'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan

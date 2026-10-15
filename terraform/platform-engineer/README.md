@@ -4,6 +4,9 @@ The platform engineer's Day 0 Terraform. It logs in to the org the cloud
 admin created, never to the provider (System) org, and stops when Argo CD
 has something to sync.
 
+It logs in with `vcfa_api_token`: a user API token of the AD service
+account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
+
 | File | What it creates |
 |---|---|
 | `avi.tf` | The org's Avi Service Engine Group. |
@@ -16,7 +19,20 @@ It uses the org's default project and default VPC.
 
 ## Apply
 
-Apply `terraform/cloud-admin` first.
+Apply `terraform/cloud-admin/org` and `terraform/cloud-admin/org-config`
+first. `org-config` imports `svc.platform_engineer@set.lab` into the org.
+
+Make the API token once, by hand: log in to the org `goad` with VCF SSO
+as that user, then User Preferences, API Tokens. Put it in
+`terraform.tfvars` as `vcfa_api_token`. A new AD user can log in only
+after the Identity Broker syncs the directory (VCF Operations, Fleet
+Management, Identity & Access, VCF SSO). If the demo is built, copy the
+team's file.
+
+It is not a VCF Automation service account. A service account's session
+cannot manage other service accounts (403 `SERVICE_ACCOUNT_SIMPLE_VIEW`),
+and the Argo CD step in `argocd.tf` needs that. A user API token session
+can.
 
 ```sh
 cp terraform.tfvars.example terraform.tfvars   # secrets only; copy the team's if the demo is built
@@ -67,6 +83,7 @@ teammate. `docs/terraform-state.md` has the list.
 
 The instance has a load balancer address, and with that the service
 registers it with VCF Automation as an OIDC client. Users of the org log
-in with "VCF Automation". `manifests/argocd.yaml` sets what they can do.
+in with "VCF Automation". `manifests/argocd.yaml` sets what they can do:
+`william.arroyo@set.lab` has `role:admin`.
 On the first deploy the UI answers only after Avi has started the
 Service Engines.

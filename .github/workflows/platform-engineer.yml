@@ -49,8 +49,9 @@ jobs:
         shell: bash
         working-directory: terraform/platform-engineer
     env:
-      # platform-admin's password: the org_admin_password the cloud admin set.
-      TF_VAR_vcfa_password: ${{ secrets.ORG_ADMIN_PASSWORD }}
+      # API token of svc.platform_engineer@set.lab, the AD service account
+      # that terraform/cloud-admin/org-config made an org administrator.
+      TF_VAR_vcfa_api_token: ${{ secrets.PLATFORM_ENGINEER_VCFA_TOKEN }}
       TF_VAR_pais_admin_password_hash: ${{ secrets.PAIS_ADMIN_PASSWORD_HASH }}
     steps:
       - uses: actions/checkout@v7

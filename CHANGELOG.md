@@ -3,6 +3,62 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-15
+
+### Changed
+
+- The cloud admin is now two Terraform roots, run in order.
+  `terraform/cloud-admin/` moved to `terraform/cloud-admin/org/` (stage 1:
+  creates the org; the state is still `goad-cloud-admin`). The new
+  `terraform/cloud-admin/org-config/` is stage 2: it configures things
+  inside the org (state `goad-cloud-admin-org-config`). Teammates move
+  their ignored `backend.hcl` and `terraform.tfvars` into `org/`, run
+  `terraform init -backend-config=backend.hcl` there again, and set up
+  `org-config/` the same way. Teardown order: platform engineer, then
+  `org-config`, then `org`.
+- The org's one local user is now `cloud-admin`, an Organization
+  Administrator, made by stage 1 with `cloud_admin_password`. The local
+  user `platform-admin` is deleted. VCF Automation allows one local user
+  for each org.
+- `terraform/platform-engineer` logs in with `vcfa_api_token`, a user API
+  token of `svc.platform_engineer@set.lab`, made by hand once in the UI.
+  It is not a VCF Automation service account: a service account's session
+  cannot manage other service accounts (403 `SERVICE_ACCOUNT_SIMPLE_VIEW`),
+  and the Argo CD step in `argocd.tf` needs that.
+- Argo CD: `role:admin` is now for `william.arroyo@set.lab`, not
+  `platform-admin` (`terraform/platform-engineer/manifests/argocd.yaml`).
+- `.github/workflows/cloud-admin.yml` has two jobs, `org` then
+  `org-config`. `platform-engineer.yml` passes
+  `PLATFORM_ENGINEER_VCFA_TOKEN` as `TF_VAR_vcfa_api_token`.
+- `README.md`, `docs/terraform-state.md`, `docs/decisions.md`, and the
+  READMEs of the roots follow all of the above.
+
+### Added
+
+- VCF SSO for the org, in stage 1. `oidc.tf` creates the org's OIDC client
+  in the VCF Identity Broker through VCF Operations' internal, unsupported
+  API (`/suite-api/internal/vidb/oauthclients`), then sets
+  `vcfa_org_oidc`. People sign in with their AD account. New variables:
+  `cloud_admin_username`, `cloud_admin_password`, `ops_password`,
+  `ops_url`, `vidb_hostname`, and `vcf_sso`.
+- `terraform/cloud-admin/org-config`: `users.tf` imports VCF SSO users
+  into the org. Platform engineers (`platform_engineers`) get the org role
+  Organization User and admin of the project `default-project`, through a
+  ProjectRoleBinding. The AD service account
+  `svc.platform_engineer@set.lab` is imported as Organization
+  Administrator.
+- `terraform/cloud-admin/org-config/README.md`.
+- Repository secrets `CLOUD_ADMIN_PASSWORD`, `OPS_ADMIN_PASSWORD`, and
+  `PLATFORM_ENGINEER_VCFA_TOKEN`.
+- `docs/decisions.md`: decisions 26, 27, and 28.
+
+### Removed
+
+- The variables `org_admin_username` and `org_admin_password` of the cloud
+  admin, and `vcfa_password` of the platform engineer.
+- The repository secret `ORG_ADMIN_PASSWORD`. It stays until this change
+  is merged, then it is deleted.
+
 ## 2026-10-12
 
 ### Fixed

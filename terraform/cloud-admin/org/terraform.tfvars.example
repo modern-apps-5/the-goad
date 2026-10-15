@@ -1,0 +1,19 @@
+# Secrets for the cloud admin's org root. Copy to terraform.tfvars, which
+# git ignores.
+#
+# Shared by the team. If the demo is already built, copy the team's
+# terraform.tfvars and do not write your own.
+#
+# Everything that is not secret is in lab.auto.tfvars, in git.
+
+# Password of the provider administrator (admin) in the System org.
+vcfa_password = "CHANGE-ME"
+
+# Password of the org's first administrator, cloud-admin. Terraform sets
+# it. The team's shared password: terraform/cloud-admin/org-config logs in
+# with the same value.
+cloud_admin_password = "CHANGE-ME"
+
+# Password of the VCF Operations local administrator (admin). Terraform
+# creates the org's VCF SSO client through VCF Operations.
+ops_password = "CHANGE-ME"

@@ -11,8 +11,8 @@ Connection for external traffic, Avi as the load balancer, and the
 ## 1. The cloud admin Terraform starts at the org
 
 The region, its Distributed VLAN Connection, and the IP space already
-exist in the lab. `terraform/cloud-admin` reads them and creates the org
-and what belongs to it.
+exist in the lab. `terraform/cloud-admin/org` reads them and creates the org
+and what belongs to it. See 26 for the second root.
 
 Why: a Supervisor belongs to one region, and the lab is shared. Creating
 a second region is not possible, and importing the existing one would
@@ -49,13 +49,14 @@ Look again if: the next step fails often because it ran too soon.
 ## 4. The cloud admin logs in with user and password
 
 An API token session cannot create users. VCF Automation answers
-`ACCESS_TO_RESOURCE_IS_FORBIDDEN`, and `org.tf` creates the org's first
-administrator.
+`ACCESS_TO_RESOURCE_IS_FORBIDDEN`, and `org.tf` creates the org's one
+local user, `cloud-admin`.
 
 Why: one credential that can do everything in the root.
 
-Look again if: the first administrator comes from an identity provider
-and the local user goes away.
+Both cloud admin roots log in this way: `org` as the provider
+administrator, `org-config` as `cloud-admin`. The platform engineer root
+is different: see 28.
 
 ## 5. The DSM policy goes through VCF Automation, with `kubernetes_manifest`
 
@@ -183,7 +184,7 @@ Passwords and keys are in `terraform.tfvars`, `backend.hcl`, and
 ## 17. Terraform resources have descriptive names
 
 Not `this`. A rename of a resource that is already in state gets a
-`moved` block. `terraform/cloud-admin` still has resources named `this`.
+`moved` block. `terraform/cloud-admin/org` still has resources named `this`.
 
 ## 18. Argo CD has health checks for the database, Private AI Services, and the model
 
@@ -340,7 +341,8 @@ manager.
 Why: a different deploy key replaces the one in Argo CD's repository
 Secret, and Argo CD stops reading git. A new hash of the same password
 is still a different value, because the hash is salted. A different
-`org_admin_password` changes the password everyone else logs in with.
+`cloud_admin_password` changes the password of `cloud-admin`, and
+stage 2 and everyone else's login fail.
 
 This follows from two earlier choices: shared accounts instead of one
 per person (4, 22), and secrets kept out of git (16).
@@ -438,3 +440,58 @@ with environment protection rules, or the runner needs more than a few
 replicas. The first is when a pull request can plan and a push to `main` can apply.
 The second allows a reviewer before apply. The third is where a controller
 that scales on the job queue is worth its weight.
+
+## 26. The cloud admin is two roots: org, then org-config
+
+`terraform/cloud-admin/org` (state `goad-cloud-admin`) creates the org,
+VCF SSO, quota, networking, and the DSM policy.
+`terraform/cloud-admin/org-config` (state `goad-cloud-admin-org-config`)
+configures things inside the org. `cloud-admin.yml` runs them as two jobs,
+`org` then `org-config`.
+
+Why: the first root logs in to the provider (System) org, and the second
+logs in to the org itself, as `cloud-admin`. A provider cannot log in to
+an org that its own apply has not created yet. Two roots also keep the
+work inside the org out of the destroy of the org.
+
+Cost: two states, two `terraform.tfvars`, and teardown in order:
+platform engineer, then `org-config`, then `org`. Teammates who had the
+old single root move their `backend.hcl` and `terraform.tfvars` into `org/`
+and run `terraform init` there again.
+
+Look again if: the provider can configure an org it creates in one root.
+
+## 27. VCF SSO is wired through VCF Operations' internal API
+
+`oidc.tf` creates the org's OIDC client in the VCF Identity Broker with
+TerraCurl, at `/suite-api/internal/vidb/oauthclients` on VCF Operations,
+with the header `X-vRealizeOps-API-use-unsupported`. Then it sets
+`vcfa_org_oidc`.
+
+Why: VCF Automation allows one local user for each org, so people must
+come in through AD and the Identity Broker. No provider can create the
+client, and the documented broker API needs a client token of a tenant
+administrator, which does not exist yet.
+
+Cost: the API is internal and unsupported, and it can change in another
+release. `oidc.tf` then fails and needs a fix.
+
+Look again if: a provider or a documented API creates the client.
+
+## 28. The platform engineer logs in with an AD service user's API token
+
+`terraform/platform-engineer` uses `vcfa_api_token`: a user API token of
+the AD service account `svc.platform_engineer@set.lab`. `org-config`
+imports that user as Organization Administrator. The token is made by
+hand once, in the UI, as that user.
+
+Why not a VCF Automation service account: its session cannot manage other
+service accounts (403 `SERVICE_ACCOUNT_SIMPLE_VIEW`), and the Argo CD step
+in `argocd.tf` needs that. A user API token session can.
+
+Why not the local user: the org has one, `cloud-admin`, and it belongs to
+the cloud admin. The old local user `platform-admin` is deleted.
+
+Cost: one manual step, and the token is a shared secret
+(`PLATFORM_ENGINEER_VCFA_TOKEN` in GitHub). A new AD user can log in only
+after the Identity Broker syncs the directory.

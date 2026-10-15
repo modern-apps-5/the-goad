@@ -11,15 +11,9 @@ variable "org_name" {
   default     = "goad"
 }
 
-variable "vcfa_user" {
+variable "vcfa_api_token" {
   type        = string
-  description = "Organization administrator username. Output org_admin_username of terraform/cloud-admin."
-  default     = "platform-admin"
-}
-
-variable "vcfa_password" {
-  type        = string
-  description = "Password for vcfa_user."
+  description = "VCF Automation API token of the platform engineer's AD service account (platform_engineer_automation_user in terraform/cloud-admin/org-config). Made by hand in the portal: User Preferences, API Tokens."
   sensitive   = true
 }
 
