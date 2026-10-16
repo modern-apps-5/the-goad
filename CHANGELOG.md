@@ -3,6 +3,33 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-15 (music store cluster)
+
+### Added
+
+- The music store's VKS cluster `music-store`, in
+  `gitops/music-store/cluster.yaml`. Argo CD syncs it with the Application
+  `music-store`. One control plane and two workers, Kubernetes
+  v1.36.2+vmware.2. The containers in `app/music-store` are not deployed
+  onto it yet.
+- The `music-store` namespace limits are now 40000M CPU, 48Gi memory, and
+  150Gi storage (`terraform/platform-engineer/variables.tf`), to fit the
+  cluster. It needs a platform engineer apply. The plan shows an in-place
+  change to the music-store namespace.
+- The org content library `goad-images`, with the Ubuntu 24.04 cloud image
+  `ubuntu-24.04-cloud`, in `terraform/platform-engineer/images.tf`. The
+  library is attached to every namespace in the org. It needs a platform
+  engineer apply. The first apply downloads about 570 MiB with `curl`, so
+  the machine or runner needs internet access to cloud-images.ubuntu.com.
+  The new lab value is `content_library_storage_policy`.
+
+### Fixed
+
+- The users VM in `gitops/music-store` never came up. The org had no VM
+  image, and the className `best-effort-xsmall` is not offered by the org.
+  The className is now `best-effort-small`, and the image comes from
+  `images.tf`.
+
 ## 2026-10-15 (AgentMinder)
 
 ### Added
@@ -45,31 +72,6 @@ What changed in this repository, newest first. The reasons are in
   the READMEs of `org-config` and `platform-engineer` follow the above.
 
 ## 2026-10-15
-
-### Added
-
-- The music store's VKS cluster `music-store`, in
-  `gitops/music-store/cluster.yaml`. Argo CD syncs it with the Application
-  `music-store`. One control plane and two workers, Kubernetes
-  v1.36.2+vmware.2. The containers in `app/music-store` are not deployed
-  onto it yet.
-- The `music-store` namespace limits are now 40000M CPU, 48Gi memory, and
-  150Gi storage (`terraform/platform-engineer/variables.tf`), to fit the
-  cluster. It needs a platform engineer apply. The plan shows an in-place
-  change to the music-store namespace.
-- The org content library `goad-images`, with the Ubuntu 24.04 cloud image
-  `ubuntu-24.04-cloud`, in `terraform/platform-engineer/images.tf`. The
-  library is attached to every namespace in the org. It needs a platform
-  engineer apply. The first apply downloads about 570 MiB with `curl`, so
-  the machine or runner needs internet access to cloud-images.ubuntu.com.
-  The new lab value is `content_library_storage_policy`.
-
-### Fixed
-
-- The users VM in `gitops/music-store` never came up. The org had no VM
-  image, and the className `best-effort-xsmall` is not offered by the org.
-  The className is now `best-effort-small`, and the image comes from
-  `images.tf`.
 
 ### Changed
 
