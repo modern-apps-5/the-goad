@@ -94,13 +94,18 @@ variable "namespaces" {
       memory_reservation = "16Gi"
       storage_limit      = "500Gi"
     }
-    # The shop's users VM and its DSM catalog. Best-effort VMs, so this
-    # namespace has no reservation. The app containers stay in app/music-store.
+    # The shop's users VM, its DSM catalog, and the VKS cluster for its
+    # containers. Best-effort VMs, so this namespace has no reservation.
+    #
+    # The cluster in gitops/music-store/cluster.yaml is three
+    # best-effort-medium nodes (2 CPU, 8 GiB each), and the users VM is one
+    # more VM. The storage limit leaves the org's 1 TiB region quota room
+    # for the other namespaces.
     music-store = {
-      description   = "GOAD music store users VM and catalog database. Managed by terraform/platform-engineer."
-      cpu_limit     = "20000M"
-      memory_limit  = "32Gi"
-      storage_limit = "80Gi"
+      description   = "GOAD music store: users VM, catalog database, and VKS cluster. Managed by terraform/platform-engineer."
+      cpu_limit     = "40000M"
+      memory_limit  = "48Gi"
+      storage_limit = "150Gi"
     }
   }
 
@@ -127,6 +132,22 @@ variable "gitops_repo_ssh_key_file" {
   type        = string
   description = "Path to the private half of a read-only deploy key for gitops_repo. Null for a public repository."
   default     = null
+}
+
+# --- VM images ---
+
+variable "content_library_storage_policy" {
+  type        = string
+  description = "Storage policy for the org's content library, by its name in vCenter, not its Kubernetes name. The region quota of the org must include it."
+}
+
+variable "ubuntu_image" {
+  type = object({
+    name = optional(string, "ubuntu-24.04-cloud")
+    url  = optional(string, "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.ova")
+  })
+  description = "The Ubuntu image in the org's content library. name is the imageName of the users VM in gitops/music-store/users-vm.yaml."
+  default     = {}
 }
 
 # --- Private AI Services ---

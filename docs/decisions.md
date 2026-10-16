@@ -577,3 +577,78 @@ Cost: the name must be in `goad.gpu.set.lab`. `loadBalancerClass` cannot
 change on an existing Service, so moving a Service from the Supervisor to
 AKO means deleting it first. ingress-nginx is no longer the default
 IngressClass; AKO's `avi-lb` is.
+
+## 32. The music store's VKS cluster is gitops
+
+`gitops/music-store/cluster.yaml` is a plain `cluster.x-k8s.io/v1beta2`
+Cluster named `music-store`: class `builtin-generic-v3.7.0`, Kubernetes
+v1.36.2+vmware.2, one control plane and two workers, all best-effort-medium,
+Antrea, sync wave 0. Argo CD syncs it with the Application `music-store`,
+as it does the users VM and the catalog. The containers in `app/music-store`
+are not deployed onto it yet.
+
+The names in the file are the Supervisor's, not the org's (decision 21:
+no namespace, no address).
+
+No health check of our own: the Argo CD that VCF ships has a built-in one
+for Cluster. Upstream Argo CD calls a cluster Healthy at phase
+Provisioned, before the nodes are up. The VCF build waits until the
+cluster is ready: a cluster at phase Provisioned with no control plane
+shows Progressing, "Waiting for Cluster to be Ready".
+
+The `music-store` namespace limits are now 40000M CPU, 48Gi memory, and 150Gi storage, to
+fit the cluster. Storage stays at 150Gi so the sum of the namespace storage limits
+stays within the org's 1 TiB region quota.
+
+Why not a `vcfa_vks_cluster` in Terraform, as for AgentMinder's cluster in
+`terraform/cloud-admin/org-config`: the platform engineer owns what runs in
+the `music-store` namespace, and decision 13 makes git the source after
+Terraform. `docs/master-design-v5.md` has the platform engineer deploy VKS
+clusters, and the script has the VKS cluster in the deploy. Why the same
+Application and no new one: decision 13, the smallest thing. Why wave 0:
+the cluster needs nothing else and takes the longest.
+
+Cost: on a first build the catalog Jobs in waves 1 and 2 wait for the
+cluster too, about 15 minutes.
+
+Look again if: the containers move onto the cluster (Argo CD needs the
+cluster registered as a destination), or the region quota grows.
+
+## 33. The org's VM image is uploaded by the platform engineer Terraform
+
+The users VM in `gitops/music-store` never came up in the lab. Argo CD
+failed with `no VM image exists for "ubuntu-24.04-cloud" in namespace or
+cluster scope`. The goad org had no content library, so no image.
+
+`terraform/platform-engineer/images.tf` creates the org content library
+`goad-images` and uploads Ubuntu's noble cloud OVA as the item
+`ubuntu-24.04-cloud`. The library has `auto_attach = true`, so it is
+attached to every namespace in the org. A `terraform_data` with
+`local-exec` downloads the OVA with `curl` into
+`terraform/platform-engineer/.images/`, which git ignores, on the machine
+or runner that first applies. After that nobody needs the file: the
+provider reads `file_paths` only to create the item. The library's
+storage policy is the lab value `content_library_storage_policy`, by its
+vCenter name, because a tenant's `vcfa_storage_class` lookup takes the
+policy name, not the Kubernetes name.
+
+The same fix changes the className of the users VM from
+`best-effort-xsmall` to `best-effort-small`. The org's VM classes
+(`vm_class_names` in `terraform/cloud-admin/org/lab.auto.tfvars`) do not
+include xsmall.
+
+Why Terraform and not gitops: a content library is an org object in VCF
+Automation, not a Kubernetes object in a namespace, and Argo CD cannot
+make it. Why the platform engineer root and not the cloud admin: the
+library serves the platform engineer's namespaces, and the platform
+engineer is an Organization Administrator. Why an upload and not a
+subscribed library: the published libraries on vc01 belong to another
+org's hand-made setup. An upload from Ubuntu needs nothing else in the
+lab.
+
+Cost: the first apply downloads about 570 MiB and uploads it, several
+minutes. The machine or runner needs `curl` and outbound internet to
+cloud-images.ubuntu.com, for that first apply only.
+
+Look again if: the lab gets a provider content library with the image,
+shared with orgs.

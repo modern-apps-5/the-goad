@@ -16,4 +16,6 @@ zone_name = "west-1"
 
 storage_class_name = "mgmt-cl01-optimal-datastore-default-policy-autoraid"
 
+content_library_storage_policy = "MGMT-cl01 - Optimal Datastore Default Policy - AutoRAID"
+
 gitops_repo_ssh_key_file = ".secrets/gitops-deploy-key"

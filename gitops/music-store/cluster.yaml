@@ -1,0 +1,60 @@
+# The VKS cluster the shop's containers run on.
+#
+# No namespace: Argo CD applies this into the music-store namespace, the
+# same as the users VM and the catalog. The class, the Kubernetes version,
+# the VM classes, and the storage class are the Supervisor's names, the
+# same ones terraform/cloud-admin/org-config gives the AgentMinder cluster.
+# The VM classes must be among vm_class_names of terraform/cloud-admin/org.
+#
+# Wave 0, with the catalog and the users VM: the cluster needs neither, and
+# it takes the longest. The Argo CD that VCF ships has a built-in health
+# check for Cluster: Healthy only when the cluster is ready, not at phase
+# Provisioned as in upstream Argo CD. No check of our own is needed.
+#
+# The containers in app/music-store are not deployed onto it yet.
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: music-store
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+  topology:
+    classRef:
+      name: builtin-generic-v3.7.0
+      namespace: vmware-system-vks-public
+    version: v1.36.2+vmware.2
+    controlPlane:
+      replicas: 1
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+    workers:
+      machineDeployments:
+        - class: node-pool
+          name: workers
+          replicas: 2
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+          variables:
+            overrides:
+              - name: vmClass
+                value: best-effort-medium
+    variables:
+      - name: vmClass
+        value: best-effort-medium
+      - name: storageClass
+        value: mgmt-cl01-optimal-datastore-default-policy-autoraid
+      - name: bootstrapAddons
+        value:
+          cniRef:
+            name: antrea
+            namespace: vmware-system-vks-public
