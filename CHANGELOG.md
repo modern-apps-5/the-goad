@@ -10,7 +10,8 @@ What changed in this repository, newest first. The reasons are in
 - The `ssp` services of AgentMinder ask for 100m CPU each, not the chart's
   400m (1000m for `iarisk`), in `terraform/cloud-admin/agentminder`. With
   the chart's requests, `aigateway` and `iarisk` stayed Pending on two
-  workers: "Insufficient cpu". The limits are unchanged.
+  workers: "Insufficient cpu". The limits are unchanged. Decision 30 says
+  why.
 
 ## 2026-10-15 (music store cluster)
 
@@ -39,6 +40,11 @@ What changed in this repository, newest first. The reasons are in
   The className is now `best-effort-small`, and the image comes from
   `images.tf`.
 
+### Documents
+
+- `docs/decisions.md`: decisions 32 (the cluster is gitops) and 33 (the
+  org's VM image).
+
 ## 2026-10-15 (AgentMinder)
 
 ### Added
@@ -64,7 +70,7 @@ What changed in this repository, newest first. The reasons are in
   `org-config`. New repository secrets `SSP_REGISTRY_USERNAME` and
   `SSP_REGISTRY_PASSWORD`.
 - `terraform/cloud-admin/agentminder/README.md`.
-- `docs/decisions.md`: decisions 29 and 30.
+- `docs/decisions.md`: decisions 29, 30, and 31.
 
 ### Changed
 
