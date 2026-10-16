@@ -3,6 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-15 (AgentMinder CPU requests)
+
+### Changed
+
+- The `ssp` services of AgentMinder ask for 100m CPU each, not the chart's
+  400m (1000m for `iarisk`), in `terraform/cloud-admin/agentminder`. With
+  the chart's requests, `aigateway` and `iarisk` stayed Pending on two
+  workers: "Insufficient cpu". The limits are unchanged.
+
 ## 2026-10-15 (music store cluster)
 
 ### Added

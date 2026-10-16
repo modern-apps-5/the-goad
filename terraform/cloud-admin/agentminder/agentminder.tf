@@ -124,6 +124,21 @@ resource "helm_release" "ssp_infra" {
   depends_on = [kubernetes_secret_v1.ssp_registry, kubernetes_annotations.default_storage_class]
 }
 
+# The chart asks for 400m CPU for each service, and 1000m for iarisk. At
+# demo load each one uses under 15m, and the requests alone filled two
+# 4-CPU workers: aigateway and iarisk stayed Pending, "Insufficient cpu".
+# Only the requests are lowered. The limits stay the chart's, so a busy
+# service can still burst.
+#
+# With deployment.size demo, most services take their resources from
+# sizing.demo. The services listed here set their own and ignore it.
+locals {
+  ssp_cpu_request = "100m"
+  ssp_own_resources = [
+    "aigateway", "dataseed", "iarisk", "opa", "proxysidecar",
+  ]
+}
+
 resource "helm_release" "ssp" {
   name       = "ssp"
   namespace  = kubernetes_namespace_v1.ssp.metadata[0].name
@@ -137,11 +152,12 @@ resource "helm_release" "ssp" {
     global = {
       imagePullSecrets = [{ name = local.pull_secret }]
     }
+    sizing = { demo = { resources = { requests = { cpu = local.ssp_cpu_request } } } }
     hazelcast-enterprise = {
       cluster = { memberCount = 1 }
       image   = { pullSecrets = [local.pull_secret] }
     }
-    ssp = {
+    ssp = merge({
       # The smallest profile: one replica of each service.
       deployment = { size = "demo" }
       global = {
@@ -163,7 +179,9 @@ resource "helm_release" "ssp" {
         custommetrics      = { enabled = false }
         selfserviceconsole = { enabled = false }
       }
-    }
+      },
+      { for service in local.ssp_own_resources : service => { resources = { requests = { cpu = local.ssp_cpu_request } } } },
+    )
   })]
 
   depends_on = [helm_release.ingress_nginx, helm_release.ssp_infra]
