@@ -544,12 +544,19 @@ member, and `aigateway` and `mcpserver` on. `otelCollector`,
 off by default. The database volume is 20Gi, not 80Gi. The VKS cluster
 has one control plane and two workers.
 
+Each `ssp` service asks for 100m CPU, not the chart's 400m (1000m for
+`iarisk`). With the chart's requests the services did not fit on two
+workers: `aigateway` and `iarisk` stayed Pending with "Insufficient cpu".
+At demo load each service uses under 15m. The limits stay the chart's.
+
 Why: this install is for the demo only. It shows the agent gateway and
 the MCP server, not the observability pipeline or the console. Fewer
 components need fewer nodes and less disk, and the lab is shared.
 
 Cost: no metrics, no log shipping, no local model, and one replica of
-each service, so nothing survives a lost node. The namespace `ssp` is
+each service, so nothing survives a lost node. With low requests the
+scheduler packs the services onto two workers, and under real load they
+compete for CPU. The namespace `ssp` is
 Pod Security `privileged`, like the lab's other AgentMinder, because a
 stricter profile has not been tried.
 
