@@ -27,7 +27,6 @@ resource "vcfa_supervisor_namespace" "namespaces" {
     memory_reservation = each.value.memory_reservation
   }
 
-  depends_on = [time_sleep.service_engine_group]
 }
 
 # The generated names, by key. Everything else in this root reads names

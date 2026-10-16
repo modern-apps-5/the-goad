@@ -3,6 +3,47 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-15 (AgentMinder)
+
+### Added
+
+- `terraform/cloud-admin/agentminder`, a third cloud admin root (state
+  `goad-cloud-admin-agentminder`). It installs AgentMinder with Helm on
+  the VKS cluster that `org-config` made: `ingress-nginx` 4.15.1,
+  `infra-ssp`, and `ssp` (chart version 4.1.1+1673). It is installed
+  small: demo size, one Hazelcast member, `aigateway` and `mcpserver` on,
+  the rest off. It reads `org-config`'s state, so on a machine also
+  `export TF_HTTP_PASSWORD=<the state token>`. The hostname
+  `agentminder.goad.gpu.set.lab` gets its DNS record from Avi: AKO
+  serves the ingress controller's Service and puts the external-dns
+  hostname on the virtual service.
+- `terraform/cloud-admin/org-config`: the project `cloud-admin`, the
+  Supervisor Namespace `agentminder-xxxxx` in it, and the VKS cluster
+  `agentminder`. New inputs `region_name`, `zone_name`, `vpc_name`,
+  `storage_class_name`, `service_engine_group_name`,
+  `cloud_admin_project`, and `agentminder_cluster`. New outputs
+  `cloud_admin_project`, `agentminder_namespace`, and
+  `agentminder_cluster_name`.
+- `.github/workflows/cloud-admin.yml`: a third job, `agentminder`, after
+  `org-config`. New repository secrets `SSP_REGISTRY_USERNAME` and
+  `SSP_REGISTRY_PASSWORD`.
+- `terraform/cloud-admin/agentminder/README.md`.
+- `docs/decisions.md`: decisions 29 and 30.
+
+### Changed
+
+- The org's Service Engine Group `goad-se-group` moved from
+  `terraform/platform-engineer` to `terraform/cloud-admin/org-config`.
+  The AgentMinder namespace needs it, and the cloud admin runs first.
+  A one-shot `import` block in `org-config` and `removed` blocks with
+  `destroy = false` in `terraform/platform-engineer` moved it between
+  states without deleting it. Both were applied in the lab and are gone
+  from the code. Teardown order:
+  platform engineer, `agentminder`, `org-config`, `org`. Decision 6 is
+  amended.
+- `README.md`, `docs/terraform-state.md`, `docs/execution-plan.md`, and
+  the READMEs of `org-config` and `platform-engineer` follow the above.
+
 ## 2026-10-15
 
 ### Changed

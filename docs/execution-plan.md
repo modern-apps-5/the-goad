@@ -20,7 +20,11 @@ existed. It is kept as written below. What has changed since:
 - **Not started:** the store, cart, and orders containers on VKS
   through Argo CD (step 2), the Oracle on Tanzu (step 3), and the
   security episode (step 6).
-- **Still true:** no GPU. Istio, OPA, Headlamp, SSP, vDefend DFW, and
+- **In git, not configured:** AgentMinder for goad. A GOAD-owned
+  install, in the `cloud-admin` project on its own VKS cluster
+  (`terraform/cloud-admin/agentminder`). It has no agents configured
+  yet.
+- **Still true:** no GPU. Istio, OPA, Headlamp, vDefend DFW, and
   Antrea policy are not in the repository.
 - **Changed:** the master is on GitHub. The lab git server holds the
   Terraform state: see `docs/terraform-state.md`.

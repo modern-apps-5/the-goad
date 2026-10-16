@@ -1,9 +1,12 @@
 # The org's Avi Service Engine Group. Every load balancer in the org's
-# namespaces runs on these Service Engines.
+# namespaces runs on these Service Engines, the cloud admin's and the
+# platform engineer's.
 #
-# The cloud admin set the org to manage its own groups, within a quota.
-# Sized small: two 1-vCPU, 2 GB Service Engines shared by all virtual
-# services.
+# The cloud admin set the org to manage its own groups, within a quota
+# (terraform/cloud-admin/org). This root creates the group because its own
+# AgentMinder namespace needs it, and this root runs before
+# terraform/platform-engineer. Sized small: two 1-vCPU, 2 GB Service
+# Engines shared by all virtual services.
 #
 # A SEG is an object in the org's Kubernetes API. That API does not publish
 # an OpenAPI schema for it, so kubernetes_manifest cannot plan it ("resource

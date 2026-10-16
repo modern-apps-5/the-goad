@@ -1,0 +1,13 @@
+# Secrets for the cloud admin's AgentMinder root. Copy to terraform.tfvars,
+# which git ignores.
+#
+# Shared by the team. If the demo is already built, copy the team's
+# terraform.tfvars and do not write your own.
+
+# Password of the org's one local user (cloud_admin_username). The same
+# value as cloud_admin_password in terraform/cloud-admin/org.
+cloud_admin_password = "CHANGE-ME"
+
+# Login for Broadcom's AgentMinder image registry.
+ssp_registry_username = "CHANGE-ME"
+ssp_registry_password = "CHANGE-ME"

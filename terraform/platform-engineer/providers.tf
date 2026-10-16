@@ -12,17 +12,9 @@ provider "vcfa" {
   allow_unverified_ssl = var.allow_unverified_ssl
 }
 
-# The org's Kubernetes API in VCF Automation. Service Engine Groups are
-# objects there.
+# The org's Kubernetes API in VCF Automation. argocd.tf calls it with
+# this token.
 data "vcfa_kubeconfig" "org" {}
-
-provider "kubectl" {
-  alias            = "org"
-  host             = data.vcfa_kubeconfig.org.host
-  token            = data.vcfa_kubeconfig.org.token
-  insecure         = data.vcfa_kubeconfig.org.insecure_skip_tls_verify
-  load_config_file = false
-}
 
 # The Kubernetes API of the namespace that holds Argo CD. The namespace
 # name is generated, so its address is known only during apply. lazy_load

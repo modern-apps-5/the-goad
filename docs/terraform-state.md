@@ -13,6 +13,7 @@ keeps every version.
 |---|---|---|
 | `terraform/cloud-admin/org` | `the-goad` | `goad-cloud-admin` |
 | `terraform/cloud-admin/org-config` | `the-goad` | `goad-cloud-admin-org-config` |
+| `terraform/cloud-admin/agentminder` | `the-goad` | `goad-cloud-admin-agentminder` |
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
 | `terraform/runner` | `the-goad` | `goad-runner` |
 
@@ -35,6 +36,11 @@ or for the two keys, instructions in `terraform.tfvars.example`.
 Lab values are in git so that they cannot differ between people. Only
 what is secret has to be passed around.
 
+`terraform/cloud-admin/agentminder` also reads the state of `org-config`
+with `terraform_remote_state`. A data source cannot read `backend.hcl`,
+so on a machine also `export TF_HTTP_PASSWORD=<the same token>` before
+`plan` and `apply`. The workflow sets it.
+
 The token cannot go in `terraform.tfvars`. Terraform reads the backend
 settings before it reads any variable, so a `backend` block cannot use
 one. So `backend.tf` holds everything about the backend that is not
@@ -53,7 +59,8 @@ and do not make your own.
 |---|---|---|
 | Deploy key | `terraform/platform-engineer/.secrets/gitops-deploy-key` | Terraform replaces the key in Argo CD's repository Secret with yours. Yours is not on the GitHub repository, so Argo CD can no longer read git and stops syncing. |
 | `pais_admin_password_hash` | `terraform/platform-engineer/terraform.tfvars` | The hash is salted. A new hash of the same password is still a different value, so Terraform rewrites the Secret and Private AI Services restarts pods. Copy the hash itself. |
-| `cloud_admin_password` | `terraform/cloud-admin/org/terraform.tfvars` and `terraform/cloud-admin/org-config/terraform.tfvars` | Terraform changes the password of `cloud-admin`, the org's one local user. Stage 2 and everyone else's login then fail. It is the same value in both files. |
+| `cloud_admin_password` | `terraform/cloud-admin/org/terraform.tfvars`, `terraform/cloud-admin/org-config/terraform.tfvars`, and `terraform/cloud-admin/agentminder/terraform.tfvars` | Terraform changes the password of `cloud-admin`, the org's one local user. Stage 2 and everyone else's login then fail. It is the same value in all three files. |
+| `ssp_registry_username` and `ssp_registry_password` | `terraform/cloud-admin/agentminder/terraform.tfvars` | Not written to the lab, but a wrong one fails the image pulls from Broadcom's registry. Terraform does write them into the Secret `ssp-registry`. |
 | `ops_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the VCF Operations login that makes the org's VCF SSO client. |
 | `vcfa_api_token` | `terraform/platform-engineer/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is an API token of `svc.platform_engineer@set.lab`, made by hand once. |
 | `vcfa_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is the provider administrator's password. |
@@ -76,6 +83,8 @@ manager, and copy the whole file.
 
 - `terraform/cloud-admin/org/terraform.tfvars` (three passwords)
 - `terraform/cloud-admin/org-config/terraform.tfvars` (one password)
+- `terraform/cloud-admin/agentminder/terraform.tfvars` (the same password,
+  and the registry login)
 - `terraform/platform-engineer/terraform.tfvars` (one API token, one
   hash)
 - `terraform/platform-engineer/.secrets/gitops-deploy-key`
