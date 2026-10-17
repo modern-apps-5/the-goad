@@ -1,0 +1,1071 @@
+"""Tool implementations.
+
+Generic tools stay few: registry, search, describe, dry-run, call, follow a
+task, inventory, audit. Those cover thousands of operations at a fixed
+context cost.
+
+Domain tools sit next to that set so a grant can name one job. VM
+management, network, storage, and metrics are four jobs. Full access is
+all of them plus the generic tools. A grant that only has VM management
+cannot answer a network question.
+"""
+from __future__ import annotations
+
+import json
+import os
+import time
+from typing import Any
+
+from . import auth, client, config, specs
+
+DEFAULT_MAX_CHARS = 20_000
+# One list row must never fill the client window. Agent Builder (and the
+# model) then show a vSAN fragment and miss `count`.
+DEFAULT_ITEM_CHARS = 360
+
+# Where each product reports the progress of an asynchronous operation.
+_TASK_PATHS = {
+    "sddc": "/v1/tasks/{id}",
+    "installer": "/v1/tasks/{id}",
+}
+# Compared case-insensitively -- these products disagree on capitalisation.
+_SUCCEEDED = {"SUCCESSFUL", "SUCCEEDED", "COMPLETED", "SUCCESS"}
+_FAILED = {"FAILED", "COMPLETED_WITH_FAILURE", "CANCELLED", "ERROR"}
+_TERMINAL = _SUCCEEDED | _FAILED
+
+# Collection keys used by the seven products. First match wins.
+_COLLECTION_KEYS = (
+    "elements",
+    "value",
+    "results",
+    "items",
+    "data",
+    "resources",
+    "vms",
+    "apps",
+    "resourceList",
+    "alerts",
+    "datastores",
+    "clusters",
+    "hosts",
+    "networks",
+    "folders",
+)
+
+# Identity / inventory fields. Fat vSAN blobs drop everything else.
+_SLIM_FIELDS = (
+    "name",
+    "id",
+    "datastore",
+    "type",
+    "free_space",
+    "capacity",
+    "vm",
+    "power_state",
+    "connection_state",
+    "host",
+    "fqdn",
+    "status",
+    "uuid",
+    "display_name",
+    "alertLevel",
+    "alertId",
+    "enabled",
+    "vtype",
+    "version",
+    "esxiVersion",
+    "isDefault",
+    "primaryDatastoreType",
+    "vipFqdn",
+    "cluster",
+    "folder",
+    "network",
+    "datacenter",
+    "accessible",
+    "maintenance_mode",
+    "thin_provisioning_supported",
+    "multiple_host_access",
+    "cpu_count",
+    "memory_size_MiB",
+)
+
+
+def collection_items(payload: Any) -> list | None:
+    """The list inside a list-shaped API body, or None."""
+    if isinstance(payload, list):
+        return payload
+    if not isinstance(payload, dict):
+        return None
+    for key in _COLLECTION_KEYS:
+        val = payload.get(key)
+        if isinstance(val, list):
+            return val
+    for val in payload.values():
+        if not isinstance(val, dict):
+            continue
+        for key in _COLLECTION_KEYS:
+            inner = val.get(key)
+            if isinstance(inner, list):
+                return inner
+    return None
+
+
+def count_items(payload: Any) -> int | None:
+    """How many items a list-shaped API body contains.
+
+    Computed on the full payload, before _fit shortens it. Language models
+    cannot count a long JSON array; they guess. The door must say the number.
+    """
+    if isinstance(payload, list):
+        return len(payload)
+    if not isinstance(payload, dict):
+        return None
+    if isinstance(payload.get("result_count"), int):
+        return int(payload["result_count"])
+    pag = payload.get("pagination")
+    if isinstance(pag, dict) and isinstance(pag.get("total_results"), int):
+        return int(pag["total_results"])
+    info = payload.get("pageInfo")
+    if isinstance(info, dict) and isinstance(info.get("totalCount"), int):
+        return int(info["totalCount"])
+    items = collection_items(payload)
+    if items is not None:
+        return len(items)
+    return None
+
+
+def slim_item(item: Any, max_chars: int = DEFAULT_ITEM_CHARS) -> Any:
+    """Keep identity fields. Drop the nested blob that fills a tool window."""
+    if not isinstance(item, dict):
+        if isinstance(item, (str, int, float, bool)) or item is None:
+            return item
+        return _clip(item, max_chars)
+    row: dict[str, Any] = {k: item[k] for k in _SLIM_FIELDS if k in item}
+    for key, val in item.items():
+        if key in row:
+            continue
+        if len(row) >= 12:
+            break
+        if isinstance(val, bool) or val is None or isinstance(val, (int, float)):
+            row[key] = val
+        elif isinstance(val, str) and len(val) <= 120:
+            row[key] = val
+    text = json.dumps(row, default=str)
+    if len(text) <= max_chars:
+        return row
+    # Drop the longest string fields until it fits. Never become a clipped blob.
+    strings = sorted(
+        (k for k, v in row.items() if isinstance(v, str)),
+        key=lambda k: len(str(row[k])),
+        reverse=True,
+    )
+    for key in strings:
+        row.pop(key, None)
+        if len(json.dumps(row, default=str)) <= max_chars:
+            return row
+    return {k: row[k] for k in list(row)[:6]}
+
+
+def _slim_payload(payload: Any) -> Any:
+    """Slim every collection in place. Scalars stay."""
+    if isinstance(payload, list):
+        return [slim_item(i) for i in payload]
+    if not isinstance(payload, dict):
+        return payload
+    out = dict(payload)
+    for key, val in list(out.items()):
+        if isinstance(val, list) and val and any(isinstance(i, dict) for i in val):
+            out[key] = [slim_item(i) for i in val]
+        elif isinstance(val, dict):
+            out[key] = _slim_payload(val)
+    return out
+
+
+def targets(check_reachability: bool = True) -> dict:
+    """Every configured appliance, what it serves, and whether it answers."""
+    spec_counts: dict[str, int] = {}
+    for entry in specs.index():
+        for name in entry["targets"]:
+            spec_counts[name] = spec_counts.get(name, 0) + 1
+
+    rows = []
+    for name, target in config.TARGETS.items():
+        row: dict[str, Any] = {
+            "target": name,
+            "product": target.product,
+            "host": target.host or f"(unset: {config.host_env_var(name)})",
+            "auth": target.auth,
+            "operations": spec_counts.get(name, 0),
+            # Avi vendors one spec per object type (170 files); the list is
+            # noise at that size, the count is the information.
+            "specs": list(target.specs)
+            if len(target.specs) <= 8
+            else f"{len(target.specs)} spec files",
+            "notes": target.notes,
+        }
+        if check_reachability:
+            row.update(client.reachable(target))
+        principal = auth.cached_principal(name)
+        if principal:
+            row["authenticated_as"] = principal
+        rows.append(row)
+
+    return {
+        "targets": sorted(rows, key=lambda r: -r["operations"]),
+        "total_operations": len(specs.index()),
+        "credentials_from": str(config.env_file()),
+        "tls_verification": config.verify_tls(),
+        "audit_log": str(config.AUDIT_LOG),
+        "hint": "Use vcf_search_api to find an operation, vcf_describe_api for its "
+        "signature, then vcf_call to run it.",
+    }
+
+
+def search_api(
+    query: str,
+    target: str | None = None,
+    method: str | None = None,
+    limit: int = 25,
+    include_deprecated: bool = False,
+) -> dict:
+    if target:
+        config.get_target(target)  # raises with the known names if wrong
+    found = specs.search(query, target, method, limit, include_deprecated)
+    out = {
+        "query": query,
+        "target": target,
+        "count": len(found["results"]),
+        "results": found["results"],
+    }
+    if found["hidden_deprecated"]:
+        out["hidden_deprecated"] = found["hidden_deprecated"]
+        out["hint"] = (
+            "These matched your query but are deprecated in this VCF release -- "
+            "prefer the ranked results above. Pass include_deprecated=true to "
+            "search them anyway."
+        )
+    return out
+
+
+def describe_api(
+    target: str | None = None,
+    operation_id: str | None = None,
+    method: str | None = None,
+    path: str | None = None,
+    depth: int = 3,
+    max_properties: int = 60,
+) -> dict:
+    if target:
+        config.get_target(target)
+    entry = specs.find(target=target, operation_id=operation_id, method=method, path=path)
+    described = specs.describe(entry, depth=max(1, min(depth, 6)), max_properties=max_properties)
+    described["example_call"] = {
+        "tool": "vcf_call",
+        "target": described["target"],
+        "method": described["method"],
+        "path": described["path"],
+    }
+    return described
+
+
+def call(
+    target: str,
+    method: str,
+    path: str,
+    query: dict | None = None,
+    body: Any = None,
+    timeout: float | None = None,
+    max_response_chars: int = DEFAULT_MAX_CHARS,
+) -> dict:
+    """Execute one operation against a target.
+
+    Unknown paths are rejected before reaching the wire only when they cannot
+    be matched to the spec at all *and* look like a typo; otherwise the call
+    goes through, because the specs do not always cover every path a given
+    build serves.
+    """
+    resolved = config.get_target(target)
+    method = (method or "GET").upper()
+    if not path.startswith("/"):
+        path = "/" + path
+
+    known = None
+    try:
+        known = specs.find(target=target, method=method, path=path.split("?")[0])
+    except LookupError:
+        pass
+
+    status, payload, headers = client.request(
+        resolved, method, path, query=query, body=body, timeout=timeout
+    )
+
+    ok = 200 <= status < 300
+    n = count_items(payload) if ok else None
+    # Count and slim items first so a client that shears the tail still
+    # sees the number. A 20k clipped vSAN string hid that field.
+    result: dict[str, Any] = {}
+    if n is not None:
+        result["count"] = n
+        result["summary"] = f"{n} items"
+
+    result.update(
+        {
+            "target": target,
+            "method": method,
+            "path": path,
+            "status": status,
+            "ok": ok,
+        }
+    )
+    if known:
+        result["operationId"] = known["op"]
+    else:
+        result["note"] = (
+            "This method+path is not in the vendored spec. It was sent anyway -- "
+            "the appliance is the authority. Check vcf_search_api if the result "
+            "looks wrong."
+        )
+
+    if isinstance(payload, dict) and not ok:
+        # VCF error objects carry a remediationMessage that is genuinely useful.
+        result["error"] = {
+            key: payload[key]
+            for key in ("errorCode", "message", "remediationMessage", "referenceToken", "arguments")
+            if key in payload
+        } or payload
+
+    fitted_src = _slim_payload(payload) if ok else payload
+    result["body"], truncated = _fit(fitted_src, max_response_chars)
+    items = None
+    body = result["body"]
+    if isinstance(body, list):
+        items = body
+    elif isinstance(body, dict) and isinstance(body.get("items"), list):
+        items = body["items"]
+    elif n is not None:
+        # From the fitted body, never the full source: the untrimmed copy
+        # once made a 116 KB reply that the AI Gateway delivered as empty.
+        items = collection_items(body)
+    if items is not None:
+        result["items"] = items
+        result["showing"] = len(items)
+    if truncated:
+        result["truncated"] = True
+        result["truncation_hint"] = (
+            "Response was shortened to fit. Read count for the full length. "
+            "Narrow it with query parameters (most VCF list endpoints support "
+            "pageSize/pageNumber or filters), or raise max_response_chars."
+        )
+
+    task_id = _task_id(status, payload, headers)
+    if task_id and target in _TASK_PATHS:
+        result["task_id"] = task_id
+        result["task_hint"] = f"Follow with vcf_task(target='{target}', task_id='{task_id}')"
+    return result
+
+
+def task(target: str, task_id: str, wait_seconds: int = 0, poll_interval: float = 5.0) -> dict:
+    """Read a long-running task, optionally waiting for it to finish.
+
+    Most VCF mutations return 202 with a task id; the interesting information
+    (which subtask failed, and why) only appears here.
+    """
+    resolved = config.get_target(target)
+    template = _TASK_PATHS.get(target)
+    if not template:
+        raise ValueError(
+            f"target '{target}' does not expose the /v1/tasks endpoint. "
+            f"Task-style polling is available on: {', '.join(sorted(_TASK_PATHS))}."
+        )
+    path = template.format(id=task_id)
+
+    deadline = time.time() + max(0, wait_seconds)
+    polls = 0
+    while True:
+        status, payload, _ = client.request(resolved, "GET", path)
+        polls += 1
+        state = payload.get("status") if isinstance(payload, dict) else None
+        # SDDC Manager reports "Successful", the docs say "SUCCESSFUL", and
+        # other products shout. Compare case-insensitively or a finished task
+        # is polled until the deadline and then reported as still running.
+        done = isinstance(state, str) and state.upper() in _TERMINAL
+        if done or status >= 400 or time.time() >= deadline:
+            break
+        time.sleep(min(poll_interval, max(0.5, deadline - time.time())))
+
+    body, _ = _fit(payload, DEFAULT_MAX_CHARS)
+    result = {
+        "target": target,
+        "task_id": task_id,
+        "http_status": status,
+        "status": state,
+        "finished": bool(isinstance(state, str) and state.upper() in _TERMINAL),
+        "succeeded": bool(isinstance(state, str) and state.upper() in _SUCCEEDED),
+        "polls": polls,
+        "task": body,
+    }
+    if isinstance(payload, dict):
+        failures = [
+            {"name": sub.get("name"), "status": sub.get("status"), "errors": sub.get("errors")}
+            for sub in (payload.get("subTasks") or [])
+            if isinstance(sub, dict)
+            and isinstance(sub.get("status"), str)
+            and sub["status"].upper() in _FAILED
+        ]
+        if failures:
+            result["failed_subtasks"] = failures
+    return result
+
+
+# What a "what have I got?" question actually needs, per target. Each entry is
+# (label, method, path, extractor) and any failure is reported, never raised.
+_INVENTORY = {
+    "sddc": [
+        ("sddc_manager", "GET", "/v1/sddc-managers", None),
+        ("domains", "GET", "/v1/domains", ("name", "type", "status", "id")),
+        ("clusters", "GET", "/v1/clusters", ("name", "primaryDatastoreType", "isDefault", "id")),
+        ("hosts", "GET", "/v1/hosts", ("fqdn", "status", "esxiVersion", "id")),
+        ("vcenters", "GET", "/v1/vcenters", ("fqdn", "version", "id")),
+        ("nsx_clusters", "GET", "/v1/nsxt-clusters", ("vipFqdn", "version", "id")),
+        ("network_pools", "GET", "/v1/network-pools", ("name", "id")),
+        ("vcf_services", "GET", "/v1/vcf-services", ("name", "version", "status")),
+    ],
+    "vcenter": [
+        ("esxi_hosts", "GET", "/api/vcenter/host", ("name", "connection_state", "power_state")),
+        ("datastores", "GET", "/api/vcenter/datastore", ("name", "type", "free_space", "capacity")),
+    ],
+    "nsx": [
+        ("tier0_gateways", "GET", "/policy/api/v1/infra/tier-0s", ("display_name", "id")),
+        ("tier1_gateways", "GET", "/policy/api/v1/infra/tier-1s", ("display_name", "id")),
+        ("segments", "GET", "/policy/api/v1/infra/segments", ("display_name", "id")),
+    ],
+    "ops": [
+        ("active_alerts", "GET", "/suite-api/api/alerts", ("alertLevel", "status", "alertId")),
+    ],
+    "avi": [
+        ("clouds", "GET", "/api/cloud", ("name", "vtype", "uuid")),
+        ("virtual_services", "GET", "/api/virtualservice", ("name", "enabled", "uuid")),
+        ("pools", "GET", "/api/pool", ("name", "uuid")),
+        ("service_engines", "GET", "/api/serviceengine", ("name", "uuid")),
+    ],
+}
+
+
+def inventory(targets_wanted: list[str] | None = None, per_section_limit: int = 25) -> dict:
+    """One cross-appliance snapshot of the estate.
+
+    This is the question every session opens with, and answering it from
+    search+describe+call would cost a dozen round trips.
+
+    When VCF_HTTP_TIMEOUT is set, the whole snapshot stops at that budget
+    and later sections come back as timed out. One tool call must return
+    before the gateway drops it.
+    """
+    wanted = targets_wanted or list(_INVENTORY)
+    out: dict[str, Any] = {"collected_at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
+    cap = client.http_timeout_cap()
+    deadline = time.monotonic() + cap if cap is not None else None
+
+    for name in wanted:
+        if name not in _INVENTORY:
+            out[name] = {"error": f"no inventory recipe for target '{name}'"}
+            continue
+        target = config.TARGETS[name]
+        section: dict[str, Any] = {}
+        for label, method, path, fields in _INVENTORY[name]:
+            if deadline is not None and time.monotonic() >= deadline:
+                section[label] = {"error": "timed out"}
+                continue
+            try:
+                query = {"pageSize": 200} if name == "ops" else None
+                timeout = 60.0
+                if deadline is not None:
+                    timeout = max(1.0, min(60.0, deadline - time.monotonic()))
+                status, payload, _ = client.request(target, method, path, query=query, timeout=timeout)
+                if status >= 400:
+                    section[label] = {"error": f"HTTP {status}", "detail": client.redact(payload)}
+                    continue
+                section[label] = _summarise(payload, fields, per_section_limit)
+            except Exception as exc:  # a dead appliance must not kill the report
+                section[label] = {"error": f"{type(exc).__name__}: {exc}"}
+        out[name] = section
+    return out
+
+
+def _need_id(value: str | None, kind: str, list_tool: str) -> tuple[str, dict | None]:
+    ident = (value or "").strip()
+    if ident:
+        return ident, None
+    return "", {
+        "ok": False,
+        "error": f"need a {kind} id",
+        "hint": f"Call {list_tool} first. Then pass that id.",
+    }
+
+
+def list_vms() -> dict:
+    """Every virtual machine on vCenter, with the count."""
+    return call("vcenter", "GET", "/api/vcenter/vm")
+
+
+def get_vm(vm: str) -> dict:
+    """One virtual machine: CPU, memory, and the rest of the record."""
+    ident, err = _need_id(vm, "VM", "vcf_list_vms")
+    if err:
+        return err
+    return call("vcenter", "GET", f"/api/vcenter/vm/{ident}")
+
+
+def vm_power_state(vm: str) -> dict:
+    """Current power state of one virtual machine."""
+    ident, err = _need_id(vm, "VM", "vcf_list_vms")
+    if err:
+        return err
+    return call("vcenter", "GET", f"/api/vcenter/vm/{ident}/power")
+
+
+def _vm_power(vm: str, action: str) -> dict:
+    ident, err = _need_id(vm, "VM", "vcf_list_vms")
+    if err:
+        return err
+    return call("vcenter", "POST", f"/api/vcenter/vm/{ident}/power?action={action}")
+
+
+def start_vm(vm: str) -> dict:
+    """Power on one virtual machine. Takes effect now."""
+    return _vm_power(vm, "start")
+
+
+def stop_vm(vm: str) -> dict:
+    """Power off one virtual machine. Takes effect now."""
+    return _vm_power(vm, "stop")
+
+
+def reset_vm(vm: str) -> dict:
+    """Reset one virtual machine. Takes effect now."""
+    return _vm_power(vm, "reset")
+
+
+def suspend_vm(vm: str) -> dict:
+    """Suspend one virtual machine. Takes effect now."""
+    return _vm_power(vm, "suspend")
+
+
+def list_networks() -> dict:
+    """vCenter port groups and other vCenter networks, with the count."""
+    return call("vcenter", "GET", "/api/vcenter/network")
+
+
+def list_segments() -> dict:
+    """NSX segments, with the count."""
+    return call("nsx", "GET", "/policy/api/v1/infra/segments")
+
+
+def list_gateways() -> dict:
+    """NSX tier-0 and tier-1 gateways, with counts."""
+    tier0 = call("nsx", "GET", "/policy/api/v1/infra/tier-0s")
+    tier1 = call("nsx", "GET", "/policy/api/v1/infra/tier-1s")
+    n0 = tier0.get("count") if isinstance(tier0, dict) else None
+    n1 = tier1.get("count") if isinstance(tier1, dict) else None
+    total = (n0 or 0) + (n1 or 0)
+    return {
+        "ok": True,
+        "count": total,
+        "summary": f"{total} gateways",
+        "tier0_gateways": tier0,
+        "tier1_gateways": tier1,
+    }
+
+
+def list_datastores() -> dict:
+    """vCenter datastores, with the count."""
+    return call("vcenter", "GET", "/api/vcenter/datastore")
+
+
+def get_datastore(datastore: str) -> dict:
+    """One datastore: type, free space, capacity."""
+    ident, err = _need_id(datastore, "datastore", "vcf_list_datastores")
+    if err:
+        return err
+    return call("vcenter", "GET", f"/api/vcenter/datastore/{ident}")
+
+
+def datastore_policy(datastore: str) -> dict:
+    """Default storage policy on one datastore."""
+    ident, err = _need_id(datastore, "datastore", "vcf_list_datastores")
+    if err:
+        return err
+    return call("vcenter", "GET", f"/api/vcenter/datastore/{ident}/default-policy")
+
+
+# Operations keeps every cancelled alert too (15 000+ in this lab), so the
+# plain alert list is a page of history. The alert query with activeOnly
+# returns only what is open now. It is a POST, but it changes nothing.
+_ALERT_LEVELS = ("CRITICAL", "IMMEDIATE", "WARNING", "INFORMATION", "NONE", "UNKNOWN", "AUTO")
+ALERT_PAGE = 500
+ALERT_ROWS = 25
+
+
+def _alert_time(ms: Any) -> str | None:
+    if not isinstance(ms, (int, float)) or ms <= 0:
+        return None
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ms / 1000))
+
+
+def _resource_names(ops: Any, ids: list[str]) -> dict[str, dict]:
+    """Name and kind for each resource id. One call; a failure leaves ids bare."""
+    if not ids:
+        return {}
+    try:
+        status, payload, _ = client.request(
+            ops, "GET", "/suite-api/api/resources",
+            query={"resourceId": ids, "pageSize": len(ids)}, timeout=30,
+        )
+    except Exception:
+        return {}
+    if status != 200 or not isinstance(payload, dict):
+        return {}
+    out = {}
+    for res in payload.get("resourceList") or []:
+        if not isinstance(res, dict) or not res.get("identifier"):
+            continue
+        key = res.get("resourceKey") or {}
+        out[res["identifier"]] = {"name": key.get("name"), "kind": key.get("resourceKindKey")}
+    return out
+
+
+def list_alerts() -> dict:
+    """Active VCF Operations alerts: count, count by level, newest critical first."""
+    ops = config.get_target("ops")
+    status, payload, _ = client.request(
+        ops, "POST", "/suite-api/api/alerts/query",
+        query={"page": 0, "pageSize": ALERT_PAGE}, body={"activeOnly": True}, timeout=60,
+    )
+    if status != 200 or not isinstance(payload, dict):
+        return {
+            "ok": False,
+            "count": 0,
+            "items": [],
+            "status": status,
+            "reason": f"VCF Operations alert query answered HTTP {status}",
+            "detail": client.redact(payload) if payload else None,
+        }
+    alerts = [a for a in payload.get("alerts") or [] if isinstance(a, dict)]
+    info = payload.get("pageInfo") or {}
+    total = info.get("totalCount") if isinstance(info.get("totalCount"), int) else len(alerts)
+
+    by_level: dict[str, int] = {}
+    for a in alerts:
+        level = str(a.get("alertLevel") or "UNKNOWN").upper()
+        by_level[level] = by_level.get(level, 0) + 1
+    rank = {lvl: i for i, lvl in enumerate(_ALERT_LEVELS)}
+    alerts.sort(key=lambda a: (rank.get(str(a.get("alertLevel")).upper(), 99), -(a.get("startTimeUTC") or 0)))
+    top = alerts[:ALERT_ROWS]
+    names = _resource_names(ops, sorted({a["resourceId"] for a in top if a.get("resourceId")}))
+
+    rows = []
+    for a in top:
+        res = names.get(a.get("resourceId") or "", {})
+        rows.append({
+            "alertId": a.get("alertId"),
+            "name": a.get("alertDefinitionName"),
+            "alertLevel": a.get("alertLevel"),
+            "status": a.get("status"),
+            "impact": a.get("alertImpact"),
+            "resourceId": a.get("resourceId"),
+            "resourceName": res.get("name"),
+            "resourceKind": res.get("kind"),
+            "startTimeUTC": _alert_time(a.get("startTimeUTC")),
+        })
+
+    out: dict[str, Any] = {
+        "ok": True,
+        "count": total,
+        "summary": f"{total} active alerts",
+        "by_level": {lvl: by_level[lvl] for lvl in sorted(by_level, key=lambda x: rank.get(x, 99))},
+        "showing": len(rows),
+        "items": rows,
+        "source": "VCF Operations POST /suite-api/api/alerts/query activeOnly=true (read-only)",
+    }
+    if not rows:
+        out["reason"] = "VCF Operations reports no active alerts"
+    if total > len(alerts):
+        out["note"] = f"by_level counts the first {len(alerts)} of {total} active alerts"
+    return out
+
+
+# VCF Operations VM disk metrics, in milliseconds. Operations samples every
+# five minutes, so a new load shows up one collection later.
+LATENCY_STATS = {
+    "virtualDisk:Aggregate of all instances|totalLatency": "total_latency_ms",
+    "virtualDisk:Aggregate of all instances|totalReadLatency_average": "read_latency_ms",
+    "virtualDisk:Aggregate of all instances|totalWriteLatency_average": "write_latency_ms",
+    "virtualDisk|20_sec_peak_totalLatency_average": "peak_20s_latency_ms",
+    "virtualDisk|peak_vDisk_iops": "peak_iops",
+}
+MAX_LATENCY_VMS = 8
+
+# Demo replay. Captain 2026-10-12 17:57 ET. These are the VCF Operations
+# numbers recorded at 2026-10-12 21:06 UTC (write latency 302–1014 ms,
+# peaks up to about 5 s, against a 5–11 ms read baseline). Nothing here
+# calls the lab. The switch is VCF_DISK_LATENCY_REPLAY=on. Default is off,
+# so a live door keeps reading VCF Operations.
+_REPLAY_SAMPLED_AT = "2026-10-12T21:06:00Z"
+_REPLAY_SAMPLE = (
+    {"match": "xjp6g-rmfkk", "write_latency_ms": 302.0, "peak_20s_latency_ms": 861.0, "read_latency_ms": 8.1},
+    {"match": "4vvd5", "write_latency_ms": 922.0, "peak_20s_latency_ms": 4949.0, "read_latency_ms": 6.4},
+    {"match": "nrrk4", "write_latency_ms": 1014.0, "peak_20s_latency_ms": 4718.0, "read_latency_ms": 10.7},
+    {"match": "xlw4k", "write_latency_ms": 530.0, "peak_20s_latency_ms": 1649.0, "read_latency_ms": 4.7},
+)
+
+
+def disk_latency_replay_enabled() -> bool:
+    """True only when the demo replay switch is on. Default off."""
+    return os.environ.get("VCF_DISK_LATENCY_REPLAY", "").strip().lower() in {"1", "on", "true", "yes"}
+
+
+def _latency_finding(rows: list[dict]) -> str:
+    """One sentence an agent can quote. Empty when no write sample came back."""
+    writes = [
+        float(row["write_latency_ms"])
+        for row in rows
+        if row.get("found") and isinstance(row.get("write_latency_ms"), (int, float))
+    ]
+    if not writes:
+        return ""
+    worst = max(writes)
+    if worst >= 300:
+        return (
+            f"Write latency is {worst:.0f} ms on the store VMs, on the shared datastore. "
+            "Read latency of about 5 to 11 ms is the normal baseline."
+        )
+    return f"Highest write latency in this sample is {worst:.0f} ms."
+
+
+def _replay_latency_row(name: str, index: int) -> dict:
+    chosen = next((row for row in _REPLAY_SAMPLE if row["match"] in name), None)
+    if chosen is None:
+        chosen = _REPLAY_SAMPLE[index % len(_REPLAY_SAMPLE)]
+    write = chosen["write_latency_ms"]
+    return {
+        "vm": name,
+        "found": True,
+        "status": 200,
+        "total_latency_ms": write,
+        "read_latency_ms": chosen["read_latency_ms"],
+        "write_latency_ms": write,
+        "peak_20s_latency_ms": chosen["peak_20s_latency_ms"],
+        "sampled_at": _REPLAY_SAMPLED_AT,
+    }
+
+
+def vm_disk_latency(vms: list[str]) -> dict:
+    """Latest disk latency per VM from VCF Operations, by VM name.
+
+    With VCF_DISK_LATENCY_REPLAY on, this returns the recorded demo sample
+    and does not call VCF Operations.
+    """
+    names = [str(v).strip() for v in (vms or []) if str(v).strip()]
+    if not names:
+        return {"ok": False, "error": "pass vms: one or more VM names from vcf_list_vms"}
+    names = names[:MAX_LATENCY_VMS]
+    if disk_latency_replay_enabled():
+        rows = [_replay_latency_row(name, index) for index, name in enumerate(names)]
+        return {
+            "ok": True,
+            "finding": _latency_finding(rows),
+            "source": "VCF Operations, latest VirtualMachine disk metrics",
+            "units": "milliseconds, except peak_iops",
+            "collection": "VCF Operations collects every five minutes",
+            "vms": rows,
+        }
+    ops = config.get_target("ops")
+    rows = []
+    for name in names:
+        status, found, _ = client.request(
+            ops, "GET", "/suite-api/api/resources", query={"name": name, "resourceKind": "VirtualMachine"}
+        )
+        ids = [r.get("identifier") for r in (found or {}).get("resourceList") or [] if isinstance(r, dict)]
+        if status != 200 or not ids:
+            rows.append({"vm": name, "found": False, "status": status})
+            continue
+        status, stats, _ = client.request(ops, "GET", f"/suite-api/api/resources/{ids[0]}/stats/latest")
+        row: dict[str, Any] = {"vm": name, "found": True, "status": status}
+        newest = 0
+        for value in (stats or {}).get("values") or []:
+            for stat in ((value.get("stat-list") or {}).get("stat") or []):
+                field = LATENCY_STATS.get(((stat.get("statKey") or {}).get("key")) or "")
+                data, stamps = stat.get("data") or [], stat.get("timestamps") or []
+                if field and data:
+                    row[field] = round(float(data[-1]), 1)
+                    newest = max(newest, int(stamps[-1]) if stamps else 0)
+        if newest:
+            row["sampled_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(newest / 1000))
+            row["age_seconds"] = int(time.time() - newest / 1000)
+        rows.append(row)
+    return {
+        "ok": True,
+        "finding": _latency_finding(rows),
+        "source": "VCF Operations, latest VirtualMachine disk metrics",
+        "units": "milliseconds, except peak_iops",
+        "collection": "VCF Operations collects every five minutes",
+        "vms": rows,
+    }
+
+
+def ops_snapshot() -> dict:
+    """One Operations snapshot: active alerts from the inventory recipe."""
+    return inventory(targets_wanted=["ops"])
+
+
+def _summarise(payload: Any, fields: tuple[str, ...] | None, limit: int) -> Any:
+    """Reduce a list response to counts plus the fields that matter."""
+    items = payload
+    if isinstance(payload, dict):
+        for key in ("elements", "value", "results", "alerts", "items"):
+            if isinstance(payload.get(key), list):
+                items = payload[key]
+                break
+    if not isinstance(items, list):
+        return client.redact(payload)
+
+    rendered = []
+    for item in items[:limit]:
+        if isinstance(item, dict) and fields:
+            row = {f: item[f] for f in fields if f in item}
+            rendered.append(row or client.redact(item))
+        else:
+            rendered.append(client.redact(item))
+    result: dict[str, Any] = {"count": len(items), "items": rendered}
+    if len(items) > limit:
+        result["note"] = f"showing {limit} of {len(items)}"
+    return result
+
+
+def validate(
+    target: str,
+    path: str,
+    body: Any = None,
+    wait_seconds: int = 120,
+    poll_interval: float = 5.0,
+) -> dict:
+    """Dry-run a spec against its /validations endpoint without executing it.
+
+    SDDC Manager and the Installer pair most mutating endpoints with a
+    validation twin: POST /v1/clusters -> POST /v1/clusters/validations takes
+    the *same* body, checks it end to end, and changes nothing. This tool
+    accepts either the real path or the validation path, resolves the twin,
+    runs it, and polls until the validation completes.
+
+    For targets without that convention (vCenter uses ?action=check...
+    operations instead), it reports the nearest check-style operations rather
+    than guessing.
+    """
+    resolved = config.get_target(target)
+    if not path.startswith("/"):
+        path = "/" + path
+    base = path.split("?")[0].rstrip("/")
+
+    # Accept the validation path itself, or derive it from the real one.
+    # The twin must match EXACTLY: template matching would happily bind
+    # ".../supervisors/validations" to ".../supervisors/{supervisor}" and
+    # POST a validation body at a real resource named "validations".
+    candidate = base if base.endswith("/validations") else base + "/validations"
+    entry = next(
+        (
+            e
+            for e in specs.index()
+            if target in e["targets"] and e["method"] == "POST" and e["path"] == candidate
+        ),
+        None,
+    )
+    if entry is None:
+        alternatives = [
+            {"method": e["method"], "path": e["path"], "operationId": e["op"]}
+            for e in specs.index()
+            if target in e["targets"]
+            and e["method"] == "POST"
+            and (e["path"].rstrip("/").endswith("/validations") or "action=check" in e["path"])
+        ]
+        near = [a for a in alternatives if base.split("/")[-1].rstrip("s") in a["path"]]
+        return {
+            "target": target,
+            "path": path,
+            "validated": False,
+            "error": f"no validation endpoint found for POST {candidate}",
+            "hint": (
+                "This resource has no /validations twin. Check-style operations "
+                "available on this target are listed under 'alternatives' -- they "
+                "can be run directly with vcf_call, they do not change state."
+            ),
+            "alternatives": (near or alternatives)[:12],
+        }
+
+    status, payload, _ = client.request(
+        resolved, "POST", entry["path"], body=body, timeout=120
+    )
+    result: dict[str, Any] = {
+        "target": target,
+        "validation_endpoint": entry["path"],
+        "operationId": entry["op"],
+        "http_status": status,
+    }
+    if status >= 400:
+        # For simple specs the appliance rejects at POST time -- that 400 IS
+        # the verdict, and its message names the failing item outright.
+        result["validated"] = False
+        if isinstance(payload, dict):
+            result["error"] = {
+                key: payload[key]
+                for key in ("errorCode", "message", "remediationMessage", "referenceToken")
+                if key in payload
+            } or client.redact(payload)
+        else:
+            result["error"] = payload
+        return result
+
+    # Poll the validation to completion when it reports an id and a matching
+    # GET .../validations/{id} exists.
+    validation_id = payload.get("id") if isinstance(payload, dict) else None
+    execution = payload.get("executionStatus") if isinstance(payload, dict) else None
+    if validation_id and execution and execution.upper() not in ("COMPLETED", "FAILED"):
+        poll_path = f"{entry['path']}/{validation_id}"
+        deadline = time.time() + max(0, wait_seconds)
+        while time.time() < deadline:
+            time.sleep(poll_interval)
+            status, payload, _ = client.request(resolved, "GET", poll_path)
+            execution = payload.get("executionStatus") if isinstance(payload, dict) else None
+            if status >= 400 or (execution and execution.upper() in ("COMPLETED", "FAILED")):
+                break
+
+    if isinstance(payload, dict):
+        outcome = str(payload.get("resultStatus") or "").upper()
+        result["execution_status"] = payload.get("executionStatus")
+        result["result_status"] = payload.get("resultStatus")
+        result["validated"] = outcome == "SUCCEEDED"
+        failures = [
+            {
+                "description": check.get("description"),
+                "result": check.get("resultStatus"),
+                "error": client.redact(check.get("errorResponse")),
+            }
+            for check in (payload.get("validationChecks") or [])
+            if isinstance(check, dict)
+            and str(check.get("resultStatus", "")).upper() not in ("SUCCEEDED", "")
+        ]
+        if failures:
+            result["failed_checks"] = failures
+        else:
+            body_fitted, _ = _fit(payload, 8_000)
+            result["detail"] = body_fitted
+    else:
+        result["validated"] = None
+        result["detail"] = payload
+    return result
+
+
+def audit(limit: int = 50) -> dict:
+    """Recent mutating calls made through this server."""
+    path = config.AUDIT_LOG
+    if not path.exists():
+        return {"audit_log": str(path), "entries": [], "note": "no mutations recorded yet"}
+    lines = path.read_text().splitlines()[-max(1, limit) :]
+    entries = []
+    for line in lines:
+        try:
+            entries.append(json.loads(line))
+        except ValueError:
+            continue
+    return {"audit_log": str(path), "count": len(entries), "entries": entries}
+
+
+def _task_id(status: int, payload: Any, headers: dict[str, str]) -> str | None:
+    """Pull the task id out of an accepted-but-not-finished response.
+
+    Deliberately conservative. Almost every VCF object has an `id`, so
+    treating any `id` as a task id would tell the caller to poll
+    /v1/tasks/<a-host-id> and get a confusing 404. Only an explicit 202, a
+    Location header pointing at /tasks/, or a body that is recognisably a
+    task counts.
+    """
+    location = headers.get("location") or headers.get("Location") or ""
+    if "/tasks/" in location:
+        candidate = location.rstrip("/").rsplit("/", 1)[-1]
+        if candidate:
+            return candidate
+
+    if not isinstance(payload, dict):
+        return None
+    for key in ("taskId", "task_id"):
+        if isinstance(payload.get(key), str):
+            return payload[key]
+
+    looks_like_task = "subTasks" in payload or (
+        isinstance(payload.get("status"), str)
+        and payload["status"].upper() in _TERMINAL | {"IN_PROGRESS", "PENDING", "IN PROGRESS"}
+    )
+    if (status == 202 or looks_like_task) and isinstance(payload.get("id"), str):
+        return payload["id"]
+    return None
+
+
+def _fit(payload: Any, max_chars: int) -> tuple[Any, bool]:
+    """Keep a response inside a sane size, shrinking lists before dropping data.
+
+    The six products in this estate each name their collection differently --
+    `elements`, `value`, `results`, `resourceList`, `alerts` -- so rather than
+    keep a list of key names in step with them, find the longest list in the
+    response and shrink that. Dropping whole items with a count is far more
+    useful to a caller than slicing the JSON text mid-token.
+    """
+    if payload is None:
+        return None, False
+    if len(json.dumps(payload, default=str)) <= max_chars:
+        return payload, False
+
+    if isinstance(payload, dict):
+        lists = [(k, v) for k, v in payload.items() if isinstance(v, list) and v]
+        if lists:
+            key, items = max(lists, key=lambda pair: len(pair[1]))
+            kept = [slim_item(i) for i in items]
+            while len(kept) > 1 and (
+                len(json.dumps({**payload, key: kept}, default=str)) > max_chars
+            ):
+                kept = kept[: len(kept) // 2]
+            shrunk = {**payload, key: kept}
+            if len(kept) < len(items):
+                shrunk["_truncated"] = f"showing {len(kept)} of {len(items)} in '{key}'"
+            else:
+                shrunk["_truncated"] = f"slimmed {len(kept)} in '{key}'"
+            if len(json.dumps(shrunk, default=str)) > max_chars:
+                one = slim_item(kept[0], max_chars=min(DEFAULT_ITEM_CHARS, max(80, max_chars // 4)))
+                shrunk = {
+                    key: [one],
+                    "count": len(items),
+                    "_truncated": (
+                        f"'{key}' has {len(items)} items; showing 1 slimmed row"
+                    ),
+                }
+            return shrunk, True
+
+    if isinstance(payload, list):
+        kept = [slim_item(item) for item in payload]
+        while len(kept) > 1 and len(json.dumps(kept, default=str)) > max_chars:
+            kept = kept[: len(kept) // 2]
+        return {
+            "_truncated": f"showing {len(kept)} of {len(payload)} items",
+            "count": len(payload),
+            "items": kept,
+        }, True
+
+    if isinstance(payload, dict):
+        return slim_item(payload, max_chars=min(max_chars, DEFAULT_ITEM_CHARS * 4)), True
+    return _clip(payload, max_chars), True
+
+
+def _clip(value: Any, max_chars: int) -> Any:
+    """Last resort: shorten a single oversized value without corrupting JSON."""
+    text = value if isinstance(value, str) else json.dumps(value, default=str)
+    if len(text) <= max_chars:
+        return value
+    return text[: max(0, max_chars - 20)] + "...<clipped>"

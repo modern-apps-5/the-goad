@@ -47,7 +47,7 @@ spec:
           variables:
             overrides:
               - name: vmClass
-                value: best-effort-medium
+                value: best-effort-large
     variables:
       - name: vmClass
         value: best-effort-medium

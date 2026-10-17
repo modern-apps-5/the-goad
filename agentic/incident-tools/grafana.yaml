@@ -1,0 +1,149 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: incident-tools
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: incident-tools
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Goad
+        uid: goad-prometheus
+        type: prometheus
+        access: proxy
+        url: ${PROMETHEUS_URL}
+        isDefault: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: incident-tools
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: goad
+        folder: Goad
+        type: file
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: incident-tools
+data:
+  incident-live.json: |
+    {"title":"Incident live","uid":"incident-live","schemaVersion":39,"panels":[{"type":"text","title":"Open incident","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"The open Zammad ticket for this demo. Agents are not started by demo.sh."}}],"time":{"from":"now-6h","to":"now"}}
+  can-i-demo.json: |
+    {"title":"Can I demo right now?","uid":"can-i-demo-right-now","schemaVersion":39,"panels":[{"type":"text","title":"Ready","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"Store HTTP 200, Zammad HTTP 200, and ModelEndpoint qwen answering. No paging."}}],"time":{"from":"now-15m","to":"now"}}
+  no-gpu.json: |
+    {"title":"spark1","uid":"spark1-no-gpu","schemaVersion":39,"panels":[{"type":"text","title":"GPU","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"no GPU"}}],"time":{"from":"now-6h","to":"now"}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: incident-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.3.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin
+                  key: password
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 472
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            periodSeconds: 10
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: boards
+              mountPath: /var/lib/grafana/dashboards
+      volumes:
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+        - name: provider
+          configMap:
+            name: grafana-dashboards-provider
+        - name: boards
+          configMap:
+            name: grafana-dashboards
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: incident-tools
+spec:
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: incident-tools
+  annotations:
+    ako.vmware.com/service-engine-group: goad-se-group
+    external-dns.alpha.kubernetes.io/hostname: ${GRAFANA_HOST}
+spec:
+  ingressClassName: avi-lb
+  rules:
+    - host: ${GRAFANA_HOST}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
