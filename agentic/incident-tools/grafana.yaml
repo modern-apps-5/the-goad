@@ -16,7 +16,7 @@ data:
         uid: goad-prometheus
         type: prometheus
         access: proxy
-        url: ${PROMETHEUS_URL}
+        url: http://prometheus.incident-tools.svc:9090
         isDefault: true
 ---
 apiVersion: v1
@@ -31,6 +31,7 @@ data:
       - name: goad
         folder: Goad
         type: file
+        updateIntervalSeconds: 10
         options:
           path: /var/lib/grafana/dashboards
 ---
@@ -41,11 +42,11 @@ metadata:
   namespace: incident-tools
 data:
   incident-live.json: |
-    {"title":"Incident live","uid":"incident-live","schemaVersion":39,"annotations":{"list":[{"builtIn":1,"datasource":{"type":"grafana","uid":"-- Grafana --"},"enable":true,"hide":false,"iconColor":"rgba(255, 96, 96, 1)","name":"Annotations & Alerts","type":"dashboard"},{"datasource":{"type":"grafana","uid":"-- Grafana --"},"enable":true,"hide":false,"iconColor":"red","name":"incident","tags":["incident"],"type":"tags"}]},"panels":[{"type":"text","title":"Open incident","gridPos":{"x":0,"y":0,"w":24,"h":8},"options":{"mode":"markdown","content":"Agents do not start with the demo. Type in the incident response chat: pick up the latest incident ticket and enrich it. Each step is an annotation tagged incident."}}],"time":{"from":"now-6h","to":"now"}}
+    {"title":"Incident live","uid":"incident-live","schemaVersion":39,"annotations":{"list":[{"builtIn":1,"datasource":{"type":"grafana","uid":"-- Grafana --"},"enable":true,"hide":false,"iconColor":"rgba(255, 96, 96, 1)","name":"Annotations & Alerts","type":"dashboard"},{"datasource":{"type":"grafana","uid":"-- Grafana --"},"enable":true,"hide":false,"iconColor":"red","name":"incident","tags":["incident"],"type":"tags"}]},"panels":[{"type":"timeseries","title":"Store deployments ready","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":0,"y":0,"w":24,"h":8},"targets":[{"expr":"kube_deployment_status_replicas_available{namespace=\"metal-music-store\"}","legendFormat":"{{deployment}}","refId":"A"}]}],"time":{"from":"now-6h","to":"now"}}
   can-i-demo.json: |
-    {"title":"Can I demo right now?","uid":"can-i-demo-right-now","schemaVersion":39,"panels":[{"type":"text","title":"Ready","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"Store HTTP 200, Zammad HTTP 200, and ModelEndpoint qwen answering. No paging."}}],"time":{"from":"now-15m","to":"now"}}
+    {"title":"Can I demo right now?","uid":"can-i-demo-right-now","schemaVersion":39,"panels":[{"type":"stat","title":"store","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":0,"y":0,"w":4,"h":4},"targets":[{"expr":"demo_up{check=\"store\"}","refId":"A","instant":true}],"fieldConfig":{"defaults":{"min":0,"max":1,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"green","value":1}]}}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"}},{"type":"stat","title":"users","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":4,"y":0,"w":4,"h":4},"targets":[{"expr":"demo_up{check=\"users\"}","refId":"A","instant":true}],"fieldConfig":{"defaults":{"min":0,"max":1,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"green","value":1}]}}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"}},{"type":"stat","title":"catalog","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":8,"y":0,"w":4,"h":4},"targets":[{"expr":"demo_up{check=\"catalog\"}","refId":"A","instant":true}],"fieldConfig":{"defaults":{"min":0,"max":1,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"green","value":1}]}}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"}},{"type":"stat","title":"zammad","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":12,"y":0,"w":4,"h":4},"targets":[{"expr":"demo_up{check=\"zammad\"}","refId":"A","instant":true}],"fieldConfig":{"defaults":{"min":0,"max":1,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"green","value":1}]}}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"}},{"type":"stat","title":"qwen","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":16,"y":0,"w":4,"h":4},"targets":[{"expr":"demo_up{check=\"qwen\"}","refId":"A","instant":true}],"fieldConfig":{"defaults":{"min":0,"max":1,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"green","value":1}]}}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"}},{"type":"stat","title":"clm","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":20,"y":0,"w":4,"h":4},"targets":[{"expr":"demo_up{check=\"clm\"}","refId":"A","instant":true}],"fieldConfig":{"defaults":{"min":0,"max":1,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"green","value":1}]}}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"}},{"type":"timeseries","title":"Store page time","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":0,"y":4,"w":24,"h":6},"targets":[{"expr":"demo_latency_ms{check=\"store\"}","refId":"A"}]}],"time":{"from":"now-15m","to":"now"}}
   no-gpu.json: |
-    {"title":"spark1","uid":"spark1-no-gpu","schemaVersion":39,"panels":[{"type":"text","title":"GPU","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"no GPU"}}],"time":{"from":"now-6h","to":"now"}}
+    {"title":"Writer model","uid":"spark1-no-gpu","schemaVersion":39,"panels":[{"type":"stat","title":"qwen","datasource":{"type":"prometheus","uid":"goad-prometheus"},"gridPos":{"x":0,"y":0,"w":4,"h":4},"targets":[{"expr":"demo_up{check=\"qwen\"}","refId":"A","instant":true}],"fieldConfig":{"defaults":{"min":0,"max":1,"thresholds":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"green","value":1}]}}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background"}},{"type":"text","title":"Where the note is written","gridPos":{"x":4,"y":0,"w":20,"h":4},"options":{"mode":"markdown","content":"The writer is the qwen endpoint in this org. There is no GPU in this demo."}}],"time":{"from":"now-6h","to":"now"}}
 ---
 apiVersion: apps/v1
 kind: Deployment

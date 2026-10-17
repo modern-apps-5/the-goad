@@ -11,12 +11,17 @@ response chat on `https://incident-response-agent.${TANZU_APPS_DOMAIN}/`:
 
 | Piece | Command | Mounts | Calls |
 |---|---|---|---|
-| `incident-response-agent` | `python3 /app/chat.py` | `agents/chat.py`, `agents/incident-response/skills/SKILL.md` | Zammad and the orchestrator only |
+| `incident-response-agent` | agent buildpack, `agents/roles/incident-response-agent.md` as `AGENTS.md` | the enrichment tools only. `chat.py` is not staged |
 | `orchestrator` | `python3 /app/harness.py` | `orchestrator/harness.py` | the three diagnostic agents, Qwen, Grafana. Decision gate is `CLM_URL` |
-| `lb-diagnostic-agent` | `python3 /app/diagnose.py` | `agents/diagnose.py`, `agents/door.py`, `agents/lb-diagnostic/skills/SKILL.md` | Avi door `avi_latency` |
-| `k8s-diagnostic-agent` | `python3 /app/diagnose.py` | same code, `agents/k8s-diagnostic/skills/SKILL.md` | `k8s_list_deployments`, `k8s_list_pods`, `k8s_events`, `k8s_pod_logs` |
-| `vcf-diagnostic-agent` | `python3 /app/diagnose.py` | same code, `agents/vcf-diagnostic/skills/SKILL.md` | `vcf_vm_disk_latency` |
+| `lb-diagnostic-agent` | agent buildpack, skill `lb_diagnostic_agent` | Avi door `avi_latency` |
+| `k8s-diagnostic-agent` | agent buildpack, skill `k8s_diagnostic_agent` | `k8s_list_deployments`, `k8s_list_pods`, `k8s_events`, `k8s_pod_logs` |
+| `vcf-diagnostic-agent` | agent buildpack, skill `vcf_diagnostic_agent` | `vcf_vm_disk_latency` |
 | `pii-scrub` | `python3 /app/scrub.py` | `pii/scrub.py` | none |
+
+The apps that are already running still start `chat.py` and `diagnose.py`.
+The next `tanzu/push.py` is what switches them to the buildpack above.
+Do not push that until the orchestrator exposes `enrich_latest_incident`,
+or the incident agent has no tool to call.
 
 `CLM_URL` blank means the decision gate is on fallback. The note says
 that. The orchestrator still calls all three agents. One stalled agent

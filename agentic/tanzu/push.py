@@ -176,15 +176,25 @@ def ignore_junk(_dir, names):
 
 
 def stage_agent(name: str, entry: str, skill: str) -> Path:
+    """Stage a Tanzu agent buildpack app.
+
+    The buildpack is the Pydantic agent. It reads AGENTS.md and
+    .agents/skills. The old diagnose.py and chat.py files stay out of
+    this tree so they cannot become the start command.
+    """
     dest = Path(tempfile.mkdtemp(prefix=f"{name}-"))
     agents = ROOT / "agents"
-    for filename in (entry, "door.py"):
-        if (agents / filename).is_file():
-            shutil.copy(agents / filename, dest / filename)
-    skill_dir = dest / "skills"
-    skill_dir.mkdir()
-    shutil.copy(agents / skill / "skills" / "SKILL.md", skill_dir / "SKILL.md")
-    (dest / "AGENTS.md").write_text((agents / skill / "skills" / "SKILL.md").read_text(encoding="utf-8"), encoding="utf-8")
+    skill_name = ROLE.get(name, "incident_response_agent")
+    role = agents / "roles" / f"{name}.md"
+    if not role.is_file():
+        raise SystemExit(f"missing role {role}")
+    (dest / "AGENTS.md").write_text(role.read_text(encoding="utf-8"), encoding="utf-8")
+    target = dest / ".agents" / "skills" / skill_name
+    target.mkdir(parents=True)
+    shutil.copy(agents / skill / "skills" / "SKILL.md", target / "SKILL.md")
+    schema = agents / "schema" / "findings.schema.json"
+    if schema.is_file():
+        shutil.copy(schema, target / "findings.schema.json")
     (dest / "runtime.txt").write_text("python-3.12.x\n", encoding="utf-8")
     # The buildpack only installs the app root requirements. Diagnostic
     # agents also start the sidecar, which imports the staged SDK.
@@ -393,7 +403,9 @@ def main() -> None:
                 }
             ]
         packs = ["python_buildpack", "agent_buildpack"]
-        push(base_app(name, stage_agent(name, entry, skill), "512M", "1G", f"python {entry}", packs, extra))
+        spec = base_app(name, stage_agent(name, entry, skill), "512M", "1G", "", packs, extra)
+        spec.pop("command", None)
+        push(spec)
 
     issuer = "https://agentminder.goad.gpu.set.lab/default"
     mcp_read = os.environ.get("MCP_READ_TOKEN", "").strip() or os.urandom(24).hex()

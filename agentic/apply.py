@@ -341,7 +341,9 @@ def main() -> None:
     for name in REQUIRED:
         need(name)
     ensure_admin_password()
-    os.environ.setdefault("PROMETHEUS_URL", "http://prometheus.example.invalid")
+    os.environ.setdefault("PROMETHEUS_URL", "http://prometheus.incident-tools.svc:9090")
+    os.environ.setdefault("QWEN_MODELS_URL", "")
+    os.environ.setdefault("CLM_HEALTH_URL", "")
     os.environ.setdefault("CLM_URL", "")
     kube = os.environ.get("KUBECONFIG", "").strip()
     if not kube:
@@ -379,8 +381,10 @@ def main() -> None:
     if "incident-tools" in selected:
         zammad = fill((ROOT / "incident-tools" / "zammad.yaml").read_text())
         grafana = fill((ROOT / "incident-tools" / "grafana.yaml").read_text())
+        metrics = fill((ROOT / "incident-tools" / "prometheus.yaml").read_text())
         run(k + ["apply", "-f", "-"], input_text=zammad)
         run(k + ["apply", "-f", "-"], input_text=grafana)
+        run(k + ["apply", "-f", "-"], input_text=metrics)
         zenv = "\n".join([
             "POSTGRESQL_HOST=zammad-postgresql",
             "POSTGRESQL_PORT=5432",
@@ -419,6 +423,11 @@ def main() -> None:
             capture_output=True, text=True, check=True,
         )
         run(k + ["apply", "-f", "-"], input_text=gsecret.stdout)
+        qsecret = subprocess.run(
+            k + ["create", "secret", "generic", "qwen-probe", "-n", "incident-tools", f"--from-literal=api-key={need('QWEN_API_KEY')}", "--dry-run=client", "-o", "yaml"],
+            capture_output=True, text=True, check=True,
+        )
+        run(k + ["apply", "-f", "-"], input_text=qsecret.stdout)
 
     if "agents" in selected:
         ensure_agent_objects(k)
