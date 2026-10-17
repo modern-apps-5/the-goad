@@ -1,9 +1,11 @@
 # Agents
 
-The four agents and the orchestrator run `python:3.12-slim` in
-`metal-music-app-agentic-system`. `demo/demo.sh start` does not start
-them. The Captain starts a walk by typing this in the incident
-response chat:
+The four agents, the orchestrator, and pii-scrub are Cloud Foundry
+apps in org `Goad`, space `metal-music-app-agentic-system`. Push them
+with `tanzu/push.py`. The VKS pods of the same names were an earlier
+placement and are not the runtime. `demo/demo.sh start` does not start
+the agents. The Captain starts a walk by typing this in the incident
+response chat on `https://incident-response-agent.${TANZU_APPS_DOMAIN}/`:
 
 `pick up the latest incident ticket and enrich it`
 

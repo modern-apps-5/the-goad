@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import ssl
 import time
 import urllib.error
@@ -17,6 +18,30 @@ import urllib.request
 
 def _env(name: str) -> str:
     return os.environ.get(name, "").strip()
+
+
+def _open(req: urllib.request.Request, timeout: float):
+    """Dial AgentMinder. AGENTMINDER_CONNECT_IP keeps Host and SNI on the name."""
+    ctx = ssl._create_unverified_context()
+    ip = _env("AGENTMINDER_CONNECT_IP")
+    parsed = urllib.parse.urlparse(req.full_url)
+    host = parsed.hostname or ""
+    if not ip:
+        return urllib.request.urlopen(req, timeout=timeout, context=ctx)
+
+    class Handler(urllib.request.HTTPSHandler):
+        def https_open(self, request):
+            def mk(h, timeout=None, source_address=None):
+                class Conn(urllib.request.http.client.HTTPSConnection):
+                    def connect(self):
+                        sock = socket.create_connection((ip, 443), self.timeout)
+                        self.sock = ctx.wrap_socket(sock, server_hostname=host)
+
+                return Conn(h, timeout=timeout, context=ctx)
+
+            return self.do_open(mk, request)
+
+    return urllib.request.build_opener(Handler()).open(req, timeout=timeout)
 
 
 def token() -> str:
@@ -42,9 +67,8 @@ def token() -> str:
             "Authorization": "Basic " + _basic(client_id, secret),
         },
     )
-    ctx = ssl._create_unverified_context()
     try:
-        with urllib.request.urlopen(req, timeout=20, context=ctx) as resp:
+        with _open(req, 20) as resp:
             doc = json.loads(resp.read().decode())
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"token HTTP {exc.code}") from exc
@@ -73,8 +97,7 @@ def _post(url: str, access: str, payload: dict, session: str, timeout: float) ->
     if session:
         headers["MCP-Session-Id"] = session
     req = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST", headers=headers)
-    ctx = ssl._create_unverified_context()
-    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+    with _open(req, timeout) as resp:
         sid = resp.headers.get("MCP-Session-Id") or resp.headers.get("Mcp-Session-Id") or session
         raw = resp.read().decode()
     return json.loads(raw), sid or ""

@@ -31,6 +31,20 @@ def step(text: str) -> None:
         SINK(json.dumps({"step": text}) + "\n")
 
 
+def _open(url: str, timeout: int, connect_ip: str = "", data: bytes | None = None, headers: dict | None = None):
+    parsed = urllib.parse.urlparse(url)
+    dest = url
+    hdrs = dict(headers or {})
+    if connect_ip and parsed.hostname:
+        netloc = connect_ip if not parsed.port else f"{connect_ip}:{parsed.port}"
+        dest = urllib.parse.urlunparse(parsed._replace(netloc=netloc))
+        hdrs["Host"] = parsed.hostname
+    req = urllib.request.Request(dest, data=data, method="POST" if data is not None else "GET", headers=hdrs)
+    if url.startswith("https://"):
+        return urllib.request.urlopen(req, timeout=timeout, context=ssl._create_unverified_context())
+    return urllib.request.urlopen(req, timeout=timeout)
+
+
 def _grafana(text: str) -> None:
     url = os.environ.get("GRAFANA_URL", "").rstrip("/")
     password = os.environ.get("GRAFANA_ADMIN_PASSWORD", "")
@@ -39,17 +53,17 @@ def _grafana(text: str) -> None:
     import base64
 
     body = json.dumps({"text": text[:400], "tags": ["incident"]}).encode()
-    req = urllib.request.Request(
-        url + "/api/annotations",
-        data=body,
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "Basic " + base64.b64encode(f"admin:{password}".encode()).decode(),
-        },
-    )
     try:
-        urllib.request.urlopen(req, timeout=5).read()
+        _open(
+            url + "/api/annotations",
+            5,
+            os.environ.get("GRAFANA_CONNECT_IP", "").strip(),
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Basic " + base64.b64encode(f"admin:{password}".encode()).decode(),
+            },
+        ).read()
     except Exception:
         return
 
@@ -58,7 +72,7 @@ def store_check() -> dict:
     url = os.environ.get("STORE_URL", "").rstrip("/") + "/"
     started = time.time()
     try:
-        with urllib.request.urlopen(url, timeout=40, context=ssl._create_unverified_context()) as resp:
+        with _open(url, 40, os.environ.get("STORE_CONNECT_IP", "").strip()) as resp:
             resp.read(200)
             status = resp.status
     except urllib.error.HTTPError as exc:
@@ -98,11 +112,15 @@ def clm_choice(question: str, options: dict) -> dict:
 
 
 def ask_agent(service: str, role: str, incident_id: str, message: str, timeout: float) -> dict:
-    url = f"http://{service}:8080/api/chat"
+    overrides = {
+        "lb-diagnostic-agent": os.environ.get("LB_AGENT_URL", ""),
+        "k8s-diagnostic-agent": os.environ.get("K8S_AGENT_URL", ""),
+        "vcf-diagnostic-agent": os.environ.get("VCF_AGENT_URL", ""),
+    }
+    url = (overrides.get(service) or f"http://{service}:8080/api/chat").strip()
     payload = json.dumps({"message": message, "incident_id": incident_id}).encode()
-    req = urllib.request.Request(url, data=payload, method="POST", headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with _open(url, int(timeout), "", data=payload, headers={"Content-Type": "application/json"}) as resp:
             doc = json.loads(resp.read().decode())
     except Exception as exc:
         return {"ok": False, "error": type(exc).__name__, "calls": [], "report": None}

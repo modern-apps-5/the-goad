@@ -399,7 +399,7 @@ def main() -> None:
             "RAILS_ENV=production",
             "RAILS_LOG_TO_STDOUT=true",
             f"ZAMMAD_FQDN={need('ZAMMAD_HOST')}",
-            "ZAMMAD_HTTP_TYPE=https",
+            "ZAMMAD_HTTP_TYPE=http",
             f"AUTOWIZARD_JSON={wizard_b64()}",
         ]) + "\n"
         # Build the secret from an env file. The file is removed after apply.

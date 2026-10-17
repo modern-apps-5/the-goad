@@ -19,7 +19,9 @@ passwords. Examples are shapes.
 | `CLM_URL` | Orchestrator decision gate. POST `{CLM_URL}/v1/systemone`. Blank means the walk uses the fallback and the report says so | (blank until a CLM image exists) |
 | `CLM_BASE_URL` | Same root, read by `orchestrator/clm.py`. The pod env is `CLM_URL` | `http://clm.example.lab:8700` |
 | `CLM_IMAGE` | Image for the CLM server. Empty means do not apply `clm/clm.yaml` | (empty until the image exists here) |
-| `INCIDENT_HOST` | Avi DNS name for the incident response chat | `incident.example.lab` |
+| `TANZU_APPS_DOMAIN` | Cloud Foundry apps domain for org `Goad` | `apps.example.lab` |
+| `GOAD_VCFA_SPACE` | Tanzu space. The approved name is `metal-music-app-agentic-system` | `metal-music-app-agentic-system` |
+| `INCIDENT_HOST` | Avi DNS name for a VKS chat ingress. The Tanzu chat route is `incident-response-agent.${TANZU_APPS_DOMAIN}` | `incident.example.lab` |
 | `STORE_WORKER_VMS` | Comma-separated worker VM names the VCF agent passes to `vcf_vm_disk_latency` | `worker-a,worker-b` |
 | `AGENTMINDER_HOST` | AgentMinder host already in this organization | `agentminder.example.lab` |
 | `K8S_MCP_HOST` | Avi DNS name for the Kubernetes MCP | `k8s-mcp.example.lab` |

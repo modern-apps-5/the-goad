@@ -11,12 +11,15 @@ names `users-service` and `postgres-service`. Do not apply
 `app/music-store`. Those container files are the earlier shape.
 
 The incident response agent, the orchestrator, and the three diagnostic
-agents are in `agents/`. Skills are `agents/<name>/skills/SKILL.md`.
-`CLM_URL` blank in `BLANKS.md` means the decision gate runs on fallback
-and the report says so. `demo/demo.sh start` only slows the store and
-opens the Zammad ticket. It does not start the agents. Secret shapes
-are in `secrets/templates.yaml`. `apply.py` fills them. That file is
-not applied as-is.
+agents run on Tanzu Platform, org `Goad`, space
+`metal-music-app-agentic-system`. Manifests are `tanzu/`. Skills are
+`agents/<name>/skills/SKILL.md`. `CLM_URL` blank in `BLANKS.md` means
+the decision gate runs on fallback and the report says so.
+`demo/demo.sh start` only slows the store and opens the Zammad ticket.
+It does not start the agents. Secret shapes are in
+`secrets/templates.yaml`. `apply.py` fills the store and the incident
+tools. `tanzu/push.py` fills the Cloud Foundry apps. Neither file is
+applied as-is. Lessons and the rebuild order are in `RUNBOOK.md`.
 
 ## Where each piece runs
 
@@ -24,7 +27,7 @@ not applied as-is.
 |---|---|---|
 | Storefront, cart, orders, chat, ingress | `music-store` | `metal-music-store` |
 | Users VM, DSM catalog, VKS cluster | supervisor | `gitops/music-store` |
-| Incident response chat, orchestrator, three diagnostic agents, three MCP servers, pii-scrub | `music-store` | `metal-music-app-agentic-system` |
+| Incident response chat, orchestrator, three diagnostic agents, three MCP servers, pii-scrub | Tanzu Platform org `Goad` | space `metal-music-app-agentic-system` |
 | Zammad and Grafana | `music-store` | `incident-tools` |
 | Qwen | Private AI `ModelEndpoint` `qwen` | the Private AI namespace |
 | CLM | inside this organization, not a GPU box outside it | see `clm/README.md` |

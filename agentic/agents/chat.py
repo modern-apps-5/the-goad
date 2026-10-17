@@ -17,6 +17,74 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TRIGGER = "pick up the latest incident ticket"
 
+_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Incident response</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; max-width: 48rem; }
+  pre { white-space: pre-wrap; background: #f4f4f4; padding: 1rem; min-height: 8rem; }
+  button { margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+<h1>Incident response</h1>
+<p>Ask the agent to pick up the latest incident ticket and enrich it.</p>
+<form id="talk">
+  <input id="msg" size="70" value="pick up the latest incident ticket and enrich it">
+  <button type="submit">Send</button>
+</form>
+<pre id="out"></pre>
+<script>
+document.getElementById("talk").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const out = document.getElementById("out");
+  out.textContent = "";
+  const resp = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({message: document.getElementById("msg").value})
+  });
+  const reader = resp.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const step = await reader.read();
+    if (step.done) break;
+    buf += dec.decode(step.value, {stream: true});
+    const parts = buf.split("\\n\\n");
+    buf = parts.pop();
+    for (const part of parts) {
+      const line = part.split("\\n").find((row) => row.startsWith("data:"));
+      if (!line) continue;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") continue;
+      try {
+        const obj = JSON.parse(data);
+        if (obj.delta) out.textContent += obj.delta;
+      } catch (err) {}
+    }
+  }
+});
+</script>
+</body>
+</html>
+"""
+
+
+def _open(req: urllib.request.Request, timeout: int, connect_ip: str = ""):
+    """Open a URL. connect_ip dials that address and keeps the original Host."""
+    ctx = ssl._create_unverified_context()
+    parsed = urllib.parse.urlparse(req.full_url)
+    if connect_ip and parsed.hostname:
+        netloc = connect_ip if not parsed.port else f"{connect_ip}:{parsed.port}"
+        req.full_url = urllib.parse.urlunparse(parsed._replace(netloc=netloc))
+        req.add_header("Host", parsed.hostname)
+    if req.full_url.startswith("https://"):
+        return urllib.request.urlopen(req, timeout=timeout, context=ctx)
+    return urllib.request.urlopen(req, timeout=timeout)
+
 
 def zammad(method: str, path: str, payload: dict | None = None) -> tuple[int, str]:
     root = os.environ.get("ZAMMAD_URL", "").rstrip("/")
@@ -29,7 +97,7 @@ def zammad(method: str, path: str, payload: dict | None = None) -> tuple[int, st
         headers={"Authorization": f"Token token={token}", "Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=20, context=ssl._create_unverified_context()) as resp:
+        with _open(req, 20, os.environ.get("ZAMMAD_CONNECT_IP", "").strip()) as resp:
             return resp.status, resp.read().decode()
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read().decode(errors="replace")
@@ -81,7 +149,7 @@ def orchestrate(ticket: dict):
         method="POST",
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=700) as resp:
+    with _open(req, 700, os.environ.get("ORCHESTRATOR_CONNECT_IP", "").strip()) as resp:
         for line in resp:
             line = line.strip()
             if line:
@@ -95,6 +163,14 @@ def sse(obj) -> bytes:
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         path = self.path.split("?", 1)[0]
+        if path == "/":
+            body = _PAGE.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path == "/health":
             body = json.dumps({"ok": True, "agent": "incident-response-agent"}).encode()
         elif path == "/live":

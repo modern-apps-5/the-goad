@@ -41,6 +41,7 @@ import os
 import ssl
 import threading
 import time
+import urllib.parse
 import urllib.request
 from typing import Any, Iterable
 
@@ -273,7 +274,30 @@ def _ssl_ctx() -> ssl.SSLContext:
 
 def _get_json(url: str) -> dict[str, Any]:
     req = urllib.request.Request(url, method="GET")
-    with urllib.request.urlopen(req, context=_ssl_ctx(), timeout=10) as resp:
+    ctx = _ssl_ctx()
+    ip = (os.environ.get("AGENTMINDER_CONNECT_IP") or "").strip()
+    parsed = urllib.parse.urlparse(url)
+    host = parsed.hostname or ""
+    if ip and host and url.startswith("https://"):
+
+        class Handler(urllib.request.HTTPSHandler):
+            def https_open(self, request):
+                def mk(h, timeout=None, source_address=None):
+                    class Conn(urllib.request.http.client.HTTPSConnection):
+                        def connect(self):
+                            import socket
+
+                            sock = socket.create_connection((ip, 443), self.timeout)
+                            self.sock = ctx.wrap_socket(sock, server_hostname=host)
+
+                    return Conn(h, timeout=timeout, context=ctx)
+
+                return self.do_open(mk, request)
+
+        resp_cm = urllib.request.build_opener(Handler()).open(req, timeout=10)
+    else:
+        resp_cm = urllib.request.urlopen(req, context=ctx, timeout=10)
+    with resp_cm as resp:
         doc = json.loads(resp.read().decode())
     if not isinstance(doc, dict):
         raise ValueError("expected a JSON object")

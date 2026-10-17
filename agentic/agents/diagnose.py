@@ -19,7 +19,15 @@ from pathlib import Path
 import door
 
 NS = "metal-music-store"
-SKILL = Path("/skills/SKILL.md")
+def _skill_text() -> str:
+    candidates = (
+        Path("/skills/SKILL.md"),
+        Path(__file__).resolve().parent / "skills" / "SKILL.md",
+    )
+    for path in candidates:
+        if path.is_file():
+            return path.read_text(encoding="utf-8")
+    return ""
 
 
 def qwen(prompt: str, timeout: int = 90) -> str:
@@ -177,7 +185,7 @@ def run(agent: str, incident_id: str, prompt: str) -> dict:
     calls = []
     for name, args in steps_for(agent):
         calls.append(door.call_tool(name, args))
-    skill = SKILL.read_text(encoding="utf-8") if SKILL.is_file() else ""
+    skill = _skill_text()
     ask = (
         f"Skill:\n{skill[:4000]}\n\nUser:\n{prompt[:1500]}\n\n"
         f"Tool results:\n{json.dumps(calls, default=str)[:7000]}\n\n"

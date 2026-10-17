@@ -31,6 +31,7 @@ import os
 import ssl
 import threading
 import time
+import urllib.parse
 import urllib.request
 from typing import Any, Iterable
 
@@ -239,6 +240,32 @@ def _ssl_ctx() -> ssl.SSLContext:
     return ssl._create_unverified_context()
 
 
+def _open_issuer(req: urllib.request.Request, timeout: float):
+    """Reach the issuer by IP when the cell DNS does not know the Avi name."""
+    ctx = _ssl_ctx()
+    ip = (os.environ.get("AGENTMINDER_CONNECT_IP") or "").strip()
+    parsed = urllib.parse.urlparse(req.full_url)
+    host = parsed.hostname or ""
+    if not ip or not host:
+        return urllib.request.urlopen(req, context=ctx, timeout=timeout)
+
+    class Handler(urllib.request.HTTPSHandler):
+        def https_open(self, request):
+            def mk(h, timeout=None, source_address=None):
+                class Conn(urllib.request.http.client.HTTPSConnection):
+                    def connect(self):
+                        import socket
+
+                        sock = socket.create_connection((ip, 443), self.timeout)
+                        self.sock = ctx.wrap_socket(sock, server_hostname=host)
+
+                return Conn(h, timeout=timeout, context=ctx)
+
+            return self.do_open(mk, request)
+
+    return urllib.request.build_opener(Handler()).open(req, timeout=timeout)
+
+
 def _load_jwks() -> dict[str, Any]:
     global _jwks_cache
     now = time.time()
@@ -246,7 +273,7 @@ def _load_jwks() -> dict[str, Any]:
         if _jwks_cache and _jwks_cache[0] > now:
             return _jwks_cache[1]
     req = urllib.request.Request(jwks_uri(), method="GET")
-    with urllib.request.urlopen(req, context=_ssl_ctx(), timeout=10) as resp:
+    with _open_issuer(req, 10) as resp:
         doc = json.loads(resp.read().decode())
     if not isinstance(doc, dict) or not isinstance(doc.get("keys"), list):
         raise ValueError("jwks document missing keys")
