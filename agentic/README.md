@@ -4,17 +4,22 @@ Reusable manifests for the Metal Music Store incident demo. They run in
 the same organization as the shop. Nothing here is a secret, and nothing
 here names a second organization.
 
-The Red Lab store is `gitops/music-store`: the users VM Service VM, the
-DSM catalog, and the VKS cluster. This directory does not copy that
-tree. `store/` only publishes the guest Service names and the shop
-ingress. Do not apply `app/music-store`. Those container files are the
-earlier shape.
+`gitops/music-store` is the users VM, the DSM catalog, and the VKS
+cluster. `store/` is the storefront that was copied from the other
+org: store, cart, orders, and chat, plus the ingress and the Service
+names `users-service` and `postgres-service`. Do not apply
+`app/music-store`. Those container files are the earlier shape.
+
+The four agents mount only `agents/idle.py`. No skill file, prompt, or
+tool list is in those pods. See `agents/README.md`. Secret shapes are
+in `secrets/templates.yaml`. `apply.py` fills them. That file is not
+applied as-is.
 
 ## Where each piece runs
 
 | Piece | Cluster | Namespace |
 |---|---|---|
-| Shop ingress and backing Service names | `music-store` | `metal-music-store` |
+| Storefront, cart, orders, chat, ingress | `music-store` | `metal-music-store` |
 | Users VM, DSM catalog, VKS cluster | supervisor | `gitops/music-store` |
 | Four agents, three MCP servers, pii-scrub | `music-store` | `metal-music-app-agentic-system` |
 | Zammad and Grafana | `music-store` | `incident-tools` |

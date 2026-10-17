@@ -31,5 +31,6 @@ passwords. Examples are shapes.
 The shop database user and password stay the ones already published in
 `app/music-store`. Apply writes them into secret `store-db`. Chat's
 `metal-oracle-model` secret is created at apply from `QWEN_BASE_URL`,
-`QWEN_API_KEY`, and model id `qwen`. This directory does not add
-another copy of either secret.
+`QWEN_API_KEY`, and model id `qwen`. The key names for every Secret
+apply creates are in `secrets/templates.yaml`. That file is a blank
+template. It is not applied.
