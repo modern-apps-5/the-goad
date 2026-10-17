@@ -130,7 +130,6 @@ def main() -> None:
     run(k + ["apply", "-f", "-"], input_text=gsecret.stdout)
 
     run(k + ["apply", "-f", str(ROOT / "agents" / "workloads.yaml")])
-    run(k + ["create", "configmap", "agent-idle", "-n", "metal-music-app-agentic-system", f"--from-file=idle.py={ROOT / 'agents' / 'idle.py'}", "--dry-run=client", "-o", "yaml"])
     idle = subprocess.run(
         k + ["create", "configmap", "agent-idle", "-n", "metal-music-app-agentic-system", f"--from-file=idle.py={ROOT / 'agents' / 'idle.py'}", "--dry-run=client", "-o", "yaml"],
         capture_output=True, text=True, check=True,
@@ -164,7 +163,9 @@ def main() -> None:
         k + ["create", "configmap", "mcp-vcf", "-n", "metal-music-app-agentic-system", f"--from-file=package.tar={tar_path}", "--dry-run=client", "-o", "yaml"],
         capture_output=True, text=True, check=True,
     )
-    run(k + ["apply", "-f", "-"], input_text=vcf.stdout)
+    # Server-side apply: a client-side apply stores the whole tar in
+    # last-applied-configuration, and that annotation exceeds 256Ki.
+    run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=vcf.stdout)
     for name in ("goad-k8s-mcp", "goad-avi-mcp", "goad-vcf-mcp"):
         subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
 
