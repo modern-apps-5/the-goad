@@ -112,11 +112,14 @@ class McpServer:
         method = body.get("method") or ""
         params = body.get("params") or {}
         if method == "initialize":
+            requested = str(params.get("protocolVersion") or "") if isinstance(params, dict) else ""
+            supported = ("2025-06-18", "2025-03-26", "2024-11-05")
+            version = requested if requested in supported else supported[0]
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "protocolVersion": "2024-11-05",
+                    "protocolVersion": version,
                     "capabilities": {"tools": {}},
                     "serverInfo": {"name": self.name, "version": self.version},
                 },

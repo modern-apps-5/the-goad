@@ -41,7 +41,7 @@ metadata:
   namespace: incident-tools
 data:
   incident-live.json: |
-    {"title":"Incident live","uid":"incident-live","schemaVersion":39,"panels":[{"type":"text","title":"Open incident","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"The open Zammad ticket for this demo. Agents are not started by demo.sh."}}],"time":{"from":"now-6h","to":"now"}}
+    {"title":"Incident live","uid":"incident-live","schemaVersion":39,"annotations":{"list":[{"builtIn":1,"datasource":{"type":"grafana","uid":"-- Grafana --"},"enable":true,"hide":false,"iconColor":"rgba(255, 96, 96, 1)","name":"Annotations & Alerts","type":"dashboard"},{"datasource":{"type":"grafana","uid":"-- Grafana --"},"enable":true,"hide":false,"iconColor":"red","name":"incident","tags":["incident"],"type":"tags"}]},"panels":[{"type":"text","title":"Open incident","gridPos":{"x":0,"y":0,"w":24,"h":8},"options":{"mode":"markdown","content":"Agents do not start with the demo. Type in the incident response chat: pick up the latest incident ticket and enrich it. Each step is an annotation tagged incident."}}],"time":{"from":"now-6h","to":"now"}}
   can-i-demo.json: |
     {"title":"Can I demo right now?","uid":"can-i-demo-right-now","schemaVersion":39,"panels":[{"type":"text","title":"Ready","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"Store HTTP 200, Zammad HTTP 200, and ModelEndpoint qwen answering. No paging."}}],"time":{"from":"now-15m","to":"now"}}
   no-gpu.json: |

@@ -13,6 +13,7 @@ import json
 import os
 import secrets
 import subprocess
+import sys
 import tarfile
 import tempfile
 from pathlib import Path
@@ -68,13 +69,118 @@ def fill(text: str) -> str:
         "IDSP_GATEWAY_AVI",
         "IDSP_GATEWAY_VCF",
         "VCF_MCP_AUDIENCES",
+        "CLM_URL",
+        "INCIDENT_HOST",
+        "STORE_WORKER_VMS",
     ):
         if name == "PROMETHEUS_URL":
             value = os.environ.get(name, "http://prometheus.example.invalid")
+        elif name == "CLM_URL":
+            value = os.environ.get("CLM_URL", os.environ.get("CLM_BASE_URL", ""))
         else:
             value = os.environ.get(name, "")
         text = text.replace("${" + name + "}", value)
     return text
+
+
+def load_doors() -> dict:
+    """Read the local AgentMinder client file. Do not print it."""
+    path = Path(os.environ.get("AM_CLIENTS_FILE", "/tmp/goad-am-clients.json"))
+    if not path.is_file():
+        raise SystemExit("AM clients file is missing")
+    doc = json.loads(path.read_text())
+    servers = doc["servers"]
+    for env_name, server in (
+        ("IDSP_GATEWAY_K8S", "goad-k8s-mcp"),
+        ("IDSP_GATEWAY_AVI", "goad-avi-mcp"),
+        ("IDSP_GATEWAY_VCF", "goad-vcf-mcp"),
+    ):
+        if not os.environ.get(env_name, "").strip():
+            os.environ[env_name] = servers[server]["gateway"]
+    if not os.environ.get("VCF_MCP_AUDIENCES", "").strip():
+        host = os.environ.get("VCF_MCP_HOST", "").strip()
+        parts = [servers["goad-vcf-mcp"]["gateway"]]
+        if host:
+            parts.append(f"http://{host}/mcp")
+        os.environ["VCF_MCP_AUDIENCES"] = ",".join(parts)
+    return doc
+
+
+def _cm(k: list[str], name: str, namespace: str, files: list[tuple[str, Path]]) -> None:
+    args = ["create", "configmap", name, "-n", namespace]
+    for key, path in files:
+        args.append(f"--from-file={key}={path}")
+    args += ["--dry-run=client", "-o", "yaml"]
+    _apply_secret(k, args)
+
+
+def ensure_agent_objects(k: list[str]) -> None:
+    for name in ("INCIDENT_HOST", "STORE_WORKER_VMS", "ZAMMAD_URL", "ZAMMAD_TOKEN", "STORE_URL"):
+        need(name)
+    doc = load_doors()
+    ns = "metal-music-app-agentic-system"
+    clients = doc["clients"]
+    servers = doc["servers"]
+    literals: list[str] = []
+    for prefix, client_name, server_name in (
+        ("lb", "py-goad-lb", "goad-avi-mcp"),
+        ("k8s", "py-goad-k8s", "goad-k8s-mcp"),
+        ("vcf", "py-goad-vcf", "goad-vcf-mcp"),
+    ):
+        client = clients[client_name]
+        literals.append(f"--from-literal={prefix}-client-id={client['clientId']}")
+        literals.append(f"--from-literal={prefix}-client-secret={client['secret']}")
+        literals.append(f"--from-literal={prefix}-gateway={servers[server_name]['gateway']}")
+    _apply_secret(k, ["create", "secret", "generic", "agent-doors", "-n", ns, *literals, "--dry-run=client", "-o", "yaml"])
+    _apply_secret(k, [
+        "create", "secret", "generic", "qwen-model", "-n", ns,
+        f"--from-literal=base-url={need('QWEN_BASE_URL')}",
+        f"--from-literal=api-key={need('QWEN_API_KEY')}",
+        "--from-literal=model=qwen",
+        "--dry-run=client", "-o", "yaml",
+    ])
+    _apply_secret(k, [
+        "create", "secret", "generic", "zammad-api", "-n", ns,
+        f"--from-literal=url={need('ZAMMAD_URL')}",
+        f"--from-literal=token={need('ZAMMAD_TOKEN')}",
+        "--dry-run=client", "-o", "yaml",
+    ])
+    _apply_secret(k, [
+        "create", "secret", "generic", "walk-targets", "-n", ns,
+        f"--from-literal=store-url={need('STORE_URL')}",
+        "--dry-run=client", "-o", "yaml",
+    ])
+    _apply_secret(k, [
+        "create", "secret", "generic", "grafana-annotator", "-n", ns,
+        f"--from-literal=password={need('GRAFANA_ADMIN_PASSWORD')}",
+        "--dry-run=client", "-o", "yaml",
+    ])
+    agents = ROOT / "agents"
+    _cm(k, "incident-chat", ns, [("chat.py", agents / "chat.py")])
+    _cm(k, "diagnose-code", ns, [
+        ("diagnose.py", agents / "diagnose.py"),
+        ("door.py", agents / "door.py"),
+    ])
+    _cm(k, "orchestrator-code", ns, [("harness.py", ROOT / "orchestrator" / "harness.py")])
+    _cm(k, "skill-incident-response", ns, [("SKILL.md", agents / "incident-response" / "skills" / "SKILL.md")])
+    _cm(k, "skill-lb", ns, [("SKILL.md", agents / "lb-diagnostic" / "skills" / "SKILL.md")])
+    _cm(k, "skill-k8s", ns, [("SKILL.md", agents / "k8s-diagnostic" / "skills" / "SKILL.md")])
+    _cm(k, "skill-vcf", ns, [("SKILL.md", agents / "vcf-diagnostic" / "skills" / "SKILL.md")])
+    _cm(k, "pii-scrub", ns, [("scrub.py", ROOT / "pii" / "scrub.py")])
+    run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "incident-tools" / "grafana.yaml").read_text()))
+    run(k + ["apply", "-f", "-"], input_text=fill((agents / "workloads.yaml").read_text()))
+    for name in (
+        "incident-response-agent",
+        "orchestrator",
+        "lb-diagnostic-agent",
+        "k8s-diagnostic-agent",
+        "vcf-diagnostic-agent",
+        "pii-scrub",
+    ):
+        subprocess.run(
+            k + ["rollout", "restart", "deployment", name, "-n", ns],
+            capture_output=True, text=True,
+        )
 
 
 def wizard_b64() -> str:
@@ -231,134 +337,129 @@ def pack_vcf_specs(k: list[str]) -> None:
 
 
 def main() -> None:
+    selected = sys.argv[1:] or ["store", "incident-tools", "agents", "mcp", "clm"]
     for name in REQUIRED:
         need(name)
     ensure_admin_password()
     os.environ.setdefault("PROMETHEUS_URL", "http://prometheus.example.invalid")
+    os.environ.setdefault("CLM_URL", "")
     kube = os.environ.get("KUBECONFIG", "").strip()
     if not kube:
         raise SystemExit("KUBECONFIG is unset")
     k = ["kubectl", "--kubeconfig", kube]
+    ctx = os.environ.get("KUBE_CONTEXT", "").strip()
+    if ctx:
+        k.extend(["--context", ctx])
+    if "store" not in selected and "incident-tools" not in selected and "agents" not in selected and "mcp" not in selected and "clm" not in selected:
+        raise SystemExit("nothing selected")
 
-    _apply_secret(k, [
-        "create", "secret", "generic", "store-db", "-n", "metal-music-store",
-        f"--from-literal=password={store_password()}", "--dry-run=client", "-o", "yaml",
-    ])
-    _apply_secret(k, [
-        "create", "secret", "generic", "metal-oracle-model", "-n", "metal-music-store",
-        f"--from-literal=base-url={need('QWEN_BASE_URL')}",
-        f"--from-literal=api-key={need('QWEN_API_KEY')}",
-        "--from-literal=model=qwen",
-        "--dry-run=client", "-o", "yaml",
-    ])
+    if "store" in selected:
+        _apply_secret(k, [
+            "create", "secret", "generic", "store-db", "-n", "metal-music-store",
+            f"--from-literal=password={store_password()}", "--dry-run=client", "-o", "yaml",
+        ])
+        _apply_secret(k, [
+            "create", "secret", "generic", "metal-oracle-model", "-n", "metal-music-store",
+            f"--from-literal=base-url={need('QWEN_BASE_URL')}",
+            f"--from-literal=api-key={need('QWEN_API_KEY')}",
+            "--from-literal=model=qwen",
+            "--dry-run=client", "-o", "yaml",
+        ])
 
-    rendered = subprocess.run(
-        ["kubectl", "kustomize", "--load-restrictor", "LoadRestrictionsNone", str(ROOT / "store")],
-        capture_output=True, text=True,
-    )
-    if rendered.returncode != 0:
-        raise SystemExit(rendered.stderr.strip() or "kustomize failed")
-    # Server-side: the cover ConfigMap is larger than the
-    # last-applied-configuration annotation limit.
-    run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=fill(rendered.stdout))
+        rendered = subprocess.run(
+            ["kubectl", "kustomize", "--load-restrictor", "LoadRestrictionsNone", str(ROOT / "store")],
+            capture_output=True, text=True,
+        )
+        if rendered.returncode != 0:
+            raise SystemExit(rendered.stderr.strip() or "kustomize failed")
+        # Server-side: the cover ConfigMap is larger than the
+        # last-applied-configuration annotation limit.
+        run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=fill(rendered.stdout))
 
-    zammad = fill((ROOT / "incident-tools" / "zammad.yaml").read_text())
-    grafana = fill((ROOT / "incident-tools" / "grafana.yaml").read_text())
-    run(k + ["apply", "-f", "-"], input_text=zammad)
-    run(k + ["apply", "-f", "-"], input_text=grafana)
-    zenv = "\n".join([
-        "POSTGRESQL_HOST=zammad-postgresql",
-        "POSTGRESQL_PORT=5432",
-        "POSTGRESQL_USER=zammad",
-        f"POSTGRESQL_PASS={need('ZAMMAD_DB_PASSWORD')}",
-        "POSTGRESQL_DB=zammad_production",
-        "REDIS_URL=redis://zammad-redis:6379",
-        "MEMCACHE_SERVERS=zammad-memcached:11211",
-        "ELASTICSEARCH_ENABLED=false",
-        "POSTGRESQL_DB_CREATE=false",
-        "ZAMMAD_RAILSSERVER_HOST=127.0.0.1",
-        "ZAMMAD_RAILSSERVER_PORT=3000",
-        "ZAMMAD_WEBSOCKET_HOST=127.0.0.1",
-        "ZAMMAD_WEBSOCKET_PORT=6042",
-        "NGINX_PORT=8080",
-        "RAILS_ENV=production",
-        "RAILS_LOG_TO_STDOUT=true",
-        f"ZAMMAD_FQDN={need('ZAMMAD_HOST')}",
-        "ZAMMAD_HTTP_TYPE=https",
-        f"AUTOWIZARD_JSON={wizard_b64()}",
-    ]) + "\n"
-    # Build the secret from an env file. The file is removed after apply.
-    with tempfile.NamedTemporaryFile("w", delete=False) as handle:
-        handle.write(zenv)
-        env_path = handle.name
-    try:
-        built = subprocess.run(
-            k + ["create", "secret", "generic", "zammad-env", "-n", "incident-tools", f"--from-env-file={env_path}", "--dry-run=client", "-o", "yaml"],
+    if "incident-tools" in selected:
+        zammad = fill((ROOT / "incident-tools" / "zammad.yaml").read_text())
+        grafana = fill((ROOT / "incident-tools" / "grafana.yaml").read_text())
+        run(k + ["apply", "-f", "-"], input_text=zammad)
+        run(k + ["apply", "-f", "-"], input_text=grafana)
+        zenv = "\n".join([
+            "POSTGRESQL_HOST=zammad-postgresql",
+            "POSTGRESQL_PORT=5432",
+            "POSTGRESQL_USER=zammad",
+            f"POSTGRESQL_PASS={need('ZAMMAD_DB_PASSWORD')}",
+            "POSTGRESQL_DB=zammad_production",
+            "REDIS_URL=redis://zammad-redis:6379",
+            "MEMCACHE_SERVERS=zammad-memcached:11211",
+            "ELASTICSEARCH_ENABLED=false",
+            "POSTGRESQL_DB_CREATE=false",
+            "ZAMMAD_RAILSSERVER_HOST=127.0.0.1",
+            "ZAMMAD_RAILSSERVER_PORT=3000",
+            "ZAMMAD_WEBSOCKET_HOST=127.0.0.1",
+            "ZAMMAD_WEBSOCKET_PORT=6042",
+            "NGINX_PORT=8080",
+            "RAILS_ENV=production",
+            "RAILS_LOG_TO_STDOUT=true",
+            f"ZAMMAD_FQDN={need('ZAMMAD_HOST')}",
+            "ZAMMAD_HTTP_TYPE=https",
+            f"AUTOWIZARD_JSON={wizard_b64()}",
+        ]) + "\n"
+        # Build the secret from an env file. The file is removed after apply.
+        with tempfile.NamedTemporaryFile("w", delete=False) as handle:
+            handle.write(zenv)
+            env_path = handle.name
+        try:
+            built = subprocess.run(
+                k + ["create", "secret", "generic", "zammad-env", "-n", "incident-tools", f"--from-env-file={env_path}", "--dry-run=client", "-o", "yaml"],
+                capture_output=True, text=True, check=True,
+            )
+            run(k + ["apply", "-f", "-"], input_text=built.stdout)
+        finally:
+            os.unlink(env_path)
+        gsecret = subprocess.run(
+            k + ["create", "secret", "generic", "grafana-admin", "-n", "incident-tools", f"--from-literal=password={need('GRAFANA_ADMIN_PASSWORD')}", "--dry-run=client", "-o", "yaml"],
             capture_output=True, text=True, check=True,
         )
-        run(k + ["apply", "-f", "-"], input_text=built.stdout)
-    finally:
-        os.unlink(env_path)
-    gsecret = subprocess.run(
-        k + ["create", "secret", "generic", "grafana-admin", "-n", "incident-tools", f"--from-literal=password={need('GRAFANA_ADMIN_PASSWORD')}", "--dry-run=client", "-o", "yaml"],
-        capture_output=True, text=True, check=True,
-    )
-    run(k + ["apply", "-f", "-"], input_text=gsecret.stdout)
+        run(k + ["apply", "-f", "-"], input_text=gsecret.stdout)
 
-    run(k + ["apply", "-f", str(ROOT / "agents" / "workloads.yaml")])
-    idle = subprocess.run(
-        k + ["create", "configmap", "agent-idle", "-n", "metal-music-app-agentic-system", f"--from-file=idle.py={ROOT / 'agents' / 'idle.py'}", "--dry-run=client", "-o", "yaml"],
-        capture_output=True, text=True, check=True,
-    )
-    run(k + ["apply", "-f", "-"], input_text=idle.stdout)
-    scrub = subprocess.run(
-        k + ["create", "configmap", "pii-scrub", "-n", "metal-music-app-agentic-system", f"--from-file=scrub.py={ROOT / 'pii' / 'scrub.py'}", "--dry-run=client", "-o", "yaml"],
-        capture_output=True, text=True, check=True,
-    )
-    run(k + ["apply", "-f", "-"], input_text=scrub.stdout)
-    for name in (
-        "incident-response-agent",
-        "lb-diagnostic-agent",
-        "k8s-diagnostic-agent",
-        "vcf-diagnostic-agent",
-        "pii-scrub",
-    ):
-        subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
+    if "agents" in selected:
+        ensure_agent_objects(k)
 
-    ensure_mcp_secrets(k)
-    run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "mcp" / "workloads.yaml").read_text()))
-    for name, folder in (("mcp-k8s", ROOT / "mcp" / "k8s"), ("mcp-avi", ROOT / "mcp" / "avi")):
-        built = subprocess.run(
-            k + ["create", "configmap", name, "-n", "metal-music-app-agentic-system", f"--from-file={folder}", "--dry-run=client", "-o", "yaml"],
+    if "mcp" in selected:
+        load_doors()
+        ensure_mcp_secrets(k)
+        run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "mcp" / "workloads.yaml").read_text()))
+        for name, folder in (("mcp-k8s", ROOT / "mcp" / "k8s"), ("mcp-avi", ROOT / "mcp" / "avi")):
+            built = subprocess.run(
+                k + ["create", "configmap", name, "-n", "metal-music-app-agentic-system", f"--from-file={folder}", "--dry-run=client", "-o", "yaml"],
+                capture_output=True, text=True, check=True,
+            )
+            run(k + ["apply", "-f", "-"], input_text=built.stdout)
+        run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "mcp" / "ingress.yaml").read_text()))
+        tar_path = Path(tempfile.mkdtemp()) / "package.tar"
+        with tarfile.open(tar_path, "w") as archive:
+            archive.add(ROOT / "mcp" / "vcf" / "vcf_mcp", arcname="vcf_mcp")
+        vcf = subprocess.run(
+            k + ["create", "configmap", "mcp-vcf", "-n", "metal-music-app-agentic-system", f"--from-file=package.tar={tar_path}", "--dry-run=client", "-o", "yaml"],
             capture_output=True, text=True, check=True,
         )
-        run(k + ["apply", "-f", "-"], input_text=built.stdout)
-    run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "mcp" / "ingress.yaml").read_text()))
-    tar_path = Path(tempfile.mkdtemp()) / "package.tar"
-    with tarfile.open(tar_path, "w") as archive:
-        archive.add(ROOT / "mcp" / "vcf" / "vcf_mcp", arcname="vcf_mcp")
-    vcf = subprocess.run(
-        k + ["create", "configmap", "mcp-vcf", "-n", "metal-music-app-agentic-system", f"--from-file=package.tar={tar_path}", "--dry-run=client", "-o", "yaml"],
-        capture_output=True, text=True, check=True,
-    )
-    # Server-side apply: a client-side apply stores the whole tar in
-    # last-applied-configuration, and that annotation exceeds 256Ki.
-    run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=vcf.stdout)
-    boot = subprocess.run(
-        k + ["create", "configmap", "mcp-vcf-boot", "-n", "metal-music-app-agentic-system", f"--from-file=boot.py={ROOT / 'mcp' / 'vcf' / 'boot.py'}", "--dry-run=client", "-o", "yaml"],
-        capture_output=True, text=True, check=True,
-    )
-    run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=boot.stdout)
-    pack_vcf_specs(k)
-    for name in ("goad-k8s-mcp", "goad-avi-mcp", "goad-vcf-mcp"):
-        subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
+        # Server-side apply: a client-side apply stores the whole tar in
+        # last-applied-configuration, and that annotation exceeds 256Ki.
+        run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=vcf.stdout)
+        boot = subprocess.run(
+            k + ["create", "configmap", "mcp-vcf-boot", "-n", "metal-music-app-agentic-system", f"--from-file=boot.py={ROOT / 'mcp' / 'vcf' / 'boot.py'}", "--dry-run=client", "-o", "yaml"],
+            capture_output=True, text=True, check=True,
+        )
+        run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=boot.stdout)
+        pack_vcf_specs(k)
+        for name in ("goad-k8s-mcp", "goad-avi-mcp", "goad-vcf-mcp"):
+            subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
 
-    image = os.environ.get("CLM_IMAGE", "").strip()
-    if image:
-        run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "clm" / "clm.yaml").read_text().replace("${CLM_IMAGE}", image)))
-        print("clm applied")
-    else:
-        print("clm skipped: CLM_IMAGE is empty")
+    if "clm" in selected:
+        image = os.environ.get("CLM_IMAGE", "").strip()
+        if image:
+            run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "clm" / "clm.yaml").read_text().replace("${CLM_IMAGE}", image)))
+            print("clm applied")
+        else:
+            print("clm skipped: CLM_IMAGE is empty")
     print("applied")
 
 

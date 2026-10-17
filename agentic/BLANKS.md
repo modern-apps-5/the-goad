@@ -16,8 +16,11 @@ passwords. Examples are shapes.
 | `ZAMMAD_TOKEN` | Zammad API token. Not committed | (secret store) |
 | `ZAMMAD_DB_PASSWORD` | Zammad Postgres password. Not committed | (secret store) |
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin password. Not committed | (secret store) |
-| `CLM_BASE_URL` | CLM root inside this organization. POST `/v1/systemone`, model `clm-latest`, no key | `http://clm.example.lab:8700` |
+| `CLM_URL` | Orchestrator decision gate. POST `{CLM_URL}/v1/systemone`. Blank means the walk uses the fallback and the report says so | (blank until a CLM image exists) |
+| `CLM_BASE_URL` | Same root, read by `orchestrator/clm.py`. The pod env is `CLM_URL` | `http://clm.example.lab:8700` |
 | `CLM_IMAGE` | Image for the CLM server. Empty means do not apply `clm/clm.yaml` | (empty until the image exists here) |
+| `INCIDENT_HOST` | Avi DNS name for the incident response chat | `incident.example.lab` |
+| `STORE_WORKER_VMS` | Comma-separated worker VM names the VCF agent passes to `vcf_vm_disk_latency` | `worker-a,worker-b` |
 | `AGENTMINDER_HOST` | AgentMinder host already in this organization | `agentminder.example.lab` |
 | `K8S_MCP_HOST` | Avi DNS name for the Kubernetes MCP | `k8s-mcp.example.lab` |
 | `AVI_MCP_HOST` | Avi DNS name for the Avi MCP | `avi-mcp.example.lab` |
@@ -31,6 +34,12 @@ passwords. Examples are shapes.
 The shop database user and password stay the ones already published in
 `app/music-store`. Apply writes them into secret `store-db`. Chat's
 `metal-oracle-model` secret is created at apply from `QWEN_BASE_URL`,
-`QWEN_API_KEY`, and model id `qwen`. The key names for every Secret
-apply creates are in `secrets/templates.yaml`. That file is a blank
-template. It is not applied.
+`QWEN_API_KEY`, and model id `qwen`. Agent apply also creates
+`agent-doors`, `qwen-model`, `zammad-api`, `walk-targets`, and
+`grafana-annotator` in `metal-music-app-agentic-system`. The key names
+for every Secret apply creates are in `secrets/templates.yaml`. That
+file is a blank template. It is not applied.
+
+`CLM_URL` empty is the safe path. The orchestrator calls all three
+diagnostic agents and the enrichment note says the decision gate is on
+fallback.

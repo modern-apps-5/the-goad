@@ -55,7 +55,11 @@ def issuer() -> str:
 
 
 def jwks_uri() -> str:
-    return (os.environ.get("IDSP_JWKS_URI") or DEFAULT_JWKS).strip()
+    """JWKS for the issuer. The placeholder default is not a real URL."""
+    explicit = (os.environ.get("IDSP_JWKS_URI") or "").strip()
+    if explicit and "${" not in explicit:
+        return explicit
+    return issuer().rstrip("/") + "/oauth2/v1/jwks"
 
 
 def resource_url(*, default: str) -> str:

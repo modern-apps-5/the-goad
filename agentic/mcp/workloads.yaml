@@ -22,7 +22,12 @@ spec:
       containers:
         - name: mcp
           image: python:3.12-slim
-          command: ["python3", "/app/k8s_mcp.py"]
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              pip install --quiet --target=/tmp/py 'PyJWT[crypto]'
+              PYTHONPATH=/tmp/py python3 /app/k8s_mcp.py
           workingDir: /app
           ports:
             - containerPort: 8080
@@ -33,6 +38,8 @@ spec:
               value: 0.0.0.0
             - name: HOME
               value: /tmp
+            - name: PIP_CACHE_DIR
+              value: /tmp/pip
             - name: KUBECONFIG
               value: /kube/config
             - name: MCP_READ_TOKEN
@@ -63,6 +70,9 @@ spec:
             httpGet:
               path: /health
               port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 36
           volumeMounts:
             - name: code
               mountPath: /app
@@ -113,7 +123,12 @@ spec:
       containers:
         - name: mcp
           image: python:3.12-slim
-          command: ["python3", "/app/server.py"]
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              pip install --quiet --target=/tmp/py 'PyJWT[crypto]'
+              PYTHONPATH=/tmp/py python3 /app/server.py
           workingDir: /app
           ports:
             - containerPort: 8080
@@ -122,6 +137,10 @@ spec:
               value: "8080"
             - name: HOST
               value: 0.0.0.0
+            - name: HOME
+              value: /tmp
+            - name: PIP_CACHE_DIR
+              value: /tmp/pip
             - name: MCP_READ_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -165,6 +184,9 @@ spec:
             httpGet:
               path: /health
               port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 36
           volumeMounts:
             - name: code
               mountPath: /app
@@ -226,6 +248,8 @@ spec:
               value: "0"
             - name: VCF_MCP_OAUTH_AUDIENCES
               value: "${VCF_MCP_AUDIENCES}"
+            - name: VCF_ALLOWED_HOSTS
+              value: "${VCF_MCP_HOST},goad-vcf-mcp,goad-vcf-mcp.metal-music-app-agentic-system.svc,goad-vcf-mcp.metal-music-app-agentic-system.svc.cluster.local,localhost,127.0.0.1"
             - name: VCF_READ_TOKEN
               valueFrom:
                 secretKeyRef:
