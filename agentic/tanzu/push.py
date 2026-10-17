@@ -186,7 +186,12 @@ def stage_agent(name: str, entry: str, skill: str) -> Path:
     shutil.copy(agents / skill / "skills" / "SKILL.md", skill_dir / "SKILL.md")
     (dest / "AGENTS.md").write_text((agents / skill / "skills" / "SKILL.md").read_text(encoding="utf-8"), encoding="utf-8")
     (dest / "runtime.txt").write_text("python-3.12.x\n", encoding="utf-8")
-    (dest / "requirements.txt").write_text("PyJWT[crypto]>=2.8\n", encoding="utf-8")
+    # The buildpack only installs the app root requirements. Diagnostic
+    # agents also start the sidecar, which imports the staged SDK.
+    deps = "PyJWT[crypto]>=2.8\n"
+    if name in DOORS:
+        deps += "uvicorn>=0.30\nhttpx>=0.27\nanyio>=4\ncryptography>=42\nPyYAML>=6\n"
+    (dest / "requirements.txt").write_text(deps, encoding="utf-8")
     if name in DOORS:
         side = dest / "sidecar"
         side.mkdir()
@@ -302,7 +307,7 @@ def update_resource_routes() -> None:
 
     for name, backend in routes.items():
         app_id = clients["servers"][name]["appId"]
-        call(
+        result = call(
             "update_app",
             {
                 "id": app_id,
@@ -315,7 +320,10 @@ def update_resource_routes() -> None:
                 ),
             },
         )
-        print("agentminder route", name, "updated", flush=True)
+        if result:
+            print("agentminder route", name, "updated", flush=True)
+        else:
+            print("agentminder route", name, "not updated", flush=True)
 
 
 def main() -> None:
@@ -388,6 +396,10 @@ def main() -> None:
         push(base_app(name, stage_agent(name, entry, skill), "512M", "1G", f"python {entry}", packs, extra))
 
     issuer = "https://agentminder.goad.gpu.set.lab/default"
+    mcp_read = os.environ.get("MCP_READ_TOKEN", "").strip() or os.urandom(24).hex()
+    mcp_write = os.environ.get("MCP_WRITE_TOKEN", "").strip() or os.urandom(24).hex()
+    if mcp_read == mcp_write:
+        mcp_write = os.urandom(24).hex()
     set_env(
         "metal-k8s-mcp",
         {
@@ -395,6 +407,8 @@ def main() -> None:
             "IDSP_TLS_VERIFY": "0",
             "AGENTMINDER_CONNECT_IP": connect["AGENTMINDER_CONNECT_IP"],
             "MCP_RESOURCE_URL": f"https://metal-k8s-mcp.{DOMAIN}/mcp",
+            "MCP_READ_TOKEN": mcp_read,
+            "MCP_WRITE_TOKEN": mcp_write,
             "K8S_API_SERVER": os.environ.get("K8S_API_SERVER", ""),
             "K8S_TOKEN": os.environ.get("K8S_TOKEN", ""),
             "K8S_NAMESPACE": "metal-music-store",
@@ -408,6 +422,8 @@ def main() -> None:
             "IDSP_TLS_VERIFY": "0",
             "AGENTMINDER_CONNECT_IP": connect["AGENTMINDER_CONNECT_IP"],
             "MCP_RESOURCE_URL": f"https://metal-avi-mcp.{DOMAIN}/mcp",
+            "MCP_READ_TOKEN": mcp_read,
+            "MCP_WRITE_TOKEN": mcp_write,
             "AVI_CONTROLLER": os.environ.get("AVI_CONTROLLER", ""),
             "AVI_USERNAME": os.environ.get("AVI_USERNAME", ""),
             "AVI_PASSWORD": os.environ.get("AVI_PASSWORD", ""),
@@ -473,6 +489,9 @@ def main() -> None:
                 "AGENTMINDER_IDSP_URL": issuer,
                 "AGENTMINDER_SIDECAR_AGENT_CLIENT_ID": client.get("clientId", ""),
                 "AGENTMINDER_SIDECAR_AGENT_CLIENT_SECRET": client.get("secret", ""),
+                "AGENTMINDER_ORCHESTRATOR_CLIENT_ID": client.get("clientId", ""),
+                "AGENTMINDER_ORCHESTRATOR_CLIENT_SECRET": client.get("secret", ""),
+                "AGENTMINDER_VERIFY_SSL": "false",
                 "AGENTMINDER_SIDECAR_RESOURCE_0_NAME": door,
                 "AGENTMINDER_SIDECAR_RESOURCE_0_URL": gateway,
                 "AGENTMINDER_SIDECAR_RESOURCE_0_AUDIENCE": gateway,
@@ -503,6 +522,10 @@ def main() -> None:
             ["mcp-server"],
         )
 
+    # apps.internal stays empty until the route is mapped. A network
+    # policy alone does not publish the container address.
+    for name in ("metal-incident-live", *DOORS):
+        cf("map-route", name, "apps.internal", "--hostname", name, check=False)
     cf(
         "add-network-policy",
         "incident-response-agent",

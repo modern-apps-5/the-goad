@@ -56,6 +56,64 @@ that cost a wrong turn. No secrets in this file. Fill blanks from
   512M is below its non-heap budget and the process exits immediately.
 - `cf add-network-policy` takes the destination app as a positional
   argument (`SOURCE DESTINATION`), not `--destination-app`.
+- `apps.internal` does not answer until `cf map-route APP apps.internal
+  --hostname APP` is done for the destination. A network policy alone
+  leaves bosh-dns with an empty answer, and the chat reports
+  `URLError` in under a second. Map `metal-incident-live` and the three
+  diagnostic agents. The chat calls the orchestrator on
+  `metal-incident-live.apps.internal:8080`. The orchestrator calls the
+  three agents the same way.
+
+## DNS
+
+Avi internal DNS is the authority for `goad.gpu.set.lab`. The IPAM/DNS
+profile is `avi-dns-domains` (`IPAMDNS_TYPE_INTERNAL_DNS`). The zone SOA
+is `avi-dns.gpu.set.lab`. The name server is `ns1.gpu.set.lab`. The lab
+resolver `172.21.0.90` and the Ops Manager forwarder both recurse to it.
+
+Register a name by putting the FQDN on the virtual service that already
+owns the VIP. Do not create a static DNS record.
+
+For an `avi-lb` ingress, AKO does that when both of these are set:
+
+- `spec.rules[].host` is the FQDN
+- annotation `external-dns.alpha.kubernetes.io/hostname` is the same FQDN
+- annotation `ako.vmware.com/service-engine-group` is `goad-se-group`
+
+AKO writes the host onto the child virtual service (`vh_matches.host`).
+Avi DNS answers with that virtual service's VIP. The record TTL is 30
+seconds. This is how `music`, `incident`, `zammad`, `grafana`,
+`k8s-mcp`, `avi-mcp`, and `vcf-mcp` under `goad.gpu.set.lab` are
+published.
+
+AgentMinder is a LoadBalancer service in front of nginx, not an
+`avi-lb` ingress. Its FQDN is the service annotation
+`external-dns.alpha.kubernetes.io/hostname` on
+`ingress-nginx/ingress-nginx-controller`. This AKO build stores that
+annotation as one domain name. A comma-separated list is rejected by
+Avi (`invalid label`). One name per service.
+
+`mgmt-agentminder.goad.gpu.set.lab` is a second hostname on the nginx
+ingress. Give it a second LoadBalancer service with the same pod
+selector, `spec.loadBalancerClass: ako.vmware.com/avi-lb`,
+service-engine group `goad-se-group`, and its own hostname annotation.
+The class has to be set at create time. AKO publishes that FQDN on the
+new virtual service. A Helm upgrade of `ingress-nginx` does not own
+that extra service.
+
+The same DNS profile also holds other organizations' domains. Leave
+those domains and their records alone.
+
+`*.apps.tp.gpu.set.lab` is not a domain in that Avi profile. The lab
+resolvers already answer every name in that zone, including names that
+were never created one by one, with the GoRouter address. Because those
+names already resolve, no wildcard was added in Avi.
+
+Check from a client with `dig @172.21.0.90 <name> A`, then HTTP to the
+address with the `Host` header set to the name. This machine's stub
+resolver does not forward these names. Success is a resolved address
+and a page or `/health` that loads, not a record that only exists in
+Avi.
 
 ## Where each piece runs
 
