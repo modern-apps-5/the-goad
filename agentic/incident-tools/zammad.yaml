@@ -1,17 +1,13 @@
-# Zammad for namespace zammad on cluster goad-store.
-# DO NOT APPLY from this pull request.
-# The earlier guest-cluster copy was evicted for low disk. Size disk
-# before any later apply. Elasticsearch stays in this file. If it will
-# not schedule, stop. Do not create a service engine group.
+# Zammad in the shared guest namespace incident-tools, next to Grafana.
+# Elasticsearch stays in this file. If it will not schedule, stop.
+# Do not create a service engine group.
 # Official images from the Zammad compose stack, as separate pods.
-# The guest namespace enforces restricted pod security, and new vSAN
-# volumes fail while the supervisor webhook is down. Disk is temporary.
-# Do not treat temporary disk as the design.
-# The database password is the public compose default.
+# The guest namespace enforces restricted pod security. Disk is emptyDir.
+# The database password is supplied at apply time and is not in this file.
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: zammad
+  name: incident-tools
 ---
 apiVersion: v1
 kind: Service

@@ -147,9 +147,6 @@ def main() -> None:
         "k8s-diagnostic-agent",
         "vcf-diagnostic-agent",
         "pii-scrub",
-        "goad-k8s-mcp",
-        "goad-avi-mcp",
-        "goad-vcf-mcp",
     ):
         subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
 
@@ -168,6 +165,8 @@ def main() -> None:
         capture_output=True, text=True, check=True,
     )
     run(k + ["apply", "-f", "-"], input_text=vcf.stdout)
+    for name in ("goad-k8s-mcp", "goad-avi-mcp", "goad-vcf-mcp"):
+        subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
 
     image = os.environ.get("CLM_IMAGE", "").strip()
     if image:
