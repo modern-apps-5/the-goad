@@ -29,4 +29,7 @@ passwords. Examples are shapes.
 | `KUBECONFIG` | Guest cluster kubeconfig. Not committed | (operator file) |
 
 The shop database user and password stay the ones already published in
-`app/music-store`. This directory does not add another copy.
+`app/music-store`. Apply writes them into secret `store-db`. Chat's
+`metal-oracle-model` secret is created at apply from `QWEN_BASE_URL`,
+`QWEN_API_KEY`, and model id `qwen`. This directory does not add
+another copy of either secret.

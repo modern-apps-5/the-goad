@@ -240,19 +240,27 @@ def main() -> None:
         raise SystemExit("KUBECONFIG is unset")
     k = ["kubectl", "--kubeconfig", kube]
 
+    _apply_secret(k, [
+        "create", "secret", "generic", "store-db", "-n", "metal-music-store",
+        f"--from-literal=password={store_password()}", "--dry-run=client", "-o", "yaml",
+    ])
+    _apply_secret(k, [
+        "create", "secret", "generic", "metal-oracle-model", "-n", "metal-music-store",
+        f"--from-literal=base-url={need('QWEN_BASE_URL')}",
+        f"--from-literal=api-key={need('QWEN_API_KEY')}",
+        "--from-literal=model=qwen",
+        "--dry-run=client", "-o", "yaml",
+    ])
+
     rendered = subprocess.run(
         ["kubectl", "kustomize", "--load-restrictor", "LoadRestrictionsNone", str(ROOT / "store")],
         capture_output=True, text=True,
     )
     if rendered.returncode != 0:
         raise SystemExit(rendered.stderr.strip() or "kustomize failed")
-    run(k + ["apply", "-f", "-"], input_text=fill(rendered.stdout))
-
-    secret = subprocess.run(
-        k + ["create", "secret", "generic", "store-db", "-n", "metal-music-store", f"--from-literal=password={store_password()}", "--dry-run=client", "-o", "yaml"],
-        capture_output=True, text=True, check=True,
-    )
-    run(k + ["apply", "-f", "-"], input_text=secret.stdout)
+    # Server-side: the cover ConfigMap is larger than the
+    # last-applied-configuration annotation limit.
+    run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=fill(rendered.stdout))
 
     zammad = fill((ROOT / "incident-tools" / "zammad.yaml").read_text())
     grafana = fill((ROOT / "incident-tools" / "grafana.yaml").read_text())
