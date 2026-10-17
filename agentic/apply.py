@@ -8,6 +8,7 @@ Skips CLM when CLM_IMAGE is empty. Does not start demo.sh.
 from __future__ import annotations
 
 import base64
+import io
 import json
 import os
 import secrets
@@ -17,7 +18,21 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-REQUIRED = ("STORE_HOST", "ZAMMAD_HOST", "GRAFANA_HOST", "POSTGRES_HOST", "USERS_HOST", "ZAMMAD_DB_PASSWORD", "GRAFANA_ADMIN_PASSWORD", "QWEN_BASE_URL", "QWEN_API_KEY")
+REQUIRED = (
+    "STORE_HOST",
+    "ZAMMAD_HOST",
+    "GRAFANA_HOST",
+    "POSTGRES_HOST",
+    "USERS_HOST",
+    "ZAMMAD_DB_PASSWORD",
+    "GRAFANA_ADMIN_PASSWORD",
+    "QWEN_BASE_URL",
+    "QWEN_API_KEY",
+    "AGENTMINDER_HOST",
+    "K8S_MCP_HOST",
+    "AVI_MCP_HOST",
+    "VCF_MCP_HOST",
+)
 
 
 def need(name: str) -> str:
@@ -45,8 +60,20 @@ def fill(text: str) -> str:
         "USERS_HOST",
         "ZAMMAD_DB_PASSWORD",
         "PROMETHEUS_URL",
+        "AGENTMINDER_HOST",
+        "K8S_MCP_HOST",
+        "AVI_MCP_HOST",
+        "VCF_MCP_HOST",
+        "IDSP_GATEWAY_K8S",
+        "IDSP_GATEWAY_AVI",
+        "IDSP_GATEWAY_VCF",
+        "VCF_MCP_AUDIENCES",
     ):
-        text = text.replace("${" + name + "}", os.environ.get(name, "http://prometheus.example.invalid" if name == "PROMETHEUS_URL" else ""))
+        if name == "PROMETHEUS_URL":
+            value = os.environ.get(name, "http://prometheus.example.invalid")
+        else:
+            value = os.environ.get(name, "")
+        text = text.replace("${" + name + "}", value)
     return text
 
 
@@ -155,6 +182,54 @@ def ensure_mcp_secrets(k: list[str]) -> None:
     ])
 
 
+def pack_vcf_specs(k: list[str]) -> None:
+    """Gzip the OpenAPI specs and mount them as ConfigMap chunks.
+
+    One ConfigMap is limited to 1MiB. The specs are larger than that.
+    """
+    spec_dir = ROOT / "mcp" / "vcf" / "specs"
+    if not (spec_dir / "vcenter.yaml").is_file():
+        raise SystemExit("vcf OpenAPI specs are not in agentic/mcp/vcf/specs")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as archive:
+        archive.add(spec_dir, arcname="specs")
+    raw = buf.getvalue()
+    chunk = 600_000
+    parts = [raw[i : i + chunk] for i in range(0, len(raw), chunk)]
+    ns = "metal-music-app-agentic-system"
+    sources = []
+    for index, part in enumerate(parts):
+        name = f"mcp-vcf-spec-{index:02d}"
+        key = f"chunk-{index:02d}"
+        path = Path(tempfile.mkdtemp()) / key
+        path.write_bytes(part)
+        built = subprocess.run(
+            k + ["create", "configmap", name, "-n", ns, f"--from-file={key}={path}", "--dry-run=client", "-o", "yaml"],
+            capture_output=True, text=True, check=True,
+        )
+        run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=built.stdout)
+        sources.append(
+            {
+                "configMap": {
+                    "name": name,
+                    "items": [{"key": key, "path": key}],
+                }
+            }
+        )
+    current = json.loads(subprocess.check_output(k + ["get", "deployment", "goad-vcf-mcp", "-n", ns, "-o", "json"]))
+    volumes = current["spec"]["template"]["spec"]["volumes"]
+    index = next(i for i, volume in enumerate(volumes) if volume["name"] == "specs")
+    patch = [
+        {
+            "op": "replace",
+            "path": f"/spec/template/spec/volumes/{index}",
+            "value": {"name": "specs", "projected": {"sources": sources}},
+        }
+    ]
+    run(k + ["patch", "deployment", "goad-vcf-mcp", "-n", ns, "--type", "json", "-p", json.dumps(patch)])
+    print(f"vcf specs packed: {len(raw)} bytes in {len(parts)} configmaps")
+
+
 def main() -> None:
     for name in REQUIRED:
         need(name)
@@ -178,15 +253,6 @@ def main() -> None:
         capture_output=True, text=True, check=True,
     )
     run(k + ["apply", "-f", "-"], input_text=secret.stdout)
-    chat = subprocess.run(
-        k + ["create", "secret", "generic", "metal-oracle-model", "-n", "metal-music-store",
-             f"--from-literal=base-url={need('QWEN_BASE_URL')}",
-             f"--from-literal=api-key={need('QWEN_API_KEY')}",
-             "--from-literal=model=qwen",
-             "--dry-run=client", "-o", "yaml"],
-        capture_output=True, text=True, check=True,
-    )
-    run(k + ["apply", "-f", "-"], input_text=chat.stdout)
 
     zammad = fill((ROOT / "incident-tools" / "zammad.yaml").read_text())
     grafana = fill((ROOT / "incident-tools" / "grafana.yaml").read_text())
@@ -252,13 +318,14 @@ def main() -> None:
         subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
 
     ensure_mcp_secrets(k)
-    run(k + ["apply", "-f", str(ROOT / "mcp" / "workloads.yaml")])
+    run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "mcp" / "workloads.yaml").read_text()))
     for name, folder in (("mcp-k8s", ROOT / "mcp" / "k8s"), ("mcp-avi", ROOT / "mcp" / "avi")):
         built = subprocess.run(
             k + ["create", "configmap", name, "-n", "metal-music-app-agentic-system", f"--from-file={folder}", "--dry-run=client", "-o", "yaml"],
             capture_output=True, text=True, check=True,
         )
         run(k + ["apply", "-f", "-"], input_text=built.stdout)
+    run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "mcp" / "ingress.yaml").read_text()))
     tar_path = Path(tempfile.mkdtemp()) / "package.tar"
     with tarfile.open(tar_path, "w") as archive:
         archive.add(ROOT / "mcp" / "vcf" / "vcf_mcp", arcname="vcf_mcp")
@@ -269,6 +336,12 @@ def main() -> None:
     # Server-side apply: a client-side apply stores the whole tar in
     # last-applied-configuration, and that annotation exceeds 256Ki.
     run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=vcf.stdout)
+    boot = subprocess.run(
+        k + ["create", "configmap", "mcp-vcf-boot", "-n", "metal-music-app-agentic-system", f"--from-file=boot.py={ROOT / 'mcp' / 'vcf' / 'boot.py'}", "--dry-run=client", "-o", "yaml"],
+        capture_output=True, text=True, check=True,
+    )
+    run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=boot.stdout)
+    pack_vcf_specs(k)
     for name in ("goad-k8s-mcp", "goad-avi-mcp", "goad-vcf-mcp"):
         subprocess.run(k + ["rollout", "restart", "deployment", name, "-n", "metal-music-app-agentic-system"], capture_output=True, text=True)
 

@@ -4,18 +4,18 @@ Reusable manifests for the Metal Music Store incident demo. They run in
 the same organization as the shop. Nothing here is a secret, and nothing
 here names a second organization.
 
-The shop containers stay in `app/music-store`. This directory only adds
-the overlay that selects which of those files to run, plus the agentic
-pieces. Do not apply `k8s-users-deployment.yaml` or
-`k8s-database-deployment.yaml`. Users are the VM Service VM in
-`gitops/music-store/users-vm.yaml`. The catalog is the DSM
-`PostgresCluster` in `gitops/music-store/catalog.yaml`.
+The Red Lab store is `gitops/music-store`: the users VM Service VM, the
+DSM catalog, and the VKS cluster. This directory does not copy that
+tree. `store/` only publishes the guest Service names and the shop
+ingress. Do not apply `app/music-store`. Those container files are the
+earlier shape.
 
 ## Where each piece runs
 
 | Piece | Cluster | Namespace |
 |---|---|---|
-| Store, cart, orders, chat, traffic generator | `music-store` | `metal-music-store` |
+| Shop ingress and backing Service names | `music-store` | `metal-music-store` |
+| Users VM, DSM catalog, VKS cluster | supervisor | `gitops/music-store` |
 | Four agents, three MCP servers, pii-scrub | `music-store` | `metal-music-app-agentic-system` |
 | Zammad and Grafana | `music-store` | `incident-tools` |
 | Qwen | Private AI `ModelEndpoint` `qwen` | the Private AI namespace |

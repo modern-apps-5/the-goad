@@ -19,6 +19,13 @@ passwords. Examples are shapes.
 | `CLM_BASE_URL` | CLM root inside this organization. POST `/v1/systemone`, model `clm-latest`, no key | `http://clm.example.lab:8700` |
 | `CLM_IMAGE` | Image for the CLM server. Empty means do not apply `clm/clm.yaml` | (empty until the image exists here) |
 | `AGENTMINDER_HOST` | AgentMinder host already in this organization | `agentminder.example.lab` |
+| `K8S_MCP_HOST` | Avi DNS name for the Kubernetes MCP | `k8s-mcp.example.lab` |
+| `AVI_MCP_HOST` | Avi DNS name for the Avi MCP | `avi-mcp.example.lab` |
+| `VCF_MCP_HOST` | Avi DNS name for the VCF MCP | `vcf-mcp.example.lab` |
+| `IDSP_GATEWAY_K8S` | AgentMinder gateway route for the Kubernetes door. Empty until the client exists | (set by `agentminder/register.py`) |
+| `IDSP_GATEWAY_AVI` | AgentMinder gateway route for the Avi door | (set by `agentminder/register.py`) |
+| `IDSP_GATEWAY_VCF` | AgentMinder gateway route for the VCF door | (set by `agentminder/register.py`) |
+| `VCF_MCP_AUDIENCES` | Comma-separated JWT audiences for the VCF door | (set by `agentminder/register.py`) |
 | `KUBECONFIG` | Guest cluster kubeconfig. Not committed | (operator file) |
 
 The shop database user and password stay the ones already published in

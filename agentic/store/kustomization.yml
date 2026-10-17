@@ -3,20 +3,10 @@ kind: Kustomization
 
 namespace: metal-music-store
 
+# The Red Lab store is gitops/music-store: the users VM Service VM,
+# the DSM catalog, and the VKS cluster. Those files stay there.
+# app/music-store is the earlier container shape. Do not apply it.
 resources:
   - namespace.yaml
-  - ../../app/music-store/k8s-deployment.yaml
-  - ../../app/music-store/k8s-cart-deployment.yaml
-  - ../../app/music-store/k8s-order-deployment.yaml
-  - ../../app/music-store/k8s-chat-deployment.yaml
-  - ../../app/music-store/k8s-traffic-generator-deployment.yaml
   - backing.yaml
   - ingress.yaml
-
-patches:
-  - target:
-      kind: PersistentVolumeClaim
-    patch: |-
-      - op: add
-        path: /spec/storageClassName
-        value: mgmt-cl01-optimal-datastore-default-policy-autoraid

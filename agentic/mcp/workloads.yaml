@@ -45,6 +45,14 @@ spec:
                 secretKeyRef:
                   name: mcp-auth
                   key: write
+            - name: IDSP_ISSUER
+              value: https://${AGENTMINDER_HOST}/default
+            - name: IDSP_TLS_VERIFY
+              value: "false"
+            - name: MCP_RESOURCE_URL
+              value: http://${K8S_MCP_HOST}/mcp
+            - name: IDSP_GATEWAY_RESOURCE
+              value: "${IDSP_GATEWAY_K8S}"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -139,6 +147,14 @@ spec:
                 secretKeyRef:
                   name: avi-goad
                   key: password
+            - name: IDSP_ISSUER
+              value: https://${AGENTMINDER_HOST}/default
+            - name: IDSP_TLS_VERIFY
+              value: "false"
+            - name: MCP_RESOURCE_URL
+              value: http://${AVI_MCP_HOST}/mcp
+            - name: IDSP_GATEWAY_RESOURCE
+              value: "${IDSP_GATEWAY_AVI}"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -193,7 +209,7 @@ spec:
       containers:
         - name: mcp
           image: python:3.12-slim
-          command: ["sh", "-c", "python3 -c 'import tarfile; tarfile.open(\"/bundle/package.tar\").extractall(\"/tmp/src\", filter=\"data\")' && pip install --user -q 'mcp>=2' 'httpx>=0.27' 'PyYAML>=6' 'uvicorn>=0.30' 'starlette>=0.37' 'PyJWT[crypto]>=2.8' && PYTHONPATH=/tmp/src PATH=\"$PATH:/tmp/.local/bin\" python3 -m vcf_mcp serve-http"]
+          command: ["python3", "/boot/boot.py"]
           workingDir: /tmp
           ports:
             - containerPort: 8080
@@ -204,6 +220,12 @@ spec:
               value: /tmp
             - name: VCF_DISK_LATENCY_REPLAY
               value: "on"
+            - name: VCF_MCP_OAUTH_ISSUER
+              value: https://${AGENTMINDER_HOST}/default
+            - name: VCF_MCP_OAUTH_TLS_VERIFY
+              value: "0"
+            - name: VCF_MCP_OAUTH_AUDIENCES
+              value: "${VCF_MCP_AUDIENCES}"
             - name: VCF_READ_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -214,6 +236,11 @@ spec:
                 secretKeyRef:
                   name: mcp-auth
                   key: vcf-admin
+          resources:
+            requests:
+              memory: 512Mi
+            limits:
+              memory: 2Gi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -224,15 +251,25 @@ spec:
             httpGet:
               path: /health
               port: 8080
-            failureThreshold: 30
+            failureThreshold: 60
             periodSeconds: 10
           volumeMounts:
             - name: code
               mountPath: /bundle
+            - name: boot
+              mountPath: /boot
+            - name: specs
+              mountPath: /spec-parts
+              readOnly: true
       volumes:
         - name: code
           configMap:
             name: mcp-vcf
+        - name: boot
+          configMap:
+            name: mcp-vcf-boot
+        - name: specs
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
