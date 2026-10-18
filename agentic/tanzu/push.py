@@ -224,19 +224,18 @@ def stage_model_trust(dest: Path) -> None:
     by that service's own CA. The agent client checks the name. The
     address stays the Goad ingress. This does not point at the pais org.
     """
-    ca = Path(__file__).resolve().parent / "trust" / "pais-root.pem"
-    if not ca.is_file():
-        raise SystemExit(f"missing model CA {ca}")
+    trust = Path(__file__).resolve().parent / "trust"
+    ca = trust / "pais-root.pem"
+    proxy = trust / "model_proxy.py"
+    if not ca.is_file() or not proxy.is_file():
+        raise SystemExit("missing model trust files")
     shutil.copy(ca, dest / "pais-root.pem")
+    shutil.copy(proxy, dest / "model_proxy.py")
     (dest / ".profile").write_text(
-        """# Trust the Goad model ingress. The agent HTTP client uses
-# SSL_CERT_FILE when it is set, instead of its built-in bundle.
+        """# The agent HTTP client uses SSL_CERT_FILE when it is set.
+# The model itself is reached through the local proxy, because this
+# container cannot edit /etc/hosts and the certificate name is not the address.
 base="${SSL_CERT_FILE:-/etc/ssl/certs/ca-certificates.crt}"
-if [ -w /etc/hosts ]; then
-  grep -q '[[:space:]]pais-ingress-default$' /etc/hosts || echo '10.47.7.73 pais-ingress-default' >> /etc/hosts
-else
-  echo 'trust: /etc/hosts is not writable' >&2
-fi
 if [ -r "$base" ] && [ -r /home/vcap/app/pais-root.pem ]; then
   cat "$base" /home/vcap/app/pais-root.pem > /home/vcap/app/trust-bundle.pem
   export SSL_CERT_FILE=/home/vcap/app/trust-bundle.pem
@@ -244,6 +243,25 @@ if [ -r "$base" ] && [ -r /home/vcap/app/pais-root.pem ]; then
 else
   echo 'trust: model CA was not added' >&2
 fi
+python3 - << 'PY'
+import socket, subprocess
+s = socket.socket()
+s.settimeout(0.3)
+try:
+    s.connect(("127.0.0.1", 8765))
+except Exception:
+    subprocess.Popen(
+        ["python3", "/home/vcap/app/model_proxy.py"],
+        stdout=open("/home/vcap/app/model-proxy.log", "ab"),
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    print("trust: model proxy started", flush=True)
+else:
+    print("trust: model proxy already listening", flush=True)
+finally:
+    s.close()
+PY
 """,
         encoding="utf-8",
     )
@@ -644,23 +662,25 @@ def bind_goad_model() -> None:
         raise SystemExit("qwen env missing on lb-diagnostic-agent")
     if "pais.gpu" in base or "/pais" in base:
         raise SystemExit("refusing the pais model endpoint")
-    # The certificate name is pais-ingress-default. The address is still
-    # the Goad ingress; the app profile maps the name to that address.
-    if "10.47.7.73" in base:
-        base = base.replace("10.47.7.73", "pais-ingress-default")
-    print("model binding", "goad" if "pais-ingress-default" in base else "other", flush=True)
-    root = base[:-3] if base.endswith("/v1") else base
+    if "10.47.7.73" not in base and "127.0.0.1:8765" not in base:
+        raise SystemExit("refusing a model endpoint that is not the Goad ingress")
+    # The agent appends /openai/v1 to endpoint.api_base. The local proxy
+    # accepts that path and forwards it to the Goad ingress.
+    proxy = "http://127.0.0.1:8765"
+    chat_base = proxy + "/api/v1/compatibility/openai/v1"
+    endpoint_root = proxy + "/api/v1/compatibility"
+    print("model binding", "goad", flush=True)
     ups(
         "goad-qwen",
         {
-            "api_base": base,
+            "api_base": chat_base,
             "api_key": key,
             "model_name": model,
             "model_capabilities": ["chat", "tools"],
             "wire_format": "openai",
             "endpoint": {
-                "api_base": root,
-                "openai_api_base": base,
+                "api_base": endpoint_root,
+                "openai_api_base": chat_base,
                 "api_key": key,
                 "config_url": f"https://metal-incident-live.{DOMAIN}/config/v1/endpoint",
                 "name": model,
