@@ -64,7 +64,7 @@ class Proxy(BaseHTTPRequestHandler):
                 continue
             req.add_header(key, value)
         try:
-            with OPENER.open(req, timeout=120) as resp:
+            with OPENER.open(req, timeout=600) as resp:
                 payload = resp.read()
                 status = resp.status
                 headers = list(resp.headers.items())
