@@ -151,7 +151,7 @@ class AviSession:
                 "Accept": "application/json",
                 "X-CSRFToken": self.csrf,
                 "Referer": self.base + "/",
-                "X-Avi-Tenant": "admin",
+                "X-Avi-Tenant": os.environ.get("AVI_TENANT") or "admin",
             },
             timeout=timeout,
         )
