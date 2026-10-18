@@ -491,6 +491,7 @@ def main() -> None:
             "AVI_CONTROLLER": os.environ.get("AVI_CONTROLLER", ""),
             "AVI_USERNAME": os.environ.get("AVI_USERNAME", ""),
             "AVI_PASSWORD": os.environ.get("AVI_PASSWORD", ""),
+            "AVI_TENANT": os.environ.get("AVI_TENANT") or "goad",
         },
     )
     set_env(

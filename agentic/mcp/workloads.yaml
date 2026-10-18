@@ -166,6 +166,8 @@ spec:
                 secretKeyRef:
                   name: avi-goad
                   key: password
+            - name: AVI_TENANT
+              value: goad
             - name: IDSP_ISSUER
               value: https://${AGENTMINDER_HOST}/default
             - name: IDSP_TLS_VERIFY
