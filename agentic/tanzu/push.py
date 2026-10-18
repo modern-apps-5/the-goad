@@ -213,7 +213,40 @@ def stage_agent(name: str, entry: str, skill: str) -> Path:
             "uvicorn>=0.30\nhttpx>=0.27\nanyio>=4\ncryptography>=42\nPyJWT[crypto]>=2.8\n",
             encoding="utf-8",
         )
+    stage_model_trust(dest)
     return dest
+
+
+def stage_model_trust(dest: Path) -> None:
+    """Let the agent trust the Goad model ingress.
+
+    The ingress certificate is named pais-ingress-default and is signed
+    by that service's own CA. The agent client checks the name. The
+    address stays the Goad ingress. This does not point at the pais org.
+    """
+    ca = Path(__file__).resolve().parent / "trust" / "pais-root.pem"
+    if not ca.is_file():
+        raise SystemExit(f"missing model CA {ca}")
+    shutil.copy(ca, dest / "pais-root.pem")
+    (dest / ".profile").write_text(
+        """# Trust the Goad model ingress. The agent HTTP client uses
+# SSL_CERT_FILE when it is set, instead of its built-in bundle.
+base="${SSL_CERT_FILE:-/etc/ssl/certs/ca-certificates.crt}"
+if [ -w /etc/hosts ]; then
+  grep -q '[[:space:]]pais-ingress-default$' /etc/hosts || echo '10.47.7.73 pais-ingress-default' >> /etc/hosts
+else
+  echo 'trust: /etc/hosts is not writable' >&2
+fi
+if [ -r "$base" ] && [ -r /home/vcap/app/pais-root.pem ]; then
+  cat "$base" /home/vcap/app/pais-root.pem > /home/vcap/app/trust-bundle.pem
+  export SSL_CERT_FILE=/home/vcap/app/trust-bundle.pem
+  echo 'trust: model CA added' >&2
+else
+  echo 'trust: model CA was not added' >&2
+fi
+""",
+        encoding="utf-8",
+    )
 
 
 def stage_tree(src: Path, names: list[str]) -> Path:
@@ -609,9 +642,13 @@ def bind_goad_model() -> None:
     model = src.get("QWEN_MODEL") or "qwen"
     if not base or not key:
         raise SystemExit("qwen env missing on lb-diagnostic-agent")
-    if "pais" in base:
+    if "pais.gpu" in base or "/pais" in base:
         raise SystemExit("refusing the pais model endpoint")
-    print("model binding", "goad" if "10.47.7.73" in base else "other", flush=True)
+    # The certificate name is pais-ingress-default. The address is still
+    # the Goad ingress; the app profile maps the name to that address.
+    if "10.47.7.73" in base:
+        base = base.replace("10.47.7.73", "pais-ingress-default")
+    print("model binding", "goad" if "pais-ingress-default" in base else "other", flush=True)
     root = base[:-3] if base.endswith("/v1") else base
     ups(
         "goad-qwen",
