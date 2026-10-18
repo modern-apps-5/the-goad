@@ -186,14 +186,15 @@ def ensure_agent_objects(k: list[str]) -> None:
 def wizard_b64() -> str:
     """Same autowizard shape as the host copy. Password stays in the env."""
     password = need("ZAMMAD_ADMIN_PASSWORD")
-    user = os.environ.get("ZAMMAD_ADMIN_USER", "agent@example.lab").strip()
+    user = os.environ.get("ZAMMAD_ADMIN_USER", "admin").strip()
+    email = os.environ.get("ZAMMAD_ADMIN_EMAIL", "agent@example.lab").strip()
     payload = {
         "Users": [
             {
                 "login": user,
                 "firstname": "On",
                 "lastname": "Call",
-                "email": user,
+                "email": email,
                 "password": password,
                 "roles": ["Admin", "Agent"],
             }
@@ -219,7 +220,7 @@ def ensure_admin_password() -> None:
     if os.environ.get("ZAMMAD_ADMIN_PASSWORD", "").strip():
         return
     os.environ["ZAMMAD_ADMIN_PASSWORD"] = secrets.token_urlsafe(18)
-    os.environ.setdefault("ZAMMAD_ADMIN_USER", "agent@example.lab")
+    os.environ.setdefault("ZAMMAD_ADMIN_USER", "admin")
     path = Path("/tmp/goad-demo.env")
     if path.is_file():
         with path.open("a") as handle:
