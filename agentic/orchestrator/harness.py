@@ -10,8 +10,10 @@ from __future__ import annotations
 import json
 import os
 import ssl
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -20,8 +22,11 @@ AGENTS = (
     ("k8s-diagnostic-agent", "k8s_diagnostic_agent", "Kubernetes"),
     ("vcf-diagnostic-agent", "vcf_diagnostic_agent", "VCF"),
 )
-LIVE: dict = {"steps": [], "fallback": True, "note": ""}
+LIVE: dict = {"steps": [], "fallback": True, "note": "", "state": "idle", "ticket_number": "", "title": "", "error": ""}
 SINK = None
+_LOCK = threading.Lock()
+_RUNNING = False
+_POLLS = 0
 
 
 def step(text: str) -> None:
@@ -273,11 +278,191 @@ def run(ticket: dict) -> dict:
     return {"note": note, "fallback": bool(gate.get("fallback") or LIVE["fallback"]), "storage_latency": storage, "store": store, "runs": runs}
 
 
+def latest_open_ticket() -> dict:
+    """Latest open Zammad ticket. Empty when the helpdesk cannot be read."""
+    base = os.environ.get("ZAMMAD_URL", "").strip().rstrip("/")
+    token = os.environ.get("ZAMMAD_TOKEN", "").strip()
+    if not base or not token:
+        return {}
+    headers = {"Authorization": f"Token token={token}", "Accept": "application/json"}
+    url = base + "/api/v1/tickets/search?query=state.name:open&limit=5&sort_by=created_at&order_by=desc"
+    try:
+        with _open(url, 20, os.environ.get("ZAMMAD_CONNECT_IP", "").strip(), headers=headers) as resp:
+            doc = json.loads(resp.read().decode())
+    except Exception:
+        return {}
+    rows = doc if isinstance(doc, list) else []
+    if isinstance(doc, dict):
+        assets = ((doc.get("assets") or {}).get("Ticket")) or {}
+        if isinstance(assets, dict) and assets:
+            rows = list(assets.values())
+        elif isinstance(doc.get("tickets"), list):
+            rows = doc["tickets"]
+    if not rows:
+        return {}
+    ticket = rows[0] if isinstance(rows[0], dict) else {}
+    if not ticket.get("id") and isinstance(rows[0], int):
+        try:
+            with _open(base + f"/api/v1/tickets/{rows[0]}", 20, os.environ.get("ZAMMAD_CONNECT_IP", "").strip(), headers=headers) as resp:
+                ticket = json.loads(resp.read().decode())
+        except Exception:
+            return {}
+    text = str(ticket.get("title") or "")
+    return {
+        "id": ticket.get("id"),
+        "number": ticket.get("number"),
+        "title": ticket.get("title") or "",
+        "text": text,
+    }
+
+
+def _compact(*, stop: bool) -> dict:
+    state = LIVE.get("state") or "idle"
+    say = (
+        "Stop. Do not call enrich_status again. Reply from this object."
+        if stop
+        else f"Still running. Calls left after this one: {max(0, 6 - _POLLS)}."
+    )
+    return {
+        "state": state,
+        "stop": stop,
+        "ticket_number": LIVE.get("ticket_number") or "",
+        "title": LIVE.get("title") or "",
+        "assessment": str(LIVE.get("note") or "")[:400],
+        "enrichment": str(LIVE.get("note") or "")[:1500 if stop else 240],
+        "error": LIVE.get("error"),
+        "fallback": bool(LIVE.get("fallback")),
+        "say": say,
+    }
+
+
+def _worker(ticket: dict) -> None:
+    global _RUNNING
+    try:
+        outcome = run(ticket)
+        with _LOCK:
+            LIVE["state"] = "done"
+            LIVE["note"] = outcome.get("note") or ""
+            LIVE["error"] = ""
+    except Exception as exc:
+        with _LOCK:
+            LIVE["state"] = "failed"
+            LIVE["error"] = type(exc).__name__
+    finally:
+        with _LOCK:
+            _RUNNING = False
+
+
+def enrich_latest_incident() -> dict:
+    global _RUNNING, _POLLS
+    with _LOCK:
+        if _RUNNING:
+            return {**_compact(stop=False), "say": "Enrichment is already running. Call enrich_status at most 6 times."}
+        _RUNNING = True
+        _POLLS = 0
+        LIVE["state"] = "running"
+        LIVE["error"] = ""
+        LIVE["note"] = ""
+        LIVE["steps"] = []
+    ticket = latest_open_ticket()
+    if not ticket.get("id"):
+        with _LOCK:
+            _RUNNING = False
+            LIVE["state"] = "failed"
+            LIVE["error"] = "no open ticket"
+        return {
+            "state": "failed",
+            "stop": True,
+            "error": "The latest open ticket could not be read.",
+            "say": "The latest open ticket could not be read.",
+        }
+    with _LOCK:
+        LIVE["ticket_number"] = str(ticket.get("number") or "")
+        LIVE["title"] = ticket.get("title") or ""
+    threading.Thread(target=_worker, args=(ticket,), daemon=True).start()
+    return {
+        "state": "started",
+        "stop": False,
+        "ticket_number": LIVE["ticket_number"],
+        "title": LIVE["title"],
+        "say": "Enrichment started. Call enrich_status at most 6 times. Stop when stop is true.",
+    }
+
+
+def enrich_status() -> dict:
+    global _POLLS
+    with _LOCK:
+        _POLLS += 1
+        polls = _POLLS
+        running = _RUNNING
+        state = LIVE.get("state") or "idle"
+    if polls > 6 or (not running and state in ("done", "failed", "idle")):
+        body = _compact(stop=True)
+        if body.get("state") not in ("done", "failed"):
+            body["state"] = "done"
+        return body
+    return _compact(stop=False)
+
+
+def _rpc(body: dict) -> dict | None:
+    req_id = body.get("id")
+    method = body.get("method") or ""
+    if req_id is None:
+        return None
+    if method == "initialize":
+        result = {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": "incident-live", "version": "2026-10-17"},
+        }
+    elif method in ("notifications/initialized", "ping"):
+        result = {}
+    elif method == "tools/list":
+        result = {"tools": [
+            {
+                "name": "enrich_latest_incident",
+                "description": "Start enrichment of the latest open Metal Music Store incident. No arguments. Call once.",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "enrich_status",
+                "description": "One enrichment snapshot. Call at most 6 times. When stop is true, reply and do not call again.",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+        ]}
+    elif method == "tools/call":
+        params = body.get("params") or {}
+        name = str(params.get("name") or "")
+        try:
+            if name == "enrich_latest_incident":
+                payload = enrich_latest_incident()
+            elif name == "enrich_status":
+                payload = enrich_status()
+            else:
+                return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": "unknown tool"}}
+        except Exception as exc:
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32603, "message": f"{type(exc).__name__}: {str(exc)[:240]}"},
+            }
+        result = {"content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False, default=str)}]}
+    else:
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"unknown method {method}"}}
+    return {"jsonrpc": "2.0", "id": req_id, "result": result}
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         path = self.path.split("?", 1)[0]
         if path == "/health":
             body = b'{"ok":true,"service":"orchestrator"}\n'
+        elif path == "/config/v1/endpoint":
+            body = json.dumps({
+                "name": "goad-qwen",
+                "wireFormat": "OPENAI",
+                "advertisedModels": [{"name": "qwen", "capabilities": ["CHAT", "TOOLS"]}],
+            }).encode()
         elif path == "/live":
             body = json.dumps(LIVE).encode()
         else:
@@ -291,7 +476,28 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path.split("?", 1)[0] != "/run":
+        path = self.path.split("?", 1)[0]
+        if path == "/mcp":
+            length = int(self.headers.get("Content-Length") or "0")
+            try:
+                body = json.loads(self.rfile.read(length).decode() or "{}")
+            except json.JSONDecodeError:
+                self.send_response(400)
+                self.end_headers()
+                return
+            reply = _rpc(body if isinstance(body, dict) else {})
+            if reply is None:
+                self.send_response(202)
+                self.end_headers()
+                return
+            raw = json.dumps(reply, ensure_ascii=False, default=str).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+            return
+        if path != "/run":
             self.send_response(404)
             self.end_headers()
             return

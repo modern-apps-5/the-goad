@@ -18,10 +18,11 @@ response chat on `https://incident-response-agent.${TANZU_APPS_DOMAIN}/`:
 | `vcf-diagnostic-agent` | agent buildpack, skill `vcf_diagnostic_agent` | `vcf_vm_disk_latency` |
 | `pii-scrub` | `python3 /app/scrub.py` | `pii/scrub.py` | none |
 
-The apps that are already running still start `chat.py` and `diagnose.py`.
-The next `tanzu/push.py` is what switches them to the buildpack above.
-Do not push that until the orchestrator exposes `enrich_latest_incident`,
-or the incident agent has no tool to call.
+`python3 tanzu/push.py agents` stages `AGENTS.md` and the skill, clears
+any `python chat.py` or `python diagnose.py` start command, and binds
+the Goad qwen endpoint. The orchestrator exposes `enrich_latest_incident`
+and `enrich_status` on `POST /mcp`. The guest deployments of the same
+four names stay at 0 replicas. They are the old scripts.
 
 `CLM_URL` blank means the decision gate is on fallback. The note says
 that. The orchestrator still calls all three agents. One stalled agent

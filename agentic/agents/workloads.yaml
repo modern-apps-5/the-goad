@@ -1,3 +1,6 @@
+# The four agents run on Tanzu as agent_buildpack apps.
+# These deployments are the earlier script copies. Replicas stay at 0
+# so a later apply does not start chat.py or diagnose.py again.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -9,7 +12,7 @@ metadata:
   name: incident-response-agent
   namespace: metal-music-app-agentic-system
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: incident-response-agent
@@ -183,7 +186,7 @@ metadata:
   name: lb-diagnostic-agent
   namespace: metal-music-app-agentic-system
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: lb-diagnostic-agent
@@ -285,7 +288,7 @@ metadata:
   name: k8s-diagnostic-agent
   namespace: metal-music-app-agentic-system
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: k8s-diagnostic-agent
@@ -387,7 +390,7 @@ metadata:
   name: vcf-diagnostic-agent
   namespace: metal-music-app-agentic-system
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: vcf-diagnostic-agent

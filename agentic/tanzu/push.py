@@ -17,6 +17,7 @@ import shutil
 import socket
 import ssl
 import subprocess
+import sys
 import tempfile
 import urllib.error
 import urllib.request
@@ -520,7 +521,7 @@ def main() -> None:
     )
     ups(
         "sc-incident-response-agent-orch",
-        {"url": f"https://metal-incident-live.{DOMAIN}/mcp", "auth_type": "bearer"},
+        {"url": f"https://metal-incident-live.{DOMAIN}/mcp"},
         ["mcp-server"],
     )
     for name, door in (
@@ -581,5 +582,101 @@ def main() -> None:
     print("push complete", flush=True)
 
 
+def app_env(name: str) -> dict:
+    return dict(cf_curl(f"/v3/apps/{app_guid(name)}/environment_variables").get("var") or {})
+
+
+def clear_command(name: str) -> None:
+    """Drop a python chat.py / diagnose.py override so the droplet command runs."""
+    proc = (cf_curl(f"/v3/apps/{app_guid(name)}/processes").get("resources") or [{}])[0]
+    guid = proc.get("guid")
+    if not guid:
+        raise SystemExit(f"no process for {name}")
+    cf_curl(f"/v3/processes/{guid}", "PATCH", {"command": None})
+    current = cf_curl(f"/v3/processes/{guid}").get("command")
+    print("command", name, current or "buildpack-default", flush=True)
+
+
+def bind_goad_model() -> None:
+    """User-provided model binding for the agent buildpack.
+
+    The marketplace chat plan is not the Goad qwen. Credentials are copied
+    from an app env that already holds them. Values are not printed.
+    """
+    src = app_env("lb-diagnostic-agent")
+    base = (src.get("QWEN_BASE_URL") or "").rstrip("/")
+    key = src.get("QWEN_API_KEY") or ""
+    model = src.get("QWEN_MODEL") or "qwen"
+    if not base or not key:
+        raise SystemExit("qwen env missing on lb-diagnostic-agent")
+    if "pais" in base:
+        raise SystemExit("refusing the pais model endpoint")
+    print("model binding", "goad" if "10.47.7.73" in base else "other", flush=True)
+    root = base[:-3] if base.endswith("/v1") else base
+    ups(
+        "goad-qwen",
+        {
+            "api_base": base,
+            "api_key": key,
+            "model_name": model,
+            "model_capabilities": ["chat", "tools"],
+            "wire_format": "openai",
+            "endpoint": {
+                "api_base": root,
+                "openai_api_base": base,
+                "api_key": key,
+                "config_url": f"https://metal-incident-live.{DOMAIN}/config/v1/endpoint",
+                "name": model,
+            },
+        },
+        ["tanzu-ai-models", "ai-models", "genai", "llm"],
+    )
+
+
+def push_agents() -> None:
+    """Restage the four agents onto agent_buildpack and the orchestrator tools.
+
+    Does not restage the MCP doors and does not rotate their tokens.
+    """
+    if not CF_HOME.is_dir() or not HOSTS.is_file():
+        raise SystemExit("cf home or hosts file missing")
+    cf("target", "-o", ORG, "-s", SPACE)
+    bind_goad_model()
+    for name, (entry, skill) in AGENTS.items():
+        extra: dict = {"env": {"TANZU_AGENT_ENABLE_DEBUG_UI": "true"}}
+        if name in DOORS:
+            extra["sidecars"] = [
+                {
+                    "name": "agentminder-sdk",
+                    "process_types": ["web"],
+                    "command": "bash sidecar/run-sidecar.sh",
+                    "memory": "128M",
+                }
+            ]
+        spec = base_app(name, stage_agent(name, entry, skill), "512M", "1G", "", ["python_buildpack", "agent_buildpack"], extra)
+        spec.pop("command", None)
+        push(spec)
+        clear_command(name)
+        bind(name, "goad-qwen")
+    live = stage_tree(ROOT / "orchestrator", ["harness.py"])
+    push(base_app("metal-incident-live", live, "512M", "1G", "python harness.py", ["python_buildpack"]))
+    zammad = app_env("incident-response-agent")
+    set_env(
+        "metal-incident-live",
+        {
+            "ZAMMAD_URL": zammad.get("ZAMMAD_URL", ""),
+            "ZAMMAD_TOKEN": zammad.get("ZAMMAD_TOKEN", ""),
+            "ZAMMAD_CONNECT_IP": zammad.get("ZAMMAD_CONNECT_IP", ""),
+        },
+    )
+    for name in (*AGENTS, "metal-incident-live"):
+        cf("start", name)
+        print("started", name, flush=True)
+    print("agent framework push complete", flush=True)
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "agents":
+        push_agents()
+    else:
+        main()

@@ -1,7 +1,7 @@
 # Metal Music agents on Tanzu Platform. Org Goad.
 # Space metal-music-app-agentic-system. Domain is ${TANZU_APPS_DOMAIN}.
 # python_buildpack then agent_buildpack, same order as the home lab.
-# The start command is the walk that posts the Zammad note.
+# No start command. agent_buildpack starts tanzu-agent.
 # Diagnostic agents run the agentminder-sdk sidecar. Incident response does not.
 # Secrets are cf set-env. Never in this file.
 ---
@@ -14,7 +14,6 @@ applications:
     health-check-type: http
     health-check-http-endpoint: /health
     health-check-invocation-timeout: 60
-    command: python chat.py
     buildpacks:
       - python_buildpack
       - agent_buildpack
@@ -31,7 +30,6 @@ applications:
     health-check-type: http
     health-check-http-endpoint: /health
     health-check-invocation-timeout: 60
-    command: python diagnose.py
     buildpacks:
       - python_buildpack
       - agent_buildpack
@@ -53,7 +51,6 @@ applications:
     health-check-type: http
     health-check-http-endpoint: /health
     health-check-invocation-timeout: 60
-    command: python diagnose.py
     buildpacks:
       - python_buildpack
       - agent_buildpack
@@ -75,7 +72,6 @@ applications:
     health-check-type: http
     health-check-http-endpoint: /health
     health-check-invocation-timeout: 60
-    command: python diagnose.py
     buildpacks:
       - python_buildpack
       - agent_buildpack
