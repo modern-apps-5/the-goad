@@ -72,8 +72,9 @@ class Proxy(BaseHTTPRequestHandler):
             payload = exc.read()
             status = exc.code
             headers = list(exc.headers.items()) if exc.headers else []
-        except Exception:
-            payload = b"model proxy failed"
+        except Exception as exc:
+            errno = getattr(exc, "errno", None)
+            payload = f"model proxy failed {type(exc).__name__} {errno or ''}".strip().encode()
             status = 502
             headers = []
         self.send_response(status)
