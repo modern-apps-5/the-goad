@@ -52,12 +52,11 @@ What changed in this repository, newest first. The reasons are in
 - `app/music-store/kustomization.yml` lists the store, cart, orders, and
   traffic generator. The container database, container users, and chat
   are not listed. The script deploys chat to Tanzu with `cf push`.
-- Before you merge, annotate the live users VM, its VirtualMachineService
-  `users-service`, and the Secret `music-users-bootstrap` with
-  `argocd.argoproj.io/sync-options: Prune=false`. The Application
-  `music-store` has `prune=true` and would delete them on merge. After
-  the platform engineer apply, `music-store-dev-vm` adopts them, and you
-  can remove the annotation.
+- On merge, the Application `music-store` (`prune=true`) deletes the
+  users VM, its VirtualMachineService `users-service`, and the Secret
+  `music-users-bootstrap`. `music-store-dev-vm` makes them again after
+  the platform engineer apply. The store was not in use yet, so the
+  rebuild was accepted. Decision 34 says what a store in use would need.
 
 ## 2026-10-15 (AgentMinder CPU requests)
 

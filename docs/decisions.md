@@ -709,14 +709,14 @@ Cost: the Job holds the VKS admin kubeconfig. The Endpoints refresh only
 when `music-store-dev-vm` syncs, so if DSM or the VM's load balancer
 address changes, the developer must sync it again. The users VM moves
 from the Application `music-store` to `music-store-dev-vm`. The platform
-Application has `prune=true`, so on merge Argo CD would delete the live
-VM, its VirtualMachineService `users-service`, and the Secret
-`music-users-bootstrap` before the new Application makes them again.
-Before merge, annotate those three objects with
-`argocd.argoproj.io/sync-options: Prune=false`. Merge, run the platform
-engineer apply, and let `music-store-dev-vm` adopt them (Argo CD tracks
-by annotation, so it rewrites the tracking-id). Then remove the
-annotation.
+Application has `prune=true`, so on merge Argo CD deletes the VM, its
+VirtualMachineService `users-service`, and the Secret
+`music-users-bootstrap`, and `music-store-dev-vm` makes them again after
+the platform engineer apply. The music store was not in use yet, so the
+rebuild was accepted. A store in use would need
+`argocd.argoproj.io/sync-options: Prune=false` on those three objects
+before the merge, and the annotation removed after the new Application
+adopts them.
 
 Look again if: the lab gets a way to order Applications across
 destinations, or the Job's kubeconfig access is too broad for the demo.
