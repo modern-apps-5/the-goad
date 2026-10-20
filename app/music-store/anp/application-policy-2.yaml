@@ -1,0 +1,410 @@
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: allow-client-to-service
+spec:
+  priority: 100
+  appliedTo:
+    - podSelector:
+        matchLabels:
+          app-name: music-store
+  egress:
+    - action: Allow
+      name: AllowToClusterIPServicepostgres
+      toServices:
+        - name: postgres-service       # Name of the ClusterIP Service
+          namespace: default  # Namespace where the Service is located
+    - action: Allow
+      name: AllowToClusterIPServiceorder
+      toServices:
+        - name: order-service       # Name of the ClusterIP Service
+          namespace: default  # Namespace where the Service is located
+    - action: Allow
+      name: AllowToClusterIPServicechat
+      toServices:
+        - name: chat-service       # Name of the ClusterIP Service
+          namespace: default  # Namespace where the Service is located
+    - action: Allow
+      name: AllowToClusterIPServicecart
+      toServices:
+        - name: cart-service       # Name of the ClusterIP Service
+          namespace: default  # Namespace where the Service is located
+    - action: Allow
+      name: AllowToClusterIPServiceusers
+      toServices:
+        - name: users-service       # Name of the ClusterIP Service
+          namespace: default  # Namespace where the Service is located
+---
+# 1. Chat Service Policy[cite: 1]
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: chat-service-policy
+spec:
+  tier: Application
+  priority: 100
+  appliedTo:
+  - podSelector:
+      matchLabels:
+        app: chat-service
+  ingress:
+  - action: Allow
+    from:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    ports:
+    - protocol: TCP
+      port: 5005
+  egress:
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: order-service
+    ports:
+    - protocol: TCP
+      port: 5001
+  - action: Allow # Allow external API access for the Private AI / Qwen endpoint[cite: 1]
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+  - action: Allow # DNS Resolution
+    to:
+    - podSelector: {}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# 2. Users Service Policy[cite: 2]
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: users-service-policy
+spec:
+  tier: Application
+  priority: 101
+  appliedTo:
+  - podSelector:
+      matchLabels:
+        app: users-service
+  ingress:
+  - action: Allow
+    from:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    - podSelector:
+        matchLabels:
+          app: traffic-generator
+    ports:
+    - protocol: TCP
+      port: 5003
+  egress:
+  - action: Allow # DNS Resolution
+    to:
+    - podSelector: {}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# 3. Traffic Generator Policy[cite: 3]
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: traffic-generator-policy
+spec:
+  tier: Application
+  priority: 102
+  appliedTo:
+  - podSelector:
+      matchLabels:
+        app: traffic-generator
+  ingress:
+  - action: Allow # Exposed via LoadBalancer, allow all incoming
+    ports:
+    - protocol: TCP
+      port: 5004
+  egress:
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    ports:
+    - protocol: TCP
+      port: 5000
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: cart-service
+    ports:
+    - protocol: TCP
+      port: 5002
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: order-service
+    ports:
+    - protocol: TCP
+      port: 5001
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: users-service
+    ports:
+    - protocol: TCP
+      port: 5003
+  - action: Allow # DNS Resolution
+    to:
+    - podSelector: {}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+    
+
+---
+# 4. Order Service Policy[cite: 4]
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: order-service-policy
+spec:
+  tier: Application
+  priority: 103
+  appliedTo:
+  - podSelector:
+      matchLabels:
+        app: order-service
+  ingress:
+  - action: Allow
+    from:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    - podSelector:
+        matchLabels:
+          app: traffic-generator
+    - podSelector:
+        matchLabels:
+          app: cart-service
+    - podSelector:
+        matchLabels:
+          app: chat-service
+    ports:
+    - protocol: TCP
+      port: 5001
+  egress:
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    ports:
+    - protocol: TCP
+      port: 5000
+  - action: Allow # DNS Resolution
+    to:
+    - podSelector: {}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# 5. Music Store Web Policy[cite: 5]
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: music-store-1-policy
+spec:
+  tier: Application
+  priority: 104
+  appliedTo:
+  - podSelector:
+      matchLabels:
+        app: music-store-1
+  ingress:
+  - action: Allow # Exposed via LoadBalancer, allow all incoming
+    ports:
+    - protocol: TCP
+      port: 5000
+  egress:
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: cart-service
+    ports:
+    - protocol: TCP
+      port: 5002
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: order-service
+    ports:
+    - protocol: TCP
+      port: 5001
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: users-service
+    ports:
+    - protocol: TCP
+      port: 5003
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: chat-service
+    ports:
+    - protocol: TCP
+      port: 5005
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - action: Allow # DNS Resolution
+    to:
+    - podSelector: {}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# 6. Database (Postgres) Policy[cite: 6]
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: postgres-policy
+spec:
+  tier: Application
+  priority: 105
+  appliedTo:
+  - podSelector:
+      matchLabels:
+        app: postgres
+  ingress:
+  - action: Allow
+    from:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    - podSelector:
+        matchLabels:
+          app: chat-service
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  - action: Allow # DNS Resolution
+    to:
+    - podSelector: {}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# 7. Cart Service Policy[cite: 7]
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: cart-service-policy
+spec:
+  tier: Application
+  priority: 106
+  appliedTo:
+  - podSelector:
+      matchLabels:
+        app: cart-service
+  ingress:
+  - action: Allow
+    from:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    - podSelector:
+        matchLabels:
+          app: traffic-generator
+    ports:
+    - protocol: TCP
+      port: 5002
+  egress:
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: music-store-1
+    ports:
+    - protocol: TCP
+      port: 5000
+  - action: Allow
+    to:
+    - podSelector:
+        matchLabels:
+          app: order-service
+    ports:
+    - protocol: TCP
+      port: 5001
+  - action: Allow # DNS Resolution
+    to:
+    - podSelector: {}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

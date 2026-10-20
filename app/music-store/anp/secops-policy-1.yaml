@@ -1,0 +1,33 @@
+apiVersion: crd.antrea.io/v1beta1
+kind: ClusterNetworkPolicy
+metadata:
+  name: secops-pass-prod
+spec:
+  priority: 50
+  tier: securityops
+  appliedTo:
+    - namespaceSelector: {}
+  ingress:
+    - action: Allow # Exposed via LoadBalancer, allow all incoming
+      name: Allow LB Traffic inbound
+      ports:
+        - protocol: TCP
+          port: 5000 
+    - action: Pass # This will allow evaluation of Pass rules in lower tiers and then a default deny if none meet the traffic pattern
+      name: pass-all-ingress
+  egress:
+    - action: Pass # This will allow evaluation of Pass rules in lower tiers and then a default deny if none meet the traffic pattern
+      name: pass-all-egress
+    - action: Allow # DNS Resolution
+      to:
+      - podSelector: {}
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+      - ipBlock:
+          cidr: 172.21.0.90/32
+      ports:
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 53

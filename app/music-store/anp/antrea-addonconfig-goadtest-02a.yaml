@@ -1,0 +1,10 @@
+apiVersion: addons.kubernetes.vmware.com/v1alpha1
+kind: AddonConfig
+metadata:
+  name: goad-test-02a-antrea
+  namespace: tk-test-2
+spec:
+  values:
+    antreaNSX:
+      enable: true # Set to true if integrating with NSX-T/vDefend
+
