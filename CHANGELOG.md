@@ -23,6 +23,42 @@ What changed in this repository, newest first. The reasons are in
   `vcfa_vks_cluster.agentminder`. It is older drift of the containerd
   volumes override, and it was not applied. Decision 35 says why.
 
+## 2026-10-16 (music store developer)
+
+### Added
+
+- The developer's part of the music store, in `gitops/music-store-dev/`.
+  Two Applications, created by `terraform/platform-engineer/gitops.tf`:
+  `music-store-dev-vm` syncs `users-vm/` into the `music-store`
+  Supervisor Namespace, and `music-store-dev-app` syncs `app/` into the
+  namespace `music-store` of the VKS cluster. Both retry (limit 10, 1m
+  backoff, factor 2, maximum 10m), because they depend on the platform
+  engineer's cluster and catalog.
+- The Job `shop-endpoints` in `gitops/music-store-dev/users-vm/`. It
+  writes the Endpoints `users-service` and `postgres-service` into the
+  VKS cluster, from the users VM's load balancer address and the catalog's
+  address. No address is in git.
+- A ManagedEntity `music-store-cluster` in
+  `terraform/platform-engineer/gitops.tf`, which registers the VKS cluster
+  with Argo CD. It needs a platform engineer apply: the plan shows 3 to
+  add, 0 to change, 0 to destroy.
+- Decision 34 says why.
+
+### Changed
+
+- The users VM moved from `gitops/music-store/` to
+  `gitops/music-store-dev/users-vm/`. The Application `music-store` now
+  holds the VKS cluster and the catalog only.
+- `app/music-store/kustomization.yml` lists the store, cart, orders, and
+  traffic generator. The container database, container users, and chat
+  are not listed. The script deploys chat to Tanzu with `cf push`.
+- Before you merge, annotate the live users VM, its VirtualMachineService
+  `users-service`, and the Secret `music-users-bootstrap` with
+  `argocd.argoproj.io/sync-options: Prune=false`. The Application
+  `music-store` has `prune=true` and would delete them on merge. After
+  the platform engineer apply, `music-store-dev-vm` adopts them, and you
+  can remove the annotation.
+
 ## 2026-10-15 (AgentMinder CPU requests)
 
 ### Changed
@@ -41,7 +77,7 @@ What changed in this repository, newest first. The reasons are in
   `gitops/music-store/cluster.yaml`. Argo CD syncs it with the Application
   `music-store`. One control plane and two workers, Kubernetes
   v1.36.2+vmware.2. The containers in `app/music-store` are not deployed
-  onto it yet.
+  onto it by this Application. The 2026-10-16 entry does that.
 - The `music-store` namespace limits are now 40000M CPU, 48Gi memory, and
   150Gi storage (`terraform/platform-engineer/variables.tf`), to fit the
   cluster. It needs a platform engineer apply. The plan shows an in-place

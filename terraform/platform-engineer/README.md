@@ -59,6 +59,21 @@ cannot name them. Terraform knows them. For the namespace with key
 Manifests under `gitops/` do not set a namespace. To give Argo CD another
 namespace, add it to `namespaces` and add the directory `gitops/<key>/`.
 
+The developer's part of the music store has its own handoff. Terraform
+creates:
+
+- a `ManagedEntity` named `music-store-cluster`, which registers the VKS
+  cluster with Argo CD. The cluster name comes from
+  `gitops/music-store/cluster.yaml`;
+- an `Application` named `music-store-dev-vm`, which syncs
+  `gitops/music-store-dev/users-vm/` into the `music-store` namespace;
+- an `Application` named `music-store-dev-app`, which syncs
+  `gitops/music-store-dev/app/` into the namespace `music-store` of the
+  VKS cluster.
+
+Both Applications retry, because they depend on the cluster and the
+catalog that the Application `music-store` builds.
+
 Argo CD reads the repository with a read-only deploy key. The private
 half stays in `.secrets/`, which git ignores.
 

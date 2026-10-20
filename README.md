@@ -5,8 +5,8 @@ walkthrough live here. A lab git server pulls a replica from this
 remote.
 
 The demo shows VMware Cloud Foundation across an application's life,
-through four personas. Two of them are built so far: the cloud admin
-and the platform engineer.
+through four personas. Three of them are built so far: the cloud admin,
+the platform engineer, and the developer.
 
 | Persona | Tool | What it builds | Where |
 |---|---|---|---|
@@ -15,18 +15,33 @@ and the platform engineer.
 | Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](terraform/cloud-admin/agentminder) |
 | Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
-| Platform engineer | Argo CD | The shop's users VM, its DSM catalog database, and its VKS cluster | [gitops/music-store](gitops/music-store) |
+| Platform engineer | Argo CD | The shop's DSM catalog database and its VKS cluster | [gitops/music-store](gitops/music-store) |
+| Developer | Argo CD | The shop's users VM, and the endpoints that point the VKS cluster at it and at the catalog | [gitops/music-store-dev/users-vm](gitops/music-store-dev/users-vm) |
+| Developer | Argo CD | The shop's containers, on the VKS cluster | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
 
 The music-store application is in [app/music-store](app/music-store) as
-plain container manifests. Argo CD builds the VKS cluster `music-store`
-for them, but does not deploy the containers onto it yet.
+plain container manifests. The platform engineer builds the VKS cluster
+`music-store` and the catalog database. The developer deploys the
+containers onto that cluster, and the users VM next to it.
 
-[gitops/music-store](gitops/music-store) is the users VM Service, the
-DSM catalog, and the VKS cluster `music-store`. No file sets a namespace
-or an address. Terraform creates the `music-store` namespace with the
-others, and Argo CD syncs that directory into it. The shop login is
-`admin` / `admin`. The catalog Service is `postgres-service`, which is
-the `DB_HOST` the containers already use.
+[gitops/music-store](gitops/music-store) is the DSM catalog and the VKS
+cluster `music-store`. No file sets a namespace or an address. Terraform
+creates the `music-store` namespace with the others, and Argo CD syncs
+that directory into it. The shop login is `admin` / `admin`. The catalog
+Service is `postgres-service`, which is the `DB_HOST` the containers
+already use.
+
+[gitops/music-store-dev](gitops/music-store-dev) is the developer's
+part. It has two directories, and Argo CD syncs each one to a different
+place:
+
+- `users-vm/` goes into the `music-store` Supervisor Namespace. It is the
+  users VM, and a Job that writes the VM's address and the catalog's
+  address into Endpoints in the VKS cluster.
+- `app/` goes into the namespace `music-store` of the VKS cluster. It is
+  the store, cart, orders, and traffic generator from
+  [app/music-store](app/music-store). The chat service is not deployed
+  there. The walkthrough deploys it to Tanzu with `cf push`.
 
 ## Automation flow
 
@@ -65,8 +80,9 @@ flowchart TD
         repo_secret["Repository Secret, with the deploy key"]
         pais_secret["Secret pais-static-credentials, in private-ai"]
         handoff["Per namespace: ManagedEntity, then Application"]
+        dev_handoff["For the developer: ManagedEntity music-store-cluster, then Applications music-store-dev-vm and music-store-dev-app"]
         images["Content library goad-images, with the Ubuntu image"]
-        namespaces --> argocd --> role --> handoff
+        namespaces --> argocd --> role --> handoff --> dev_handoff
         namespaces --> repo_secret
         namespaces --> pais_secret
         namespaces --> images
@@ -83,10 +99,20 @@ flowchart TD
     end
 
     subgraph music_store["5. Argo CD: gitops/music-store"]
-        shop_wave0["Wave 0: PostgresCluster catalog, its Service, the users VM, and the VKS cluster music-store"]
+        shop_wave0["Wave 0: PostgresCluster catalog, its Service, and the VKS cluster music-store"]
         shop_wave1["Wave 1: Job writes the database address into the Service"]
         shop_wave2["Wave 2: Job catalog-init fills the catalog"]
         shop_wave0 --> shop_wave1 --> shop_wave2
+    end
+
+    subgraph music_store_dev_vm["5. Argo CD: gitops/music-store-dev/users-vm"]
+        dev_vm_wave0["Wave 0: the users VM and its Service"]
+        dev_vm_wave1["Wave 1: Job writes users-service and postgres-service Endpoints into the VKS cluster"]
+        dev_vm_wave0 --> dev_vm_wave1
+    end
+
+    subgraph music_store_dev_app["5. Argo CD: gitops/music-store-dev/app"]
+        dev_app["The shop's containers, in namespace music-store of the VKS cluster"]
     end
 
     cloud_admin --> org_config
@@ -96,14 +122,18 @@ flowchart TD
     git -.->|"Argo CD pulls"| handoff
     handoff -->|"Application private-ai"| private_ai
     handoff -->|"Application music-store"| music_store
+    dev_handoff -->|"Application music-store-dev-vm"| music_store_dev_vm
+    dev_handoff -->|"Application music-store-dev-app"| music_store_dev_app
+    music_store -.->|"the cluster and the catalog"| music_store_dev_app
+    music_store -.->|"the cluster and the catalog"| dev_vm_wave1
     pais_secret -.->|"login for admin"| pais_wave2
-    images -.->|"image for the users VM"| shop_wave0
+    images -.->|"image for the users VM"| dev_vm_wave0
 ```
 
 Solid arrows are that order. Dotted arrows are what one part reads from
 another. After the handoff, Terraform does not touch what runs in
-`private-ai` and `music-store`: a commit to `gitops/` on `main` is the
-change.
+`private-ai`, `music-store`, and the cluster `music-store`: a commit to
+`gitops/` on `main` is the change.
 
 ## Joining a demo that is already built
 
@@ -347,9 +377,16 @@ holds that address: Private AI Services connects to the Service name
 Endpoints.
 
 Argo CD syncs `gitops/music-store/` the same way, into the `music-store`
-namespace: the catalog database, the users VM, and the VKS cluster
-`music-store`, with the same kind of Service name in front of the
-database. The cluster takes about 15 minutes to build.
+namespace: the catalog database and the VKS cluster `music-store`, with
+the same kind of Service name in front of the database. The cluster takes
+about 15 minutes to build.
+
+Argo CD then syncs `gitops/music-store-dev/` as the developer. The
+Application `music-store-dev-vm` creates the users VM in the same
+namespace, and a Job writes the VM's address and the catalog's address
+into Endpoints in the VKS cluster. The Application `music-store-dev-app`
+deploys the containers onto the cluster. Both depend on the cluster and
+the catalog, so they retry until those exist.
 
 ### 5. Check it
 
@@ -428,8 +465,9 @@ terraform/platform-engineer/   Inside the org; stops at the handoff to Argo CD
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
   manifests/                   Manifests that Terraform applies
 gitops/<namespace key>/        What Argo CD syncs into that namespace
+gitops/music-store-dev/        The developer's part: users-vm/ into the Supervisor Namespace, app/ into the VKS cluster
 scripts/                       What a person runs by hand, once
-app/music-store/               The application's container manifests
+app/music-store/               The application's container manifests, which gitops/music-store-dev/app builds
 .github/workflows/             One Terraform workflow for each persona
 docs/                          Design, script, plan, decisions
 ```

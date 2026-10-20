@@ -1,0 +1,30 @@
+# The developer's deploy: the shop's containers on the VKS cluster
+# music-store, which the platform engineer builds from
+# gitops/music-store/cluster.yaml.
+#
+# Argo CD syncs this directory with the Application music-store-dev-app
+# into the namespace music-store of that cluster. Terraform creates the
+# Application, in terraform/platform-engineer/gitops.tf.
+#
+# The containers are app/music-store, as listed in its kustomization.yml.
+# The users service and the catalog are not containers. They run in the
+# Supervisor Namespace: the users VM in gitops/music-store-dev/users-vm,
+# the catalog in gitops/music-store. services.yaml gives the containers
+# the names they already call, and the Job shop-endpoints in
+# gitops/music-store-dev/users-vm writes the addresses behind them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../app/music-store
+  - services.yaml
+
+# The cluster has no default StorageClass. This is the Supervisor's name,
+# the same storageClass as in gitops/music-store/cluster.yaml.
+patches:
+  - target:
+      kind: PersistentVolumeClaim
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: mgmt-cl01-optimal-datastore-default-policy-autoraid

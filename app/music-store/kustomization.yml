@@ -1,10 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# The containers that run on the VKS cluster: the store, cart, orders, and
+# the traffic generator. gitops/music-store-dev/app deploys this list.
+#
+# Not listed: the container database and the container users service,
+# which are the earlier shape (the catalog and the users VM replace them),
+# and chat, which the script deploys to Tanzu with cf push.
 resources:
   - k8s-cart-deployment.yaml
-  - k8s-database-deployment.yaml
   - k8s-deployment.yaml
   - k8s-order-deployment.yaml
-  - k8s-users-deployment.yaml
-  - k8s-chat-deployment.yaml
+  - k8s-traffic-generator-deployment.yaml

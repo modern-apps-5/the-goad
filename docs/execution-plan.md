@@ -14,15 +14,17 @@ existed. It is kept as written below. What has changed since:
   with the Qwen model on CPU. The quickstart in the top-level README
   builds all of it. This covers "Terraform plus Argo CD against VCF
   Automation" and DSM from the list of what was not there.
-- **In git, handed to Argo CD:** the users VM Service VM and the DSM
-  catalog database, in `gitops/music-store/`. This is both moves of
-  step 4.
+- **In git, handed to Argo CD:** the DSM catalog database, in
+  `gitops/music-store/`, and the users VM Service VM, in
+  `gitops/music-store-dev/users-vm/`. This is both moves of step 4.
 - **In git, handed to Argo CD:** the music-store VKS cluster, in
-  `gitops/music-store/cluster.yaml`. The containers (step 2) are still
-  not deployed onto it.
-- **Not started:** the store, cart, and orders containers on VKS
-  through Argo CD (step 2), the Oracle on Tanzu (step 3), and the
-  security episode (step 6).
+  `gitops/music-store/cluster.yaml`.
+- **In git, handed to Argo CD, not yet applied in the lab:** the store,
+  cart, and orders containers on VKS (step 2), in
+  `gitops/music-store-dev/app/`. The Applications need a platform
+  engineer apply.
+- **Not started:** the Oracle on Tanzu (step 3) and the security
+  episode (step 6).
 - **In git, not configured:** AgentMinder for goad. A GOAD-owned
   install, in the `cloud-admin` project on its own VKS cluster
   (`terraform/cloud-admin/agentminder`). It has no agents configured
