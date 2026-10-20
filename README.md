@@ -94,7 +94,7 @@ flowchart TD
         pais_wave0["Wave 0: PostgresCluster pais-db and its Service"]
         pais_wave1["Wave 1: Job writes the database address into the Service"]
         pais_wave2["Wave 2: PAISConfiguration"]
-        pais_wave3["Wave 3: ModelEndpoint qwen"]
+        pais_wave3["Wave 3: ModelEndpoint qwen-14b-xlarge"]
         pais_wave0 --> pais_wave1 --> pais_wave2 --> pais_wave3
     end
 

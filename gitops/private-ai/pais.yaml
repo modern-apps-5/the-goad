@@ -89,22 +89,30 @@ spec:
     storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
 ---
 # Qwen 2.5 Instruct, 14B, Q4_K_M, on CPU: 4 vCPU, 32 GB. No GPU.
-# The class cannot be changed on an existing endpoint. Replacing the
-# 1.5B model means deleting ModelEndpoint qwen and letting this file
-# create it again. The name and routingName stay qwen.
+#
+# The name is the model and the class: qwen-<size>-<class>. Neither can
+# change on an existing endpoint, so changing either one means a new
+# name. Argo CD then creates the new endpoint and prunes the old one.
+# Every other field changes in place.
+#
+# Clients call routingName qwen, which does not change. While both
+# endpoints exist, PAIS routes qwen to the old one and marks the new
+# one's InferenceGatewayRoute NameConflict. PruneLast holds the prune
+# until the new endpoint is Ready (Argo CD's ModelEndpoint health check),
+# so qwen keeps answering during the model load.
 apiVersion: pais.vmware.com/v1alpha1
 kind: ModelEndpoint
 metadata:
-  name: qwen
+  name: qwen-14b-xlarge
   annotations:
     argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-options: PruneLast=true
 spec:
   type: Completions
   routingName: qwen
   engine: LlamaCPP
   replicas: 1
-  # Cannot be changed later. To resize, delete the endpoint and create it
-  # again.
+  # Part of the name. Cannot be changed on an existing endpoint.
   virtualMachineClassName: best-effort-xlarge
   storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
   model:
