@@ -3,6 +3,28 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-20 (live fixes from the agentic branch)
+
+### Changed
+
+These three changes were live from the branch `cursor/goad-agentic-5061`:
+someone pointed the Applications `music-store` and `private-ai` at that
+branch on the Supervisor, and it was not changed in git or Terraform. They
+are now in git, so both Applications can follow `main` again.
+
+- `gitops/music-store/catalog.yaml`: `catalog-init` grants `music_user`
+  `USAGE, CREATE` on schema `public` and makes it the owner of the
+  `albums` and `orders` tables and their sequences. On PostgreSQL 15 and
+  later, `public` no longer grants CREATE by default, and `pgadmin` owned
+  the tables.
+- `gitops/music-store/cluster.yaml`: the workers are `best-effort-large`.
+  The control plane stays `best-effort-medium`.
+- `gitops/private-ai/pais.yaml`: the ModelEndpoint `qwen` serves Qwen 2.5
+  Instruct 14B (Q4_K_M) on `best-effort-xlarge`, with 1Gi shared memory.
+  The class cannot change on an existing endpoint, so moving from the 1.5B
+  model means deleting the ModelEndpoint `qwen` and letting Argo CD create
+  it again.
+
 ## 2026-10-19 (kro author project)
 
 ### Added

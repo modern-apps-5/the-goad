@@ -88,7 +88,10 @@ spec:
     virtualMachineClassName: best-effort-medium
     storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
 ---
-# Qwen 2.5, 1.5B, on CPU: 2 vCPU, 8 GB. No GPU.
+# Qwen 2.5 Instruct, 14B, Q4_K_M, on CPU: 4 vCPU, 32 GB. No GPU.
+# The class cannot be changed on an existing endpoint. Replacing the
+# 1.5B model means deleting ModelEndpoint qwen and letting this file
+# create it again. The name and routingName stay qwen.
 apiVersion: pais.vmware.com/v1alpha1
 kind: ModelEndpoint
 metadata:
@@ -102,12 +105,12 @@ spec:
   replicas: 1
   # Cannot be changed later. To resize, delete the endpoint and create it
   # again.
-  virtualMachineClassName: best-effort-medium
+  virtualMachineClassName: best-effort-xlarge
   storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
   model:
-    ociRef: depot.kube-system.svc/pais/qwen/qwen2.5-1.5b-instruct-gguf:v1.0
+    ociRef: depot.kube-system.svc/pais/qwen/qwen2.5-14b-instruct-gguf:v1.0
   inferenceServerCustomization:
     engineImage: depot.kube-system.svc/pais/3rd-party/model-runtime-engines@sha256:86475a113d75b25693b209d6df77b8af9316afee7284d9bdf02a5a4a3a3f52d5
     engineImageCompressedSize: 15Gi
-    sharedMemoryMountSize: 64Mi
+    sharedMemoryMountSize: 1Gi
     tempMountSize: 1Gi
