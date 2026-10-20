@@ -3,6 +3,35 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-20 (platform engineer group import)
+
+### Added
+
+- `terraform/cloud-admin/org-config/users.tf` imports the platform
+  engineer group `ans-platform-engineer@set.lab` into the org
+  (`terracurl_request.platform_engineer_group`, `POST
+  /cloudapi/1.0.0/groups`, org role Organization User). It was added by
+  hand before. TerraCurl's import only sets the ID, so the hand-made group
+  was deleted and Terraform created it again, applied with `-target` on
+  2026-10-20.
+
+### Changed
+
+- Platform engineers are the group, not users named one by one
+  (decision 36). The group is admin of `default-project` and editor of
+  `kro-authors`, through
+  `kubectl_manifest.platform_engineer_group_project_role_binding`. The
+  `kro-authors` binding moved there from `kro.tf` with a `moved` block.
+- The Argo CD policy gives `role:admin` to `ans-platform-engineer@set.lab`
+  instead of `william.arroyo@set.lab`.
+
+### Removed
+
+- The variable `platform_engineers`, the user imports, and the user role
+  bindings in `default-project`. A `removed` block with `destroy = false`
+  keeps the users in the org. The variable `kro_author_group` is now
+  `platform_engineer_group`.
+
 ## 2026-10-20 (qwen endpoint name)
 
 ### Changed

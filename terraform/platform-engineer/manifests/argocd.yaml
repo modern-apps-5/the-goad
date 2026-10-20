@@ -19,14 +19,15 @@ spec:
   # users of the org log in with "VCF Automation" on the Argo CD login page.
   enableLoadBalancer: true
 
-  # OIDC decides who the user is. This decides what the user can do. The
-  # platform engineer logs in to the org with VCF SSO, so the name is the
-  # AD user principal name.
+  # OIDC decides who the user is. This decides what the user can do.
+  # Platform engineers are the members of the AD group that
+  # terraform/cloud-admin/org-config imports into the org, and VCF
+  # Automation sends the org groups of the user in the groups claim.
   rbac:
     scopes: "[groups, preferred_username, email]"
     defaultPolicy: role:readonly
     policy: |
-      g, william.arroyo@set.lab, role:admin
+      g, ans-platform-engineer@set.lab, role:admin
 
   # Argo CD has no built-in health check for these kinds, and without one
   # it shows "Healthy" as soon as the object exists. Sync waves in

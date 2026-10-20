@@ -101,6 +101,6 @@ teammate. `docs/terraform-state.md` has the list.
 The instance has a load balancer address, and with that the service
 registers it with VCF Automation as an OIDC client. Users of the org log
 in with "VCF Automation". `manifests/argocd.yaml` sets what they can do:
-`william.arroyo@set.lab` has `role:admin`.
+members of the group `ans-platform-engineer@set.lab` have `role:admin`.
 On the first deploy the UI answers only after Avi has started the
 Service Engines.

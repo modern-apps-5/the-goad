@@ -3,7 +3,7 @@
 # create ResourceGraphDefinitions in the API group goad.kro.run. The
 # service matches the project by its uid, so any name works.
 #
-# The platform engineer group gets the role edit in it. The automation
+# The platform engineer group gets the role edit in it (users.tf). The automation
 # user is an Organization Administrator, so it already counts as an
 # editor, and Argo CD reaches the Supervisor as that user.
 #
@@ -28,36 +28,6 @@ resource "kubectl_manifest" "kro_authors_project" {
     spec = {
       description = "kro author project: its editors publish ResourceGraphDefinitions in goad.kro.run. Managed by terraform/cloud-admin/org-config."
     }
-  })
-}
-
-# The platform engineer group is editor of the project. VCF Automation
-# requires the name cci:group:<domain>:<group> for a group group@domain, and
-# the group must already be in the org.
-resource "kubectl_manifest" "kro_author_group_project_role_binding" {
-  provider        = kubectl.org
-  validate_schema = false
-
-  # The API refuses the last-applied annotation that a client-side apply
-  # adds: "Annotation updates are not supported".
-  server_side_apply = true
-
-  yaml_body = yamlencode({
-    apiVersion = "authorization.cci.vmware.com/v1alpha1"
-    kind       = "ProjectRoleBinding"
-    metadata = {
-      name      = "cci:group:${split("@", var.kro_author_group)[1]}:${split("@", var.kro_author_group)[0]}"
-      namespace = kubectl_manifest.kro_authors_project.name
-    }
-    roleRef = {
-      apiGroup = "authorization.cci.vmware.com"
-      kind     = "ProjectRole"
-      name     = "edit"
-    }
-    subjects = [{
-      kind = "Group"
-      name = var.kro_author_group
-    }]
   })
 }
 

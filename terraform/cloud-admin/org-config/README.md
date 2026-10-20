@@ -7,25 +7,29 @@ state is `goad-cloud-admin-org-config`.
 
 | File | What it creates |
 |---|---|
-| `users.tf` | The VCF SSO users in the org, and what they may do. |
+| `users.tf` | The VCF SSO users and groups in the org, and what they may do. |
 | `avi.tf` | The org's Avi Service Engine Group. |
 | `agentminder.tf` | The project `cloud-admin`, the AgentMinder Supervisor Namespace, and the VKS cluster `agentminder`. |
-| `kro.tf` | The project `kro-authors`, the role of the platform engineer group in it, and a small Supervisor Namespace. |
+| `kro.tf` | The project `kro-authors` and a small Supervisor Namespace in it. |
 | `outputs.tf` | The names that `terraform/cloud-admin/agentminder` reads. |
 
 ## Users
 
-VCF SSO users are AD accounts that sign in through the VCF Identity
-Broker. A user does not exist in the org until it is imported.
-`users.tf` imports them with `POST /cloudapi/1.0.0/users` and
-`providerType` `OAUTH`.
+VCF SSO users and groups are AD accounts and groups that sign in through
+the VCF Identity Broker. They do not exist in the org until they are
+imported. `users.tf` imports them with `POST /cloudapi/1.0.0/groups` or
+`/users` and `providerType` `OAUTH`.
 
-- Platform engineers (`platform_engineers`) get the org role
-  Organization User. A ProjectRoleBinding
-  (`authorization.cci.vmware.com/v1alpha1`, named
-  `cci:user:<domain>:<user>`, applied server side) makes each of them
-  admin of the project `platform_engineer_project`, which is
-  `default-project`.
+- Platform engineers are the members of the group
+  `platform_engineer_group` (`ans-platform-engineer@set.lab`), not users
+  named one by one. The group is imported with the org role Organization
+  User. It must be provisioned in the Identity Broker first. A member
+  becomes a user of the org at the first login.
+- ProjectRoleBindings (`authorization.cci.vmware.com/v1alpha1`, named
+  `cci:group:set.lab:ans-platform-engineer`, applied server side) make the
+  group admin of `platform_engineer_project` (`default-project`) and
+  editor of the kro author project (see kro below). VCF Automation
+  requires the name `cci:group:<domain>:<group>`.
 - The AD service account `platform_engineer_automation_user`
   (`svc.platform_engineer@set.lab`) is imported as Organization
   Administrator. It is the platform engineer's automation login:
@@ -77,13 +81,10 @@ ResourceGraphDefinitions (RGDs) in the org's API group, here
 
 - The project `kro_authors_project` (`kro-authors`), applied with
   `kubectl_manifest` and `server_side_apply`, like the cloud-admin project.
-- A ProjectRoleBinding named `cci:group:set.lab:ans-platform-engineer`
-  gives the VCF SSO group `kro_author_group` the project role `edit`.
-  VCF Automation requires the name `cci:group:<domain>:<group>`. The group
-  must already be in the org: it is imported by hand, and nothing in
-  Terraform imports it. The role `edit` is enough to author, because VCF
-  Automation sends the same `edit-<project>` group to the Supervisor for
-  edit and admin.
+- The platform engineer group has the project role `edit`, given in
+  `users.tf`. The role `edit` is enough to author, because VCF Automation
+  sends the same `edit-<project>` group to the Supervisor for edit and
+  admin.
 - A Supervisor Namespace `kro-authors-xxxxx` (class small, 2000M CPU, 4Gi
   memory, 10Gi storage). It is only there so authors have a kubectl context
   in the project. RGDs are cluster-scoped and use no quota. Instances of
@@ -120,7 +121,7 @@ terraform apply
 ## Inputs
 
 - `lab.auto.tfvars`, in git: `vcfa_url`, `allow_unverified_ssl`,
-  `platform_engineers`, and `platform_engineer_automation_user`.
+  `platform_engineer_group`, and `platform_engineer_automation_user`.
   `org_name` (default `goad`), `cloud_admin_username` (default
   `cloud-admin`), and `platform_engineer_project` (default
   `default-project`) have defaults.
@@ -131,9 +132,7 @@ terraform apply
   `agentminder_cluster` (name, version, cluster class, VM classes, worker
   count, containerd disk) have defaults. The VM classes must be among
   the org's.
-- `lab.auto.tfvars` also holds `kro_author_group`
-  (`ans-platform-engineer@set.lab`), the VCF SSO group that authors kro
-  RGDs. `kro_authors_project` (default `kro-authors`) has a default.
+- `kro_authors_project` (default `kro-authors`) has a default.
 - `terraform.tfvars`, not in git: `cloud_admin_password`. It is the same
   value as in `terraform/cloud-admin/org`. Copy the team's file.
 
