@@ -31,15 +31,14 @@ variable "cloud_admin_password" {
 
 # --- Who may do what in the org ---
 
-variable "platform_engineers" {
-  type        = set(string)
-  description = "VCF SSO users, as user@domain, who get the org role Organization User and the role admin in platform_engineer_project."
-  default     = []
+variable "platform_engineer_group" {
+  type        = string
+  description = "VCF SSO group, as group@domain, of the platform engineers. This root imports it into the org with the org role Organization User, and makes it admin of platform_engineer_project and editor of kro_authors_project."
 }
 
 variable "platform_engineer_project" {
   type        = string
-  description = "Project the platform engineers administer. The org's default project holds their namespaces."
+  description = "Project platform_engineer_group administers. The org's default project holds their namespaces."
   default     = "default-project"
 }
 
@@ -83,13 +82,8 @@ variable "service_engine_group_name" {
 
 variable "kro_authors_project" {
   type        = string
-  description = "Project this root creates for kro authors. kro_author_group gets the role edit in it. Its uid goes in the kro Supervisor Service's multitenancy.orgs[].authorProjects."
+  description = "Project this root creates for kro authors. platform_engineer_group gets the role edit in it. Its uid goes in the kro Supervisor Service's multitenancy.orgs[].authorProjects."
   default     = "kro-authors"
-}
-
-variable "kro_author_group" {
-  type        = string
-  description = "VCF SSO group, as group@domain, whose members author kro ResourceGraphDefinitions. This root imports it into the org with the org role Organization User."
 }
 
 # --- AgentMinder: project, namespace, and cluster ---

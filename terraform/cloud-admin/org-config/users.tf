@@ -1,12 +1,15 @@
-# Platform engineers: VCF SSO users who administer one project, not the
-# whole org.
+# Who may do what in the org. Platform engineers are the members of one
+# VCF SSO group, not users named one by one: they administer one project,
+# not the whole org, and author kro APIs.
 #
-# A person must be a user of the org before a project can name them, so
-# each one is imported first with the org role Organization User. That
-# role alone shows nothing; the project role binding gives the access.
+# A group must be in the org before a project can name it, so it is
+# imported first with the org role Organization User. That role alone
+# shows nothing; the project role bindings give the access. A member
+# becomes a user of the org at the first login.
 #
-# The vcfa provider cannot import a VCF SSO user (vcfa_org_local_user is
-# for local users only), so TerraCurl calls the VCF Automation API.
+# The vcfa provider cannot import a VCF SSO user or group
+# (vcfa_org_local_user is for local users only), so TerraCurl calls the
+# VCF Automation API.
 
 # The org roles this file gives, by name.
 data "terracurl_request" "org_roles" {
@@ -36,79 +39,17 @@ locals {
   }
 }
 
-# Imports the user. VCF Automation fills in the Identity Broker's ID for the
-# user at the first login. Destroy removes the user from the org.
-resource "terracurl_request" "platform_engineer_user" {
-  for_each = var.platform_engineers
-
-  name    = "platform-engineer-user-${each.key}"
-  method  = "POST"
-  url     = "${local.vcfa_api}/1.0.0/users"
-  headers = { "Content-Type" = "application/json" }
-  request_body = jsonencode({
-    username       = each.key
-    providerType   = "OAUTH"
-    enabled        = true
-    roleEntityRefs = [local.org_roles["Organization User"]]
-  })
-  response_codes  = ["200", "201"]
-  skip_tls_verify = var.allow_unverified_ssl
-
-  # skip_destroy defaults to true. Without this line destroy sends nothing.
-  skip_destroy            = false
-  destroy_url             = "${local.vcfa_api}/1.0.0/users/{response.id}"
-  destroy_method          = "DELETE"
-  destroy_response_codes  = ["204"]
-  destroy_skip_tls_verify = var.allow_unverified_ssl
-}
-
-# Admin of the project. VCF Automation requires the name
-# cci:user:<domain>:<username> for a subject user@domain.
-resource "kubectl_manifest" "platform_engineer_project_role_binding" {
-  for_each = var.platform_engineers
-
-  provider        = kubectl.org
-  validate_schema = false
-
-  # The API refuses the last-applied annotation that a client-side apply
-  # adds: "Annotation updates are not supported".
-  server_side_apply = true
-
-  yaml_body = yamlencode({
-    apiVersion = "authorization.cci.vmware.com/v1alpha1"
-    kind       = "ProjectRoleBinding"
-    metadata = {
-      name      = "cci:user:${split("@", each.key)[1]}:${split("@", each.key)[0]}"
-      namespace = var.platform_engineer_project
-    }
-    roleRef = {
-      apiGroup = "authorization.cci.vmware.com"
-      kind     = "ProjectRole"
-      name     = "admin"
-    }
-    subjects = [{
-      kind = "User"
-      name = each.key
-    }]
-  })
-
-  depends_on = [terracurl_request.platform_engineer_user]
-}
-
 # --- The platform engineer group ---
-#
-# The VCF SSO group kro_author_group. It must be provisioned in the
-# Identity Broker first. Like a user, it is imported into the org with the
-# org role Organization User, and a project role binding gives the access.
 
-# Imports the group. Destroy removes the group from the org.
+# Imports the group. It must be provisioned in the Identity Broker first.
+# Destroy removes the group from the org.
 resource "terracurl_request" "platform_engineer_group" {
   name    = "platform-engineer-group"
   method  = "POST"
   url     = "${local.vcfa_api}/1.0.0/groups"
   headers = { "Content-Type" = "application/json" }
   request_body = jsonencode({
-    name           = var.kro_author_group
+    name           = var.platform_engineer_group
     providerType   = "OAUTH"
     roleEntityRefs = [local.org_roles["Organization User"]]
   })
@@ -123,9 +64,20 @@ resource "terracurl_request" "platform_engineer_group" {
   destroy_skip_tls_verify = var.allow_unverified_ssl
 }
 
-# Editor of the kro author project (kro.tf). VCF Automation requires the
-# name cci:group:<domain>:<group> for a group group@domain.
-resource "kubectl_manifest" "kro_author_group_project_role_binding" {
+# The group's role in each project: admin of the project that holds the
+# platform engineers' namespaces, and editor of the kro author project
+# (kro.tf). VCF Automation requires the name cci:group:<domain>:<group>
+# for a group group@domain.
+locals {
+  platform_engineer_group_project_roles = {
+    (var.platform_engineer_project) = "admin"
+    (var.kro_authors_project)       = "edit"
+  }
+}
+
+resource "kubectl_manifest" "platform_engineer_group_project_role_binding" {
+  for_each = local.platform_engineer_group_project_roles
+
   provider        = kubectl.org
   validate_schema = false
 
@@ -137,21 +89,38 @@ resource "kubectl_manifest" "kro_author_group_project_role_binding" {
     apiVersion = "authorization.cci.vmware.com/v1alpha1"
     kind       = "ProjectRoleBinding"
     metadata = {
-      name      = "cci:group:${split("@", var.kro_author_group)[1]}:${split("@", var.kro_author_group)[0]}"
-      namespace = kubectl_manifest.kro_authors_project.name
+      name      = "cci:group:${split("@", var.platform_engineer_group)[1]}:${split("@", var.platform_engineer_group)[0]}"
+      namespace = each.key
     }
     roleRef = {
       apiGroup = "authorization.cci.vmware.com"
       kind     = "ProjectRole"
-      name     = "edit"
+      name     = each.value
     }
     subjects = [{
       kind = "Group"
-      name = var.kro_author_group
+      name = var.platform_engineer_group
     }]
   })
 
-  depends_on = [terracurl_request.platform_engineer_group]
+  depends_on = [terracurl_request.platform_engineer_group, kubectl_manifest.kro_authors_project]
+}
+
+moved {
+  from = kubectl_manifest.kro_author_group_project_role_binding
+  to   = kubectl_manifest.platform_engineer_group_project_role_binding["kro-authors"]
+}
+
+# Platform engineers were imported one by one before. Keep the users in
+# the org, where group membership now gives them their roles, and only
+# drop them from state. Their user role bindings in default-project are
+# destroyed.
+removed {
+  from = terracurl_request.platform_engineer_user
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 # --- The platform engineer's automation login ---

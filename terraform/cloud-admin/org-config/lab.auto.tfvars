@@ -8,17 +8,13 @@ vcfa_url = "https://auto.gpu.set.lab"
 
 allow_unverified_ssl = true
 
-platform_engineers = [
-  "william.arroyo@set.lab",
-]
+# The platform engineers' AD group. Its members administer default-project
+# and author kro RGDs in the project kro-authors.
+platform_engineer_group = "ans-platform-engineer@set.lab"
 
 # The AD service account that terraform/platform-engineer logs in as, with
 # an API token.
 platform_engineer_automation_user = "svc.platform_engineer@set.lab"
-
-# The platform engineer group. Its members author kro RGDs in the project
-# kro-authors.
-kro_author_group = "ans-platform-engineer@set.lab"
 
 # What terraform/cloud-admin/org gave the org.
 region_name        = "ans-cluster"

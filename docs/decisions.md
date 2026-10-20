@@ -761,3 +761,33 @@ imported into the org by hand before the apply, or the binding is refused.
 
 Look again if: the vcf CLI or VCF Automation can give a project context
 without a namespace, or the group should be imported by Terraform.
+
+## 36. Platform engineers are an AD group, not users named one by one
+
+`terraform/cloud-admin/org-config/users.tf` imports the VCF SSO group
+`platform_engineer_group` (`ans-platform-engineer@set.lab`) into the org
+with the org role Organization User, and gives the group its roles:
+`admin` of `default-project` and `edit` of `kro-authors`. The Argo CD
+policy in `terraform/platform-engineer/manifests/argocd.yaml` gives the
+same group `role:admin`. Adding a platform engineer is now an AD change,
+not a Terraform change. This replaces `platform_engineers` and the
+`kro_author_group` variable, and answers the "Look again if" of decision
+35: Terraform imports the group.
+
+TerraCurl's `import` only sets the ID, and every other attribute forces a
+replacement. So the group that was added by hand was deleted and created
+again by Terraform. The users that were imported one by one stay in the
+org: a `removed` block with `destroy = false` dropped them from state.
+Their user role bindings in `default-project` are destroyed.
+
+All org IAM, users, groups, and their project role bindings, is in
+`users.tf`, also for projects that other files create, such as
+`kro-authors`.
+
+Cost: a member gets the group's roles only after a UI login to VCF
+Automation, because VCF Automation updates group membership only then.
+Deleting and creating the group again also unlinks members until their
+next login.
+
+Look again if: the Argo CD `groups` claim from VCF Automation does not
+carry the org group's name. Then Argo CD has to map a different value.

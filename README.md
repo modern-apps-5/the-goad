@@ -390,11 +390,12 @@ the catalog, so they retry until those exist.
 
 ### 5. Check it
 
-- **VCF Automation**, as `william.arroyo@set.lab` in the org `goad`: three
+- **VCF Automation**, as a member of `ans-platform-engineer@set.lab`
+  (for example `william.arroyo@set.lab`) in the org `goad`: three
   namespaces in the default project.
 - **Argo CD**: the address is the `externalIP` in the status of the
   `ArgoCD` object in the `platform` namespace. Log in with "VCF
-  Automation" as `william.arroyo@set.lab`. The Application `private-ai` is
+  Automation" as the same user. The Application `private-ai` is
   `Synced` and `Healthy`. On a first deploy the page answers only after
   Avi has started its Service Engines.
 - **Private AI Services**: the address is the external IP of the Service

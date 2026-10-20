@@ -17,8 +17,20 @@ What changed in this repository, newest first. The reasons are in
 
 ### Changed
 
-- The group's ProjectRoleBinding in `kro-authors` moved from `kro.tf` to
-  `users.tf`, with the rest of the org's IAM. Its address is unchanged.
+- Platform engineers are the group, not users named one by one
+  (decision 36). The group is admin of `default-project` and editor of
+  `kro-authors`, through
+  `kubectl_manifest.platform_engineer_group_project_role_binding`. The
+  `kro-authors` binding moved there from `kro.tf` with a `moved` block.
+- The Argo CD policy gives `role:admin` to `ans-platform-engineer@set.lab`
+  instead of `william.arroyo@set.lab`.
+
+### Removed
+
+- The variable `platform_engineers`, the user imports, and the user role
+  bindings in `default-project`. A `removed` block with `destroy = false`
+  keeps the users in the org. The variable `kro_author_group` is now
+  `platform_engineer_group`.
 
 ## 2026-10-20 (qwen endpoint name)
 
