@@ -778,7 +778,9 @@ TerraCurl's `import` only sets the ID, and every other attribute forces a
 replacement. So the group that was added by hand was deleted and created
 again by Terraform. The users that were imported one by one stay in the
 org: a `removed` block with `destroy = false` dropped them from state.
-Their user role bindings in `default-project` are destroyed.
+Their user role bindings in `default-project` are destroyed. The
+`removed` block and the `moved` block for the `kro-authors` binding were
+applied once in the lab and then deleted from the code.
 
 All org IAM, users, groups, and their project role bindings, is in
 `users.tf`, also for projects that other files create, such as

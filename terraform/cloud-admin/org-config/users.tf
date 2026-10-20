@@ -106,23 +106,6 @@ resource "kubectl_manifest" "platform_engineer_group_project_role_binding" {
   depends_on = [terracurl_request.platform_engineer_group, kubectl_manifest.kro_authors_project]
 }
 
-moved {
-  from = kubectl_manifest.kro_author_group_project_role_binding
-  to   = kubectl_manifest.platform_engineer_group_project_role_binding["kro-authors"]
-}
-
-# Platform engineers were imported one by one before. Keep the users in
-# the org, where group membership now gives them their roles, and only
-# drop them from state. Their user role bindings in default-project are
-# destroyed.
-removed {
-  from = terracurl_request.platform_engineer_user
-
-  lifecycle {
-    destroy = false
-  }
-}
-
 # --- The platform engineer's automation login ---
 #
 # terraform/platform-engineer logs in with a user API token of this VCF SSO

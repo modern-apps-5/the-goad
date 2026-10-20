@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-20 (one-shot IAM blocks)
+
+### Removed
+
+- The `moved` and `removed` blocks in
+  `terraform/cloud-admin/org-config/users.tf`. They were applied in the
+  lab on 2026-10-20 (decision 36).
+
 ## 2026-10-20 (platform engineer group import)
 
 ### Added
