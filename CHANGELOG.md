@@ -3,6 +3,26 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-19 (kro author project)
+
+### Added
+
+- The project `kro-authors`, in `terraform/cloud-admin/org-config/kro.tf`.
+  The VCF SSO group `kro_author_group` (`ans-platform-engineer@set.lab`)
+  has the project role `edit` in it, through a ProjectRoleBinding. The
+  group must already be in the org.
+- A small Supervisor Namespace `kro-authors-xxxxx` in that project, only so
+  authors have a kubectl context.
+- The outputs `kro_authors_project` and `kro_authors_namespace`.
+- The goad org is listed in the multitenancy values of the kro Supervisor
+  Service, with the project's uid. The vSphere admin sets this on the
+  Supervisor, outside this repo.
+- It needs a cloud admin apply of `org-config`. In the lab it was applied
+  with `-target` for these resources only. The plan also shows an
+  in-place change to the `machine_deployments` of
+  `vcfa_vks_cluster.agentminder`. It is older drift of the containerd
+  volumes override, and it was not applied. Decision 35 says why.
+
 ## 2026-10-15 (AgentMinder CPU requests)
 
 ### Changed

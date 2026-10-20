@@ -79,6 +79,19 @@ variable "service_engine_group_name" {
   default     = "goad-se-group"
 }
 
+# --- kro ---
+
+variable "kro_authors_project" {
+  type        = string
+  description = "Project this root creates for kro authors. kro_author_group gets the role edit in it. Its uid goes in the kro Supervisor Service's multitenancy.orgs[].authorProjects."
+  default     = "kro-authors"
+}
+
+variable "kro_author_group" {
+  type        = string
+  description = "VCF SSO group, as group@domain, whose members author kro ResourceGraphDefinitions. It must already be in the org, imported with its exact name."
+}
+
 # --- AgentMinder: project, namespace, and cluster ---
 
 variable "cloud_admin_project" {
