@@ -659,3 +659,44 @@ cloud-images.ubuntu.com, for that first apply only.
 
 Look again if: the lab gets a provider content library with the image,
 shared with orgs.
+
+## 35. Platform engineers author kro APIs from the project kro-authors
+
+The kro Supervisor Service (github.com/warroyo/kro-supervisor-service,
+v1.2.0) has a multitenancy mode. Editors and admins of a VCF Automation
+project listed in its values `multitenancy.orgs[].authorProjects`, by
+project uid, can create ResourceGraphDefinitions in their org's API group.
+Here that is `goad.kro.run`. RBAC on the Supervisor is bound to the exact
+group that VCF Automation sends for the project. An admission policy keeps
+each org to its own group and checks what an RGD may contain.
+
+`terraform/cloud-admin/org-config/kro.tf` creates the project `kro-authors`.
+It is org-level setup, so the cloud admin's root makes it, like the
+cloud-admin project. Access goes to a group, not to single users: the VCF
+SSO group `kro_author_group` (`ans-platform-engineer@set.lab`) gets the
+project role `edit`. That is enough, because VCF Automation sends the same
+`edit-<project>` group to the Supervisor for edit and admin. The binding is
+named `cci:group:set.lab:ans-platform-engineer`, as VCF Automation requires.
+The automation user `svc.platform_engineer@set.lab` is an Organization
+Administrator, so it already counts as an editor. Argo CD reaches the
+Supervisor as that user, so it can sync RGDs pointed at the kro-authors
+namespace.
+
+The root also makes a small Supervisor Namespace, `kro-authors-xxxxx`
+(class small, 2000M CPU, 4Gi memory, 10Gi storage), so authors have a
+kubectl context in the project. RGDs are cluster-scoped and use no quota.
+Instances of `goad.kro.run` kinds go in the org's other namespaces.
+
+The service and its values are set on the Supervisor by the vSphere admin,
+through the vCenter API, not by this repo. The goad entry is org `goad`, id
+the goad org UUID, and `authorProjects` with `name: kro-authors` and `id`
+the project's `metadata.uid`. The script `scripts/multitenancy-values.sh
+<namespace-context> goad` in the service repo prints it. If the project is
+deleted and recreated, it gets a new uid, and authors are refused until
+the values are updated.
+
+Cost: a namespace kept only for the kubectl context. The group must be
+imported into the org by hand before the apply, or the binding is refused.
+
+Look again if: the vcf CLI or VCF Automation can give a project context
+without a namespace, or the group should be imported by Terraform.

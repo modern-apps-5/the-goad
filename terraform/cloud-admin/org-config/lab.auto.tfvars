@@ -16,6 +16,10 @@ platform_engineers = [
 # an API token.
 platform_engineer_automation_user = "svc.platform_engineer@set.lab"
 
+# The platform engineer group. Its members author kro RGDs in the project
+# kro-authors.
+kro_author_group = "ans-platform-engineer@set.lab"
+
 # What terraform/cloud-admin/org gave the org.
 region_name        = "ans-cluster"
 zone_name          = "west-1"
