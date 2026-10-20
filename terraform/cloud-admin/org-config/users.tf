@@ -95,6 +95,65 @@ resource "kubectl_manifest" "platform_engineer_project_role_binding" {
   depends_on = [terracurl_request.platform_engineer_user]
 }
 
+# --- The platform engineer group ---
+#
+# The VCF SSO group kro_author_group. It must be provisioned in the
+# Identity Broker first. Like a user, it is imported into the org with the
+# org role Organization User, and a project role binding gives the access.
+
+# Imports the group. Destroy removes the group from the org.
+resource "terracurl_request" "platform_engineer_group" {
+  name    = "platform-engineer-group"
+  method  = "POST"
+  url     = "${local.vcfa_api}/1.0.0/groups"
+  headers = { "Content-Type" = "application/json" }
+  request_body = jsonencode({
+    name           = var.kro_author_group
+    providerType   = "OAUTH"
+    roleEntityRefs = [local.org_roles["Organization User"]]
+  })
+  response_codes  = ["200", "201"]
+  skip_tls_verify = var.allow_unverified_ssl
+
+  # skip_destroy defaults to true. Without this line destroy sends nothing.
+  skip_destroy            = false
+  destroy_url             = "${local.vcfa_api}/1.0.0/groups/{response.id}"
+  destroy_method          = "DELETE"
+  destroy_response_codes  = ["204"]
+  destroy_skip_tls_verify = var.allow_unverified_ssl
+}
+
+# Editor of the kro author project (kro.tf). VCF Automation requires the
+# name cci:group:<domain>:<group> for a group group@domain.
+resource "kubectl_manifest" "kro_author_group_project_role_binding" {
+  provider        = kubectl.org
+  validate_schema = false
+
+  # The API refuses the last-applied annotation that a client-side apply
+  # adds: "Annotation updates are not supported".
+  server_side_apply = true
+
+  yaml_body = yamlencode({
+    apiVersion = "authorization.cci.vmware.com/v1alpha1"
+    kind       = "ProjectRoleBinding"
+    metadata = {
+      name      = "cci:group:${split("@", var.kro_author_group)[1]}:${split("@", var.kro_author_group)[0]}"
+      namespace = kubectl_manifest.kro_authors_project.name
+    }
+    roleRef = {
+      apiGroup = "authorization.cci.vmware.com"
+      kind     = "ProjectRole"
+      name     = "edit"
+    }
+    subjects = [{
+      kind = "Group"
+      name = var.kro_author_group
+    }]
+  })
+
+  depends_on = [terracurl_request.platform_engineer_group]
+}
+
 # --- The platform engineer's automation login ---
 #
 # terraform/platform-engineer logs in with a user API token of this VCF SSO

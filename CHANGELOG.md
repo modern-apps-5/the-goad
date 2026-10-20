@@ -3,6 +3,23 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-20 (platform engineer group import)
+
+### Added
+
+- `terraform/cloud-admin/org-config/users.tf` imports the platform
+  engineer group `ans-platform-engineer@set.lab` into the org
+  (`terracurl_request.platform_engineer_group`, `POST
+  /cloudapi/1.0.0/groups`, org role Organization User). It was added by
+  hand before. TerraCurl's import only sets the ID, so the hand-made group
+  was deleted and Terraform created it again, applied with `-target` on
+  2026-10-20.
+
+### Changed
+
+- The group's ProjectRoleBinding in `kro-authors` moved from `kro.tf` to
+  `users.tf`, with the rest of the org's IAM. Its address is unchanged.
+
 ## 2026-10-20 (qwen endpoint name)
 
 ### Changed

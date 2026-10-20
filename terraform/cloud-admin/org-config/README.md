@@ -7,10 +7,10 @@ state is `goad-cloud-admin-org-config`.
 
 | File | What it creates |
 |---|---|
-| `users.tf` | The VCF SSO users in the org, and what they may do. |
+| `users.tf` | The VCF SSO users and groups in the org, and what they may do. |
 | `avi.tf` | The org's Avi Service Engine Group. |
 | `agentminder.tf` | The project `cloud-admin`, the AgentMinder Supervisor Namespace, and the VKS cluster `agentminder`. |
-| `kro.tf` | The project `kro-authors`, the role of the platform engineer group in it, and a small Supervisor Namespace. |
+| `kro.tf` | The project `kro-authors` and a small Supervisor Namespace in it. |
 | `outputs.tf` | The names that `terraform/cloud-admin/agentminder` reads. |
 
 ## Users
@@ -26,6 +26,13 @@ Broker. A user does not exist in the org until it is imported.
   `cci:user:<domain>:<user>`, applied server side) makes each of them
   admin of the project `platform_engineer_project`, which is
   `default-project`.
+- The platform engineer group `kro_author_group`
+  (`ans-platform-engineer@set.lab`) is imported with
+  `POST /cloudapi/1.0.0/groups`, `providerType` `OAUTH`, and the org role
+  Organization User. It must be provisioned in the Identity Broker first.
+  A ProjectRoleBinding named `cci:group:set.lab:ans-platform-engineer`
+  gives it the role `edit` in the kro author project (see kro below).
+  VCF Automation requires the name `cci:group:<domain>:<group>`.
 - The AD service account `platform_engineer_automation_user`
   (`svc.platform_engineer@set.lab`) is imported as Organization
   Administrator. It is the platform engineer's automation login:
@@ -77,13 +84,10 @@ ResourceGraphDefinitions (RGDs) in the org's API group, here
 
 - The project `kro_authors_project` (`kro-authors`), applied with
   `kubectl_manifest` and `server_side_apply`, like the cloud-admin project.
-- A ProjectRoleBinding named `cci:group:set.lab:ans-platform-engineer`
-  gives the VCF SSO group `kro_author_group` the project role `edit`.
-  VCF Automation requires the name `cci:group:<domain>:<group>`. The group
-  must already be in the org: it is imported by hand, and nothing in
-  Terraform imports it. The role `edit` is enough to author, because VCF
-  Automation sends the same `edit-<project>` group to the Supervisor for
-  edit and admin.
+- The platform engineer group has the project role `edit`, given in
+  `users.tf`. The role `edit` is enough to author, because VCF Automation
+  sends the same `edit-<project>` group to the Supervisor for edit and
+  admin.
 - A Supervisor Namespace `kro-authors-xxxxx` (class small, 2000M CPU, 4Gi
   memory, 10Gi storage). It is only there so authors have a kubectl context
   in the project. RGDs are cluster-scoped and use no quota. Instances of

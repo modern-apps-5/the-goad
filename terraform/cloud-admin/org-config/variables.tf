@@ -89,7 +89,7 @@ variable "kro_authors_project" {
 
 variable "kro_author_group" {
   type        = string
-  description = "VCF SSO group, as group@domain, whose members author kro ResourceGraphDefinitions. It must already be in the org, imported with its exact name."
+  description = "VCF SSO group, as group@domain, whose members author kro ResourceGraphDefinitions. This root imports it into the org with the org role Organization User."
 }
 
 # --- AgentMinder: project, namespace, and cluster ---
