@@ -1,17 +1,18 @@
 # The VKS cluster the shop's containers run on.
 #
 # No namespace: Argo CD applies this into the music-store namespace, the
-# same as the users VM and the catalog. The class, the Kubernetes version,
+# same as the catalog. The class, the Kubernetes version,
 # the VM classes, and the storage class are the Supervisor's names, the
 # same ones terraform/cloud-admin/org-config gives the AgentMinder cluster.
 # The VM classes must be among vm_class_names of terraform/cloud-admin/org.
 #
-# Wave 0, with the catalog and the users VM: the cluster needs neither, and
+# Wave 0, with the catalog: the cluster does not need it, and
 # it takes the longest. The Argo CD that VCF ships has a built-in health
 # check for Cluster: Healthy only when the cluster is ready, not at phase
 # Provisioned as in upstream Argo CD. No check of our own is needed.
 #
-# The containers in app/music-store are not deployed onto it yet.
+# The platform engineer owns the cluster. The developer deploys the
+# shop's containers onto it from gitops/music-store-dev/app.
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
@@ -47,7 +48,7 @@ spec:
           variables:
             overrides:
               - name: vmClass
-                value: best-effort-medium
+                value: best-effort-large
     variables:
       - name: vmClass
         value: best-effort-medium

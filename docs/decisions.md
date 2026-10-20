@@ -264,8 +264,8 @@ in the file, no address in git, the Service name is what the app already
 calls (`users-service`, `postgres-service`).
 
 The container users Deployment and the container database stay in
-`app/music-store` as the earlier shape. `kustomization.yml` still lists
-them. Argo CD syncs `gitops/music-store/`, not that directory.
+`app/music-store` as the earlier shape. `kustomization.yml` no longer
+lists them. Argo CD syncs `gitops/music-store/`, not that directory.
 
 The chat secret is not in git, for the same reason as the Private AI
 Services password hash. Its base URL is the ingress of the Private AI
@@ -591,8 +591,8 @@ IngressClass; AKO's `avi-lb` is.
 Cluster named `music-store`: class `builtin-generic-v3.7.0`, Kubernetes
 v1.36.2+vmware.2, one control plane and two workers, all best-effort-medium,
 Antrea, sync wave 0. Argo CD syncs it with the Application `music-store`,
-as it does the users VM and the catalog. The containers in `app/music-store`
-are not deployed onto it yet.
+as it does the catalog. The containers in `app/music-store` are not
+deployed onto it by this Application. Decision 34 does this.
 
 The names in the file are the Supervisor's, not the org's (decision 21:
 no namespace, no address).
@@ -619,7 +619,8 @@ Cost: on a first build the catalog Jobs in waves 1 and 2 wait for the
 cluster too, about 15 minutes.
 
 Look again if: the containers move onto the cluster (Argo CD needs the
-cluster registered as a destination), or the region quota grows.
+cluster registered as a destination; decision 34 does this), or the
+region quota grows.
 
 ## 33. The org's VM image is uploaded by the platform engineer Terraform
 
@@ -659,6 +660,66 @@ cloud-images.ubuntu.com, for that first apply only.
 
 Look again if: the lab gets a provider content library with the image,
 shared with orgs.
+
+## 34. The music store is split between the platform engineer and the developer
+
+The platform engineer keeps the Application `music-store`, which syncs
+`gitops/music-store/`: the VKS cluster `music-store` and the DSM catalog
+database. The users VM moved out of it. The developer owns
+`gitops/music-store-dev/`, with two Applications:
+
+- `music-store-dev-vm` syncs `gitops/music-store-dev/users-vm/` into the
+  `music-store` Supervisor Namespace. It holds the users VM and the Job
+  `shop-endpoints`.
+- `music-store-dev-app` syncs `gitops/music-store-dev/app/` into the
+  namespace `music-store` of the VKS cluster, with `CreateNamespace=true`.
+  It is a kustomization of `app/music-store` plus selectorless Services
+  `postgres-service` and `users-service`.
+
+Why two Applications: they have two destinations, the Supervisor
+Namespace and the VKS cluster, and an Application has one. Why Terraform
+creates them: the Supervisor Namespace name is generated (decision 13), so
+git cannot name it. Terraform also creates the ManagedEntity
+`music-store-cluster`, which registers the VKS cluster with Argo CD. It
+reads the cluster name from `gitops/music-store/cluster.yaml`.
+
+Why the Job: pods on the cluster call `users-service` and
+`postgres-service`, but the users VM and the catalog are in the
+Supervisor Namespace, outside the cluster. The Job in wave 1 of
+`music-store-dev-vm` reads the VM's load balancer address and the
+catalog's Endpoints there. Then it uses the kubeconfig Secret
+`music-store-kubeconfig` to write Endpoints with the same names into
+`music-store` on the cluster. It creates that namespace if it is missing.
+The Job lives with the developer because the developer owns the wiring of
+the application. No address is in git (decision 21).
+
+The VKS cluster has no default StorageClass, so a patch in the
+kustomization sets `storageClassName` on every PVC. The chat service is
+not in `app/music-store/kustomization.yml`: the walkthrough script
+deploys it to Tanzu with `cf push`. The container database and container
+users are not listed either, because the catalog and the users VM
+replace them.
+
+Why retry and not order: the developer's Applications need the platform
+engineer's cluster and catalog, and Argo CD cannot order one Application
+against another. Both have `syncPolicy.retry`: limit 10, backoff 1m, factor
+2, maximum 10m.
+
+Cost: the Job holds the VKS admin kubeconfig. The Endpoints refresh only
+when `music-store-dev-vm` syncs, so if DSM or the VM's load balancer
+address changes, the developer must sync it again. The users VM moves
+from the Application `music-store` to `music-store-dev-vm`. The platform
+Application has `prune=true`, so on merge Argo CD deletes the VM, its
+VirtualMachineService `users-service`, and the Secret
+`music-users-bootstrap`, and `music-store-dev-vm` makes them again after
+the platform engineer apply. The music store was not in use yet, so the
+rebuild was accepted. A store in use would need
+`argocd.argoproj.io/sync-options: Prune=false` on those three objects
+before the merge, and the annotation removed after the new Application
+adopts them.
+
+Look again if: the lab gets a way to order Applications across
+destinations, or the Job's kubeconfig access is too broad for the demo.
 
 ## 35. Platform engineers author kro APIs from the project kro-authors
 

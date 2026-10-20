@@ -3,6 +3,28 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-20 (live fixes from the agentic branch)
+
+### Changed
+
+These three changes were live from the branch `cursor/goad-agentic-5061`:
+someone pointed the Applications `music-store` and `private-ai` at that
+branch on the Supervisor, and it was not changed in git or Terraform. They
+are now in git, so both Applications can follow `main` again.
+
+- `gitops/music-store/catalog.yaml`: `catalog-init` grants `music_user`
+  `USAGE, CREATE` on schema `public` and makes it the owner of the
+  `albums` and `orders` tables and their sequences. On PostgreSQL 15 and
+  later, `public` no longer grants CREATE by default, and `pgadmin` owned
+  the tables.
+- `gitops/music-store/cluster.yaml`: the workers are `best-effort-large`.
+  The control plane stays `best-effort-medium`.
+- `gitops/private-ai/pais.yaml`: the ModelEndpoint `qwen` serves Qwen 2.5
+  Instruct 14B (Q4_K_M) on `best-effort-xlarge`, with 1Gi shared memory.
+  The class cannot change on an existing endpoint, so moving from the 1.5B
+  model means deleting the ModelEndpoint `qwen` and letting Argo CD create
+  it again.
+
 ## 2026-10-19 (kro author project)
 
 ### Added
@@ -23,6 +45,41 @@ What changed in this repository, newest first. The reasons are in
   `vcfa_vks_cluster.agentminder`. It is older drift of the containerd
   volumes override, and it was not applied. Decision 35 says why.
 
+## 2026-10-16 (music store developer)
+
+### Added
+
+- The developer's part of the music store, in `gitops/music-store-dev/`.
+  Two Applications, created by `terraform/platform-engineer/gitops.tf`:
+  `music-store-dev-vm` syncs `users-vm/` into the `music-store`
+  Supervisor Namespace, and `music-store-dev-app` syncs `app/` into the
+  namespace `music-store` of the VKS cluster. Both retry (limit 10, 1m
+  backoff, factor 2, maximum 10m), because they depend on the platform
+  engineer's cluster and catalog.
+- The Job `shop-endpoints` in `gitops/music-store-dev/users-vm/`. It
+  writes the Endpoints `users-service` and `postgres-service` into the
+  VKS cluster, from the users VM's load balancer address and the catalog's
+  address. No address is in git.
+- A ManagedEntity `music-store-cluster` in
+  `terraform/platform-engineer/gitops.tf`, which registers the VKS cluster
+  with Argo CD. It needs a platform engineer apply: the plan shows 3 to
+  add, 0 to change, 0 to destroy.
+- Decision 34 says why.
+
+### Changed
+
+- The users VM moved from `gitops/music-store/` to
+  `gitops/music-store-dev/users-vm/`. The Application `music-store` now
+  holds the VKS cluster and the catalog only.
+- `app/music-store/kustomization.yml` lists the store, cart, orders, and
+  traffic generator. The container database, container users, and chat
+  are not listed. The script deploys chat to Tanzu with `cf push`.
+- On merge, the Application `music-store` (`prune=true`) deletes the
+  users VM, its VirtualMachineService `users-service`, and the Secret
+  `music-users-bootstrap`. `music-store-dev-vm` makes them again after
+  the platform engineer apply. The store was not in use yet, so the
+  rebuild was accepted. Decision 34 says what a store in use would need.
+
 ## 2026-10-15 (AgentMinder CPU requests)
 
 ### Changed
@@ -41,7 +98,7 @@ What changed in this repository, newest first. The reasons are in
   `gitops/music-store/cluster.yaml`. Argo CD syncs it with the Application
   `music-store`. One control plane and two workers, Kubernetes
   v1.36.2+vmware.2. The containers in `app/music-store` are not deployed
-  onto it yet.
+  onto it by this Application. The 2026-10-16 entry does that.
 - The `music-store` namespace limits are now 40000M CPU, 48Gi memory, and
   150Gi storage (`terraform/platform-engineer/variables.tf`), to fit the
   cluster. It needs a platform engineer apply. The plan shows an in-place

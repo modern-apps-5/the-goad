@@ -1,7 +1,8 @@
-# Users for the shop. A VM Service VM.
+# Users for the shop. A VM Service VM, owned by the developer.
 #
-# No namespace: Argo CD applies this into the music-store namespace
-# it created for the org. The Service name is users-service, which is
+# No namespace: Argo CD applies this with the Application
+# music-store-dev-vm into the music-store Supervisor Namespace, the one
+# Terraform created for the org. The Service name is users-service, which is
 # the name the shop already calls.
 #
 # imageName is the display name of a VirtualMachineImage in that

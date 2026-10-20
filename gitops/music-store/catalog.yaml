@@ -132,6 +132,7 @@ data:
     END
     $$;
     GRANT ALL ON DATABASE music_store TO music_user;
+    GRANT USAGE, CREATE ON SCHEMA public TO music_user;
     CREATE TABLE IF NOT EXISTS albums (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -177,6 +178,10 @@ data:
     WHERE NOT EXISTS (SELECT 1 FROM albums);
     GRANT ALL ON ALL TABLES IN SCHEMA public TO music_user;
     GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO music_user;
+    ALTER TABLE IF EXISTS albums OWNER TO music_user;
+    ALTER TABLE IF EXISTS orders OWNER TO music_user;
+    ALTER SEQUENCE IF EXISTS albums_id_seq OWNER TO music_user;
+    ALTER SEQUENCE IF EXISTS orders_id_seq OWNER TO music_user;
 ---
 apiVersion: batch/v1
 kind: Job
