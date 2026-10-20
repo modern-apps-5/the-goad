@@ -3,6 +3,24 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-20 (qwen endpoint name)
+
+### Changed
+
+- The ModelEndpoint `qwen` in `gitops/private-ai/pais.yaml` is now
+  `qwen-14b-xlarge`: the model and the class are in the name. Neither can
+  change on an existing endpoint, so a change to either one gives a new
+  name, and Argo CD replaces the endpoint. `routingName` stays `qwen`.
+  With `PruneLast=true`, the old endpoint is pruned only after the new one
+  is Ready.
+- PAIS allows two endpoints with the same `routingName`. The second
+  one's InferenceGatewayRoute is `Routable: False`, reason `NameConflict`,
+  and `qwen` keeps routing to the first. Tested 2026-10-20 in
+  `private-ai`.
+- The live `qwen` was created by hand on 2026-10-17 and has no Argo CD
+  tracking-id, so Argo CD does not prune it. Delete it by hand once
+  `qwen-14b-xlarge` is Ready.
+
 ## 2026-10-20 (live fixes from the agentic branch)
 
 ### Changed
