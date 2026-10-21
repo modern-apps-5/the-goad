@@ -1,0 +1,31 @@
+# Second hostname on the AgentMinder nginx VIP path.
+# This AKO build keeps one FQDN per LoadBalancer service, so the
+# management host is its own service and its own virtual service.
+# loadBalancerClass must be set at create time.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-mgmt-dns
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx-mgmt-dns
+    app.kubernetes.io/part-of: agentminder
+  annotations:
+    ako.vmware.com/service-engine-group: goad-se-group
+    external-dns.alpha.kubernetes.io/hostname: mgmt-agentminder.goad.gpu.set.lab
+spec:
+  type: LoadBalancer
+  loadBalancerClass: ako.vmware.com/avi-lb
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https

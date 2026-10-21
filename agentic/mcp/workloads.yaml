@@ -1,0 +1,310 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goad-k8s-mcp
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goad-k8s-mcp
+  template:
+    metadata:
+      labels:
+        app: goad-k8s-mcp
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp
+          image: python:3.12-slim
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              pip install --quiet --target=/tmp/py 'PyJWT[crypto]'
+              PYTHONPATH=/tmp/py python3 /app/k8s_mcp.py
+          workingDir: /app
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: HOST
+              value: 0.0.0.0
+            - name: HOME
+              value: /tmp
+            - name: PIP_CACHE_DIR
+              value: /tmp/pip
+            - name: KUBECONFIG
+              value: /kube/config
+            - name: MCP_READ_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-auth
+                  key: read
+            - name: MCP_WRITE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-auth
+                  key: write
+            - name: IDSP_ISSUER
+              value: https://${AGENTMINDER_HOST}/default
+            - name: IDSP_TLS_VERIFY
+              value: "false"
+            - name: MCP_RESOURCE_URL
+              value: http://${K8S_MCP_HOST}/mcp
+            - name: IDSP_GATEWAY_RESOURCE
+              value: "${IDSP_GATEWAY_K8S}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 36
+          volumeMounts:
+            - name: code
+              mountPath: /app
+            - name: kube
+              mountPath: /kube
+              readOnly: true
+      volumes:
+        - name: code
+          configMap:
+            name: mcp-k8s
+        - name: kube
+          secret:
+            secretName: guest-kubeconfig
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goad-k8s-mcp
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: goad-k8s-mcp
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goad-avi-mcp
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goad-avi-mcp
+  template:
+    metadata:
+      labels:
+        app: goad-avi-mcp
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp
+          image: python:3.12-slim
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              pip install --quiet --target=/tmp/py 'PyJWT[crypto]'
+              PYTHONPATH=/tmp/py python3 /app/server.py
+          workingDir: /app
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: HOST
+              value: 0.0.0.0
+            - name: HOME
+              value: /tmp
+            - name: PIP_CACHE_DIR
+              value: /tmp/pip
+            - name: MCP_READ_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-auth
+                  key: read
+            - name: MCP_WRITE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-auth
+                  key: write
+            - name: AVI_CONTROLLER
+              valueFrom:
+                secretKeyRef:
+                  name: avi-goad
+                  key: controller
+            - name: AVI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: avi-goad
+                  key: username
+            - name: AVI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: avi-goad
+                  key: password
+            - name: AVI_TENANT
+              value: goad
+            - name: IDSP_ISSUER
+              value: https://${AGENTMINDER_HOST}/default
+            - name: IDSP_TLS_VERIFY
+              value: "false"
+            - name: MCP_RESOURCE_URL
+              value: http://${AVI_MCP_HOST}/mcp
+            - name: IDSP_GATEWAY_RESOURCE
+              value: "${IDSP_GATEWAY_AVI}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 36
+          volumeMounts:
+            - name: code
+              mountPath: /app
+      volumes:
+        - name: code
+          configMap:
+            name: mcp-avi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goad-avi-mcp
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: goad-avi-mcp
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goad-vcf-mcp
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goad-vcf-mcp
+  template:
+    metadata:
+      labels:
+        app: goad-vcf-mcp
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp
+          image: python:3.12-slim
+          command: ["python3", "/boot/boot.py"]
+          workingDir: /tmp
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: HOME
+              value: /tmp
+            - name: VCF_DISK_LATENCY_REPLAY
+              value: "on"
+            - name: VCF_MCP_OAUTH_ISSUER
+              value: https://${AGENTMINDER_HOST}/default
+            - name: VCF_MCP_OAUTH_TLS_VERIFY
+              value: "0"
+            - name: VCF_MCP_OAUTH_AUDIENCES
+              value: "${VCF_MCP_AUDIENCES}"
+            - name: VCF_ALLOWED_HOSTS
+              value: "${VCF_MCP_HOST},goad-vcf-mcp,goad-vcf-mcp.metal-music-app-agentic-system.svc,goad-vcf-mcp.metal-music-app-agentic-system.svc.cluster.local,localhost,127.0.0.1"
+            - name: VCF_READ_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-auth
+                  key: vcf-read
+            - name: VCF_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-auth
+                  key: vcf-admin
+          resources:
+            requests:
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            failureThreshold: 60
+            periodSeconds: 10
+          volumeMounts:
+            - name: code
+              mountPath: /bundle
+            - name: boot
+              mountPath: /boot
+            - name: specs
+              mountPath: /spec-parts
+              readOnly: true
+      volumes:
+        - name: code
+          configMap:
+            name: mcp-vcf
+        - name: boot
+          configMap:
+            name: mcp-vcf-boot
+        - name: specs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goad-vcf-mcp
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: goad-vcf-mcp
+  ports:
+    - port: 8080
+      targetPort: 8080

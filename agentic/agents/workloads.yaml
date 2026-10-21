@@ -1,0 +1,571 @@
+# The four agents run on Tanzu as agent_buildpack apps.
+# These deployments are the earlier script copies. Replicas stay at 0
+# so a later apply does not start chat.py or diagnose.py again.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metal-music-app-agentic-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-response-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: incident-response-agent
+  template:
+    metadata:
+      labels:
+        app: incident-response-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: python:3.12-slim
+          command: ["python3", "/app/chat.py"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: ORCHESTRATOR_URL
+              value: http://orchestrator:8080/run
+            - name: ZAMMAD_URL
+              valueFrom:
+                secretKeyRef:
+                  name: zammad-api
+                  key: url
+            - name: ZAMMAD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zammad-api
+                  key: token
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 12
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - name: code
+              mountPath: /app
+            - name: skill
+              mountPath: /skills
+      volumes:
+        - name: code
+          configMap:
+            name: incident-chat
+        - name: skill
+          configMap:
+            name: skill-incident-response
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-response-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: incident-response-agent
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: orchestrator
+          image: python:3.12-slim
+          command: ["python3", "/app/harness.py"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: CLM_URL
+              value: "${CLM_URL}"
+            - name: CLM_MODEL
+              value: clm-latest
+            - name: STORE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: walk-targets
+                  key: store-url
+            - name: QWEN_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: base-url
+            - name: QWEN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: api-key
+            - name: QWEN_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: model
+            - name: GRAFANA_URL
+              value: http://grafana.incident-tools.svc:3000
+            - name: GRAFANA_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-annotator
+                  key: password
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 12
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - name: code
+              mountPath: /app
+      volumes:
+        - name: code
+          configMap:
+            name: orchestrator-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: orchestrator
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lb-diagnostic-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: lb-diagnostic-agent
+  template:
+    metadata:
+      labels:
+        app: lb-diagnostic-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: python:3.12-slim
+          command: ["python3", "/app/diagnose.py"]
+          env:
+            - name: PORT
+              value: "8080"
+            - name: AGENT_ROLE
+              value: lb_diagnostic_agent
+            - name: AM_TOKEN_URL
+              value: https://${AGENTMINDER_HOST}/default/oauth2/v1/token
+            - name: AM_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: lb-client-id
+            - name: AM_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: lb-client-secret
+            - name: AM_GATEWAY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: lb-gateway
+            - name: QWEN_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: base-url
+            - name: QWEN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: api-key
+            - name: QWEN_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: model
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 12
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - name: code
+              mountPath: /app
+            - name: skill
+              mountPath: /skills
+      volumes:
+        - name: code
+          configMap:
+            name: diagnose-code
+        - name: skill
+          configMap:
+            name: skill-lb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb-diagnostic-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: lb-diagnostic-agent
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-diagnostic-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: k8s-diagnostic-agent
+  template:
+    metadata:
+      labels:
+        app: k8s-diagnostic-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: python:3.12-slim
+          command: ["python3", "/app/diagnose.py"]
+          env:
+            - name: PORT
+              value: "8080"
+            - name: AGENT_ROLE
+              value: k8s_diagnostic_agent
+            - name: AM_TOKEN_URL
+              value: https://${AGENTMINDER_HOST}/default/oauth2/v1/token
+            - name: AM_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: k8s-client-id
+            - name: AM_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: k8s-client-secret
+            - name: AM_GATEWAY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: k8s-gateway
+            - name: QWEN_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: base-url
+            - name: QWEN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: api-key
+            - name: QWEN_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: model
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 12
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - name: code
+              mountPath: /app
+            - name: skill
+              mountPath: /skills
+      volumes:
+        - name: code
+          configMap:
+            name: diagnose-code
+        - name: skill
+          configMap:
+            name: skill-k8s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-diagnostic-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: k8s-diagnostic-agent
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vcf-diagnostic-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: vcf-diagnostic-agent
+  template:
+    metadata:
+      labels:
+        app: vcf-diagnostic-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: python:3.12-slim
+          command: ["python3", "/app/diagnose.py"]
+          env:
+            - name: PORT
+              value: "8080"
+            - name: AGENT_ROLE
+              value: vcf_diagnostic_agent
+            - name: STORE_WORKER_VMS
+              value: "${STORE_WORKER_VMS}"
+            - name: AM_TOKEN_URL
+              value: https://${AGENTMINDER_HOST}/default/oauth2/v1/token
+            - name: AM_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: vcf-client-id
+            - name: AM_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: vcf-client-secret
+            - name: AM_GATEWAY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-doors
+                  key: vcf-gateway
+            - name: QWEN_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: base-url
+            - name: QWEN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: api-key
+            - name: QWEN_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: qwen-model
+                  key: model
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 12
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - name: code
+              mountPath: /app
+            - name: skill
+              mountPath: /skills
+      volumes:
+        - name: code
+          configMap:
+            name: diagnose-code
+        - name: skill
+          configMap:
+            name: skill-vcf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vcf-diagnostic-agent
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: vcf-diagnostic-agent
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pii-scrub
+  namespace: metal-music-app-agentic-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pii-scrub
+  template:
+    metadata:
+      labels:
+        app: pii-scrub
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: scrub
+          image: python:3.12-slim
+          command: ["python3", "/app/scrub.py"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+          volumeMounts:
+            - name: code
+              mountPath: /app
+      volumes:
+        - name: code
+          configMap:
+            name: pii-scrub
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pii-scrub
+  namespace: metal-music-app-agentic-system
+spec:
+  selector:
+    app: pii-scrub
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: incident-response-agent
+  namespace: metal-music-app-agentic-system
+  annotations:
+    ako.vmware.com/service-engine-group: goad-se-group
+    external-dns.alpha.kubernetes.io/hostname: ${INCIDENT_HOST}
+spec:
+  ingressClassName: avi-lb
+  rules:
+    - host: ${INCIDENT_HOST}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: incident-response-agent
+                port:
+                  number: 8080

@@ -1,0 +1,87 @@
+# Metal Music agents on Tanzu Platform. Org Goad.
+# Space metal-music-app-agentic-system. Domain is ${TANZU_APPS_DOMAIN}.
+# python_buildpack then agent_buildpack, same order as the home lab.
+# No start command. agent_buildpack starts tanzu-agent.
+# Diagnostic agents run the agentminder-sdk sidecar. Incident response does not.
+# Secrets are cf set-env. Never in this file.
+---
+applications:
+  - name: incident-response-agent
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    buildpacks:
+      - python_buildpack
+      - agent_buildpack
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      AGENT_NAME: incident-response-agent
+    routes:
+      - route: incident-response-agent.${TANZU_APPS_DOMAIN}
+  - name: lb-diagnostic-agent
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    buildpacks:
+      - python_buildpack
+      - agent_buildpack
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      AGENT_ROLE: lb_diagnostic_agent
+    routes:
+      - route: lb-diagnostic-agent.${TANZU_APPS_DOMAIN}
+    sidecars:
+      - name: agentminder-sdk
+        process_types: [web]
+        command: bash sidecar/run-sidecar.sh
+        memory: 128M
+  - name: k8s-diagnostic-agent
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    buildpacks:
+      - python_buildpack
+      - agent_buildpack
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      AGENT_ROLE: k8s_diagnostic_agent
+    routes:
+      - route: k8s-diagnostic-agent.${TANZU_APPS_DOMAIN}
+    sidecars:
+      - name: agentminder-sdk
+        process_types: [web]
+        command: bash sidecar/run-sidecar.sh
+        memory: 128M
+  - name: vcf-diagnostic-agent
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    buildpacks:
+      - python_buildpack
+      - agent_buildpack
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      AGENT_ROLE: vcf_diagnostic_agent
+    routes:
+      - route: vcf-diagnostic-agent.${TANZU_APPS_DOMAIN}
+    sidecars:
+      - name: agentminder-sdk
+        process_types: [web]
+        command: bash sidecar/run-sidecar.sh
+        memory: 128M

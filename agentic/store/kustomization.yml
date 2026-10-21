@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: metal-music-store
+
+# Users VM, DSM catalog, and the VKS cluster stay in gitops/music-store.
+# This overlay is the storefront that was running in the other org:
+# store, cart, orders, and chat. It does not deploy a Postgres pod.
+resources:
+  - namespace.yaml
+  - backing.yaml
+  - ingress.yaml
+  - workloads.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: store-src
+    files:
+      - app.py=src/store/app.py
+      - requirements.txt=src/store/requirements.txt
+  - name: cart-src
+    files:
+      - app.py=src/cart/app.py
+      - requirements.txt=src/cart/requirements.txt
+  - name: order-src
+    files:
+      - app.py=src/order/app.py
+      - requirements.txt=src/order/requirements.txt
+  - name: chat-src
+    files:
+      - app.py=src/chat/app.py
+      - requirements.txt=src/chat/requirements.txt
+  - name: store-covers
+    files:
+      - covers/Inflames_colony.jpeg
+      - covers/Iron_Maiden-Somewhere_in_Time.jpg
+      - "covers/Metallica_-_...And_Justice_for_All_cover.jpg"
+      - covers/Pantera-VulgarDisplayofPower.jpg
+      - covers/Sound_garden-Superunknown.jpg
+      - covers/System_of_a_down-system_of_a_down.jpg

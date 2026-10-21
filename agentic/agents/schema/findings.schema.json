@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "skills/schema/findings.schema.json",
+  "title": "Diagnostic findings",
+  "description": "One report from one diagnostic agent (load balancer, Kubernetes, or VCF). Every finding names the tool call that returned its evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "agent",
+    "incident_id",
+    "checked_at",
+    "status",
+    "findings",
+    "suspected_cause",
+    "recommended_action",
+    "tools_used",
+    "tools_denied"
+  ],
+  "properties": {
+    "agent": {
+      "type": "string",
+      "enum": ["lb_diagnostic_agent", "k8s_diagnostic_agent", "vcf_diagnostic_agent"]
+    },
+    "incident_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The Zammad ticket number this report is for."
+    },
+    "checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC time the playbook finished, ISO 8601."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["healthy", "degraded", "failed"],
+      "description": "Health of this agent's layer as the tool results show it."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["component", "symptom", "evidence", "severity"],
+        "properties": {
+          "component": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The thing checked, for example a virtual service, pool member, deployment, pod, host, or datastore."
+          },
+          "symptom": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the tool result shows, in plain words."
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool", "raw_value"],
+            "properties": {
+              "tool": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The tool that returned this evidence. It must be in tools_used."
+              },
+              "raw_value": {
+                "description": "The value exactly as the tool returned it: a string, number, boolean, object, or list."
+              }
+            }
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["info", "warning", "critical"]
+          }
+        }
+      }
+    },
+    "suspected_cause": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["cause", "confidence"],
+      "description": "Null when the layer is healthy.",
+      "properties": {
+        "cause": {"type": "string", "minLength": 1},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "recommended_action": {
+      "type": "string",
+      "description": "One next step for a person. The agent does not take it."
+    },
+    "tools_used": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Every tool that returned a result."
+    },
+    "tools_denied": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Every tool the playbook needed that was missing or refused."
+    }
+  }
+}
