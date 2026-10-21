@@ -1,0 +1,17 @@
+apiVersion: crd.antrea.io/v1beta1
+kind: ClusterNetworkPolicy
+metadata:
+  name: baseline-default-drop
+spec:
+  priority: 250
+  tier: baseline
+  appliedTo:
+    - namespaceSelector:
+        matchLabels:
+          environment: production      
+  ingress:
+    - action: Drop
+      name: deny-all-ingress
+  egress:
+    - action: Allow
+      name: allow-all-egress
