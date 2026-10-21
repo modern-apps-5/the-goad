@@ -1,0 +1,3842 @@
+{
+  "uid": "goad-architecture",
+  "title": "Goad architecture",
+  "description": "Live map of the Goad application. Anonymous viewers can open it, and the frame policy allows an embed.",
+  "tags": [
+    "goad",
+    "architecture"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "liveNow": true,
+  "graphTooltip": 1,
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Components up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(arch_up)",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1f6f8a",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Components down",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(arch_up) - sum(arch_up)",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3dd68c",
+                "value": null
+              },
+              {
+                "color": "#ff5d73",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Paths open",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(arch_edge)",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1f6f8a",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Paths down",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(arch_edge) - sum(arch_edge)",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3dd68c",
+                "value": null
+              },
+              {
+                "color": "#ff5d73",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Nodes ready",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\",node=~\"music-store-.*\"})",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff5d73",
+                "value": null
+              },
+              {
+                "color": "#3dd68c",
+                "value": 3
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Check latency",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "avg(arch_latency_ms)",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1f6f8a",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 10,
+      "type": "canvas",
+      "title": "Goad application map",
+      "description": "Green is up and red is down. Line color is the protocol. Hover a box for the live check. The flow graph lists every call.",
+      "transparent": true,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 30,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "arch_up",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series",
+          "legendFormat": "{{id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "min": 0,
+          "max": 1,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "#ff5d73",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "#3dd68c",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff5d73",
+                "value": null
+              },
+              {
+                "color": "#3dd68c",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "unknown"
+        },
+        "overrides": []
+      },
+      "options": {
+        "inlineEditing": false,
+        "showAdvancedTypes": true,
+        "panZoom": true,
+        "infinitePan": false,
+        "root": {
+          "name": "root",
+          "type": "frame",
+          "elements": [
+            {
+              "name": "lane-0",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "MUSIC-STORE CLUSTER",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 8,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "lane-1",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "AGENTMINDER CLUSTER",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 108,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "lane-2",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "DATA AND VM SERVICE",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 208,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "lane-3",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "AGENTIC MUSIC SHOP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 308,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "lane-4",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "SHOP 1.0.63",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 408,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "lane-5",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "PRIVATE AI",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 508,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "lane-6",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "TANZU CF AGENTS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 608,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "lane-7",
+              "type": "text",
+              "config": {
+                "align": "left",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#8ea2b8"
+                },
+                "size": 13,
+                "text": {
+                  "fixed": "MCP DOORS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 708,
+                "width": 520,
+                "height": 20,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "width": 0,
+                "color": {
+                  "fixed": "transparent"
+                }
+              }
+            },
+            {
+              "name": "vks-api",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "VKS API\n10.47.7.81\nTCP 6443",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 28,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "vks-api"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "cp-pwtc2",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Control plane\n172.30.0.66\nkube Ready",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 28,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "cp-pwtc2"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "worker-8n8n5",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Worker 8n8n5\n172.30.0.70\nkube Ready",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 28,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "worker-8n8n5"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "worker-gjwhn",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Worker gjwhn\n172.30.0.69\nkube Ready",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 460,
+                "top": 28,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "worker-gjwhn"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "am-api",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "AgentMinder API\n10.47.7.77\nTCP 6443",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 128,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "am-api"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "am-cp",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "AM control plane\n172.30.0.34\nkubelet",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 128,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "am-cp"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "am-w-7dsds",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "AM worker 7dsds\n172.30.0.36\nkubelet",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 128,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "am-w-7dsds"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "am-w-gpn6h",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "AM worker gpn6h\n172.30.0.35\nkubelet",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 460,
+                "top": 128,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "am-w-gpn6h"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "users-vm",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Users VM\n10.47.7.52\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 228,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "users-vm"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetName": "shop163",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "shop-users",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Shop users\n10.47.7.75\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 228,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "shop-users"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "dsm",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "DSM catalog\n10.47.7.78\nTCP 5432",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 228,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "dsm"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "zammad",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Zammad\n10.47.7.83\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 460,
+                "top": 228,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "zammad"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "zammad-db",
+                  "color": {
+                    "fixed": "#e3b341"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "zammad-db",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Zammad DB\n10.106.205.2\nTCP 5432",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 608,
+                "top": 228,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "zammad-db"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "zammad-redis",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Zammad Redis\n10.97.122.51\nTCP 6379",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 756,
+                "top": 228,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "zammad-redis"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "zammad-cache",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Zammad cache\n10.109.25.157\nTCP 11211",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 904,
+                "top": 228,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "zammad-cache"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "music",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Music shop\n10.96.203.228\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 328,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "music"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "chat",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "cart",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "order",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetName": "shop-users",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetName": "dsm",
+                  "color": {
+                    "fixed": "#e3b341"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "chat",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Chat\n10.103.127.222\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 328,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "chat"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetName": "qwen",
+                  "color": {
+                    "fixed": "#d2a8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "cart",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Cart\n10.110.165.207\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 328,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "cart"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "order",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Order\n10.101.157.182\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 460,
+                "top": 328,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "order"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "pii",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "PII scrub\n10.105.6.138\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 608,
+                "top": 328,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "pii"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "shop163",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Shop 1.0.63\n10.47.7.89\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 428,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "shop163"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "shop-cart",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "shop-order",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetName": "dsm",
+                  "color": {
+                    "fixed": "#e3b341"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "shop-cart",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Shop cart\n10.97.251.112\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 428,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "shop-cart"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "shop-order",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Shop order\n10.111.74.18\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 428,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "shop-order"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "traffic",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Traffic\n10.47.7.60\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 460,
+                "top": 428,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "traffic"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetName": "shop163",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "qwen",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Qwen 14B\n10.47.7.73\nHTTPS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 528,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "qwen"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "am-ui",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "AgentMinder\n10.47.7.82\nHTTPS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 528,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "am-ui"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "clm",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "CLM\nnot installed\nnone",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 528,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "clm"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "orch",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Orchestrator\n10.100.115.123\nHTTP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 460,
+                "top": 528,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "orch"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetName": "qwen",
+                  "color": {
+                    "fixed": "#d2a8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "incident",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Incident agent\napps.tp\nHTTPS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 628,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "incident"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "cf-orch",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetName": "zammad",
+                  "color": {
+                    "fixed": "#d2a8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "cf-orch",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "CF orchestrator\napps.tp\nHTTPS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 628,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "cf-orch"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "lb-agent",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "k8s-agent",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "sourceOriginal": {
+                    "x": 1,
+                    "y": 0.5
+                  },
+                  "targetOriginal": {
+                    "x": 0,
+                    "y": 0.5
+                  },
+                  "targetName": "vcf-agent",
+                  "color": {
+                    "fixed": "#79b8ff"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "lb-agent",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "LB agent\napps.tp\nHTTPS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 628,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "lb-agent"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetName": "avi-mcp",
+                  "color": {
+                    "fixed": "#56d4a0"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetName": "am-ui",
+                  "color": {
+                    "fixed": "#f0883e"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "k8s-agent",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "K8s agent\napps.tp\nHTTPS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 460,
+                "top": 628,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "k8s-agent"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetName": "k8s-mcp",
+                  "color": {
+                    "fixed": "#56d4a0"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetName": "am-ui",
+                  "color": {
+                    "fixed": "#f0883e"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "vcf-agent",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "VCF agent\napps.tp\nHTTPS",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 608,
+                "top": 628,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "vcf-agent"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetName": "vcf-mcp",
+                  "color": {
+                    "fixed": "#56d4a0"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                },
+                {
+                  "source": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "sourceOriginal": {
+                    "x": 0.5,
+                    "y": 0
+                  },
+                  "targetOriginal": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "targetName": "am-ui",
+                  "color": {
+                    "fixed": "#f0883e"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 8
+                  },
+                  "path": "straight",
+                  "vertices": []
+                }
+              ]
+            },
+            {
+              "name": "avi-mcp",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "Avi MCP\n10.47.7.68\nMCP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 16,
+                "top": 728,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "avi-mcp"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "k8s-mcp",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "K8s MCP\n10.47.7.85\nMCP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 164,
+                "top": 728,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "k8s-mcp"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            },
+            {
+              "name": "vcf-mcp",
+              "type": "metric-value",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "color": {
+                  "fixed": "#f5f7fb"
+                },
+                "size": 12,
+                "text": {
+                  "fixed": "VCF MCP\n10.47.7.86\nMCP",
+                  "mode": "fixed"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 312,
+                "top": 728,
+                "width": 138,
+                "height": 68,
+                "rotation": 0
+              },
+              "background": {
+                "color": {
+                  "fixed": "#243044",
+                  "field": "vcf-mcp"
+                }
+              },
+              "border": {
+                "width": 1,
+                "color": {
+                  "fixed": "#0c121b"
+                }
+              },
+              "connections": []
+            }
+          ],
+          "background": {
+            "color": {
+              "fixed": "#0c121b"
+            }
+          },
+          "border": {
+            "color": {
+              "fixed": "#0c121b"
+            },
+            "width": 0
+          },
+          "placement": {
+            "width": 100,
+            "height": 100,
+            "top": 0,
+            "left": 0,
+            "rotation": 0
+          },
+          "constraint": {
+            "vertical": "top",
+            "horizontal": "left"
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "nodeGraph",
+      "title": "Live flows",
+      "description": "Hover a node for cluster, namespace, node, IP, endpoint, version, and health. A flow is up only when both ends are up.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "arch_up",
+          "instant": true,
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "arch_edge",
+          "instant": true,
+          "range": false,
+          "refId": "B",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(arch_up|arch_edge|Value)$",
+            "renamePattern": "mainstat"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(cluster|namespace|node|ip|endpoint|protocol|version|health|kind)$",
+            "renamePattern": "detail__$1"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {}
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "destinationType": "number",
+                "targetField": "mainstat"
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff5d73",
+                "value": null
+              },
+              {
+                "color": "#3dd68c",
+                "value": 1
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mainstat"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "#ff5d73",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "#3dd68c",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "nodes": {
+          "mainStatUnit": "none",
+          "secondaryStatUnit": "none"
+        },
+        "edges": {
+          "mainStatUnit": "none",
+          "secondaryStatUnit": "none"
+        },
+        "zoomMode": "cooperative"
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Check latency",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "arch_latency_ms{kind=~\"app|agent|mcp|model|database|vmsvc|console|service\",id!=\"shop-users\"}",
+          "instant": false,
+          "range": true,
+          "refId": "A",
+          "format": "time_series",
+          "legendFormat": "{{title}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 12,
+            "showPoints": "auto",
+            "spanNulls": true,
+            "axisLabel": "ms"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Component detail",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 15,
+        "x": 0,
+        "y": 58
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "arch_up",
+          "instant": true,
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(arch_up|Value)$",
+            "renamePattern": "up"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "color": true,
+              "subtitle": true,
+              "secondarystat": true,
+              "created_by_kind": true,
+              "created_by_name": true,
+              "uid": true,
+              "host_ip": true,
+              "host_network": true,
+              "priority_class": true,
+              "pod_ip": true
+            },
+            "renameByName": {},
+            "indexByName": {
+              "title": 0,
+              "up": 1,
+              "health": 2,
+              "kind": 3,
+              "cluster": 4,
+              "namespace": 5,
+              "node": 6,
+              "ip": 7,
+              "endpoint": 8,
+              "protocol": 9,
+              "version": 10
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "title"
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "up"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "#ff5d73",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "#3dd68c",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#ff5d73",
+                      "value": null
+                    },
+                    {
+                      "color": "#3dd68c",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Flows",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 9,
+        "x": 15,
+        "y": 58
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "arch_edge",
+          "instant": true,
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(arch_edge|Value)$",
+            "renamePattern": "up"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "color": true,
+              "subtitle": true,
+              "secondarystat": true,
+              "created_by_kind": true,
+              "created_by_name": true,
+              "uid": true,
+              "host_ip": true,
+              "host_network": true,
+              "priority_class": true,
+              "pod_ip": true
+            },
+            "renameByName": {},
+            "indexByName": {
+              "source": 0,
+              "target": 1,
+              "protocol": 2,
+              "up": 3,
+              "health": 4
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "source"
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "up"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "#ff5d73",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "#3dd68c",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#ff5d73",
+                      "value": null
+                    },
+                    {
+                      "color": "#3dd68c",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Pod placement",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 15,
+        "x": 0,
+        "y": 68
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "kube_pod_info{namespace=~\"metal-music-store|music-store|metal-music-app-agentic-system|incident-tools\",pod=~\"cart-service-.*|chat-service-.*|music-store-1-.*|order-service-.*|traffic-generator-.*|goad-avi-mcp-.*|goad-k8s-mcp-.*|goad-vcf-mcp-.*|orchestrator-.*|pii-scrub-.*|zammad-.*\"}",
+          "instant": true,
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(kube_pod_info|Value)$",
+            "renamePattern": "up"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "color": true,
+              "subtitle": true,
+              "secondarystat": true,
+              "created_by_kind": true,
+              "created_by_name": true,
+              "uid": true,
+              "host_ip": true,
+              "host_network": true,
+              "priority_class": true,
+              "up": true
+            },
+            "renameByName": {},
+            "indexByName": {
+              "namespace": 0,
+              "pod": 1,
+              "node": 2,
+              "pod_ip": 3
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "namespace"
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "up"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "#ff5d73",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "#3dd68c",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#ff5d73",
+                      "value": null
+                    },
+                    {
+                      "color": "#3dd68c",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Cluster agent copies",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 15,
+        "y": 68
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "kube_deployment_spec_replicas{namespace=\"metal-music-app-agentic-system\",deployment=~\"incident-response-agent|lb-diagnostic-agent|k8s-diagnostic-agent|vcf-diagnostic-agent\"}",
+          "instant": true,
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(kube_deployment_spec_replicas|Value)$",
+            "renamePattern": "up"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "color": true,
+              "subtitle": true,
+              "secondarystat": true,
+              "created_by_kind": true,
+              "created_by_name": true,
+              "uid": true,
+              "host_ip": true,
+              "host_network": true,
+              "priority_class": true,
+              "pod_ip": true
+            },
+            "renameByName": {},
+            "indexByName": {
+              "deployment": 0,
+              "namespace": 1,
+              "up": 2
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "deployment"
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "up"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "#ff5d73",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "#3dd68c",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#ff5d73",
+                      "value": null
+                    },
+                    {
+                      "color": "#3dd68c",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "text",
+      "title": "How to read this",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 76
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Box color is the live probe. Green is up, red is down. A line on the map is the protocol, not the health. A row in the flow table is up only when both ends are up.\n\nHover a node in Live flows for cluster, namespace, node, IP, endpoint, version, and health.\n\nCLM has no URL in this org, so it stays down. Shop users at 10.47.7.75 does not answer. The four diagnostic agents on this cluster are scaled to 0; the live agents are the Tanzu CF apps. Music-store host color is the Ready condition. AgentMinder host color is the kubelet port, because this Prometheus does not scrape that cluster. The node label on an app is the placement when this board was built. The pod table is the live placement."
+      }
+    }
+  ]
+}

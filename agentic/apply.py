@@ -70,6 +70,8 @@ def fill(text: str) -> str:
         "IDSP_GATEWAY_VCF",
         "VCF_MCP_AUDIENCES",
         "CLM_URL",
+        "CLM_HEALTH_URL",
+        "QWEN_MODELS_URL",
         "INCIDENT_HOST",
         "STORE_WORKER_VMS",
     ):
@@ -77,6 +79,10 @@ def fill(text: str) -> str:
             value = os.environ.get(name, "http://prometheus.example.invalid")
         elif name == "CLM_URL":
             value = os.environ.get("CLM_URL", os.environ.get("CLM_BASE_URL", ""))
+        elif name == "CLM_HEALTH_URL":
+            value = os.environ.get("CLM_HEALTH_URL", os.environ.get("CLM_URL", ""))
+        elif name == "QWEN_MODELS_URL":
+            value = os.environ.get("QWEN_MODELS_URL", "")
         else:
             value = os.environ.get(name, "")
         text = text.replace("${" + name + "}", value)
@@ -385,6 +391,10 @@ def main() -> None:
         metrics = fill((ROOT / "incident-tools" / "prometheus.yaml").read_text())
         run(k + ["apply", "-f", "-"], input_text=zammad)
         run(k + ["apply", "-f", "-"], input_text=grafana)
+        board = ROOT / "incident-tools" / "dashboards" / "goad-architecture.json"
+        if board.is_file():
+            patch = json.dumps({"data": {"goad-architecture.json": board.read_text()}})
+            run(k + ["patch", "configmap", "grafana-dashboards", "-n", "incident-tools", "--type", "merge", "-p", patch])
         run(k + ["apply", "-f", "-"], input_text=metrics)
         zenv = "\n".join([
             "POSTGRESQL_HOST=zammad-postgresql",

@@ -35,6 +35,8 @@ data:
         options:
           path: /var/lib/grafana/dashboards
 ---
+# goad-architecture.json is not inlined here. apply.py adds that key
+# from dashboards/goad-architecture.json after this manifest is applied.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -84,7 +86,13 @@ spec:
                   name: grafana-admin
                   key: password
             - name: GF_AUTH_ANONYMOUS_ENABLED
-              value: "false"
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: Viewer
+            - name: GF_SECURITY_ALLOW_EMBEDDING
+              value: "true"
+            - name: GF_USERS_DEFAULT_THEME
+              value: dark
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
