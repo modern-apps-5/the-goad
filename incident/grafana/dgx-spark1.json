@@ -1,0 +1,643 @@
+{
+  "uid": "dgx-spark1",
+  "title": "goad-qwen",
+  "tags": [
+    "goad",
+    "qwen",
+    "demo-ready"
+  ],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "editable": true,
+  "links": [],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": []
+  },
+  "description": "Ollama on goad-qwen, model qwen2.5:32b. Demo-ready, in flight, queue, request latency, and the loaded model. GPU panels say there is no GPU.",
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "How to read this board",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Goad has no GPU. The GPU panels on this board say no GPU. They are not a zero from a GPU exporter. Demo-ready, in flight, queue, latency, and the loaded model read the Ollama VM goad-qwen, model qwen2.5:32b. Demo-ready means Ollama answered, qwen2.5:32b is loaded, nothing is in flight, and the queue is empty."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Demo-ready",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "not ready",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "demo-ready",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_demo_ready",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ],
+      "description": "Ollama on goad-qwen. 1 only when qwen2.5:32b is loaded, nothing is in flight, and the queue is empty."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Why",
+      "description": "Reason label on ollama_demo_ready_info for goad-qwen.",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 4,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "name",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_demo_ready_info",
+          "instant": true,
+          "legendFormat": "{{reason}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "text",
+      "title": "GPU utilization",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "no GPU"
+      }
+    },
+    {
+      "id": 5,
+      "type": "text",
+      "title": "GPU memory",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "no GPU"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "In flight",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "idle",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "in flight",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_slot_busy",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ],
+      "description": "In flight on goad-qwen. Not a GPU slot."
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Queued",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_queue_depth",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Last request latency",
+      "description": "Last completed request on goad-qwen. Empty until one request finishes. Absent is not zero.",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_request_latency_seconds",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "text",
+      "title": "GPU utilization",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "no GPU"
+      }
+    },
+    {
+      "id": 10,
+      "type": "text",
+      "title": "GPU memory",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "no GPU"
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "In flight and queue",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "in flight seconds"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_slot_busy",
+          "legendFormat": "busy",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "ollama_queue_depth",
+          "legendFormat": "queue {{class}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        },
+        {
+          "refId": "C",
+          "expr": "ollama_inflight_seconds",
+          "legendFormat": "in flight seconds",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Request latency",
+      "description": "Last completed request on goad-qwen. Gaps are requests the sampler did not see, not zero.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_request_latency_seconds",
+          "legendFormat": "last request",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "ollama_request_latency_samples",
+          "legendFormat": "samples",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Loaded Ollama model",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "displayName",
+                "value": "resident"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ollama_model_resident_bytes{model=\"qwen2.5:32b\"}",
+          "instant": true,
+          "format": "table",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "text",
+      "title": "GPU memory by process",
+      "description": "What nvidia-smi reports per compute process. This is not framebuffer total. Framebuffer total is N/A.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "no GPU"
+      }
+    }
+  ]
+}

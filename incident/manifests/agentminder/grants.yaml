@@ -1,0 +1,42 @@
+# Same grants as incident/agentminder/grants.yaml. Do not apply from this pull request.
+# AgentMinder grants for the Metal Music incident demo.
+# Jev 2026-10-11 chose gateway-existing (confidence 1.0).
+# 2026-10-12: the load balancer agent reaches the Avi door through its own
+# AgentMinder resource server (avi-mcp). The Kubernetes agent gained the
+# read-only events and pod-log tools its playbook needs. The VCF agent
+# gained vcf_inventory for host health.
+# Every granted tool is bound to its own intent urn:iam:agent:intent:<tool>.
+# Apply these grants only after the Captain approves PLAN.md.
+# Tokens and client secrets are not in this file.
+version: 1
+agents:
+  incident_response_agent:
+    client: py-goad-incident-response
+    skill: skills/incident_response_agent/SKILL.md
+    # Captain 2026-10-12 16:20 ET: this agent does not hold a Kubernetes
+    # or VCF grant. It reaches Zammad, Jev, and the domain agents.
+    agentminder_grants: {}
+  lb_diagnostic_agent:
+    client: py-goad-lb
+    skill: skills/lb_diagnostic_agent/SKILL.md
+    agentminder_grants:
+      goad-avi-mcp: [avi_vs_health, avi_pool_member_health, avi_latency, avi_error_rates, avi_se_state]
+  k8s_diagnostic_agent:
+    client: py-goad-k8s
+    skill: skills/k8s_diagnostic_agent/SKILL.md
+    agentminder_grants:
+      goad-k8s-mcp: [k8s_list_deployments, k8s_list_pods, k8s_events, k8s_pod_logs, k8s_list_namespaces]
+  vcf_diagnostic_agent:
+    client: py-goad-vcf
+    skill: skills/vcf_diagnostic_agent/SKILL.md
+    agentminder_grants:
+      goad-vcf-mcp: [vcf_inventory, vcf_list_vms, vcf_get_vm, vcf_list_datastores, vcf_get_datastore, vcf_list_alerts, vcf_vm_disk_latency]
+denied_by_design:
+  - Power operations (vcf_stop_vm, vcf_start_vm, vcf_reset_vm, vcf_suspend_vm) are granted to no agent.
+  - Kubernetes write tools (scale, delete, restart) are granted to no agent.
+  - The load balancer agent holds no Kubernetes or VCF grant.
+  - The incident response agent holds no Kubernetes or VCF grant.
+resource_servers:
+  goad-avi-mcp: {backend: "https://metal-avi-mcp.${TANZU_APPS_DOMAIN}/mcp", gateway: "${AGENTMINDER_GATEWAY_AVI}"}
+  goad-k8s-mcp: {backend: "https://metal-k8s-mcp.${TANZU_APPS_DOMAIN}/mcp", gateway: "${AGENTMINDER_GATEWAY_K8S}"}
+  goad-vcf-mcp: {backend: "https://metal-vcf-mcp.${TANZU_APPS_DOMAIN}/mcp", gateway: "${AGENTMINDER_GATEWAY_VCF}"}
