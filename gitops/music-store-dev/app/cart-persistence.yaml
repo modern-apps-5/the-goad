@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-service
+spec:
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: cart
+          env:
+            - name: CART_DB_PATH
+              value: /app/data/her-cart.db
+          volumeMounts:
+            - name: cart-data
+              mountPath: /app/data
+      volumes:
+        - name: cart-data
+          persistentVolumeClaim:
+            claimName: cart-pvc

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: order
+          env:
+            - name: ORDER_DB_PATH
+              value: /app/data/her-orders.db
+          volumeMounts:
+            - name: order-data
+              mountPath: /app/data
+      volumes:
+        - name: order-data
+          persistentVolumeClaim:
+            claimName: order-pvc
