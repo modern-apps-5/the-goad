@@ -10,9 +10,9 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   // Top to bottom: applications, Tanzu supply chain (only under the
   // Cloud Foundry apps), VKS, VCF. Gutters are the only legal wire paths.
   var G = {
-    tzX: 24, tzW: 500, tzR: 524,
-    appX: 620, appW: 960, appR: 1580,
-    paiX: 1648, paiW: 176, paiR: 1824,
+    tzX: 24, tzW: 400, tzR: 424,
+    appX: 520, appW: 860, appR: 1380,
+    paiX: 1432, paiW: 400, paiR: 1832,
     vksX: 24, vksW: 1124,
     amX: 1164, amW: 660,
     vcfX: 24, vcfW: 1200,
@@ -42,9 +42,9 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     yBk: 576, yBv: 590,
     lane: 160,
     sky: [58, 66, 74, 82, 90, 98, 106],
-    col: [532, 540, 548, 556, 564, 572, 580, 588, 596, 604, 612],
-    paiC: [1592, 1600, 1608, 1616],
-    tray: [1836, 1844, 1852, 1860, 1868, 1876, 1884, 1892, 1900, 1908],
+    col: [432, 440, 448, 456, 464, 472, 480, 488, 496, 504, 512],
+    paiC: [1388, 1396, 1404, 1412],
+    tray: [1844, 1852, 1860, 1868, 1876, 1884, 1892, 1900, 1908],
     leftU: 8, leftZ: 16
   };
 
@@ -70,16 +70,11 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     meta("am-w-7dsds", "7dsds", "Node", "server", "stack", "agentminder", "agentminder-z7v8k", "agentminder-workers-h746j-6mwj7-7dsds", "172.30.0.36", "172.30.0.36:10250", KUBE),
     meta("am-w-gpn6h", "gpn6h", "Node", "server", "stack", "agentminder", "agentminder-z7v8k", "agentminder-workers-h746j-6mwj7-gpn6h", "172.30.0.35", "172.30.0.35:10250", KUBE),
     meta("am-ui", "Console", "AgentMinder", "window", "stack", "agentminder", "ssp", "—", "10.47.7.82", "https://agentminder.goad.gpu.set.lab/default/ui/v1/adminconsole/", "console"),
-    meta("music", "Music shop", "Agentic", "shop", "wide", "music-store", "metal-music-store", N8, "10.96.203.228", "http://music-store-1-service.metal-music-store.svc:5000/", "python:3.12-slim"),
-    meta("chat", "Chat", "Agentic", "chat", "wide", "music-store", "metal-music-store", N8, "10.103.127.222", "http://chat-service.metal-music-store.svc:5005/health", "python:3.12-slim"),
-    meta("cart", "Cart", "Agentic", "cart", "wide", "music-store", "metal-music-store", N8, "10.110.165.207", "http://cart-service.metal-music-store.svc:5002/health", "python:3.12-slim"),
-    meta("order", "Order", "Agentic", "order", "wide", "music-store", "metal-music-store", N8, "10.101.157.182", "http://order-service.metal-music-store.svc:5001/health", "python:3.12-slim"),
-    meta("shop-users", "Shop users", "Agentic", "user", "wide", "music-store", "metal-music-store", "—", "10.47.7.75", "http://10.47.7.75:5003/health", "—"),
-    meta("pii", "PII scrub", "Agentic", "shield", "wide", "music-store", "metal-music-app-agentic-system", NG, "10.105.6.138", "http://pii-scrub.metal-music-app-agentic-system.svc:8080/health", "python:3.12-slim"),
-    meta("shop163", "Shop", "1.0.63", "shop", "wide", "music-store", "music-store", N8, "10.47.7.89", "http://10.47.7.89:5000/", "1.0.63"),
-    meta("shop-cart", "Cart", "1.0.63", "cart", "wide", "music-store", "music-store", N8, "10.97.251.112", "http://cart-service.music-store.svc:5002/", "1.0.63"),
-    meta("shop-order", "Order", "1.0.63", "order", "wide", "music-store", "music-store", N8, "10.111.74.18", "http://order-service.music-store.svc:5001/", "1.0.63"),
-    meta("traffic", "Traffic", "Generator", "pulse", "wide", "music-store", "music-store", NG, "10.47.7.60", "http://10.47.7.60:5004/health", "1.0.63"),
+    meta("music", "Music shop", "store", "shop", "wide", "music-store", "metal-music-store", N8, "10.96.203.228", "http://music-store-1-service.metal-music-store.svc:5000/", "python:3.12-slim"),
+    meta("chat", "Chat", "assistant", "chat", "wide", "music-store", "metal-music-store", N8, "10.103.127.222", "http://chat-service.metal-music-store.svc:5005/health", "python:3.12-slim"),
+    meta("cart", "Cart", "store", "cart", "wide", "music-store", "metal-music-store", N8, "10.110.165.207", "http://cart-service.metal-music-store.svc:5002/health", "python:3.12-slim"),
+    meta("order", "Order", "store", "order", "wide", "music-store", "metal-music-store", N8, "10.101.157.182", "http://order-service.metal-music-store.svc:5001/health", "python:3.12-slim"),
+    meta("pii", "PII scrub", "filter", "shield", "wide", "music-store", "metal-music-app-agentic-system", NG, "10.105.6.138", "http://pii-scrub.metal-music-app-agentic-system.svc:8080/health", "python:3.12-slim"),
     meta("orch", "Orchestrator", "In cluster", "nodes", "wide", "music-store", "metal-music-app-agentic-system", NG, "10.100.115.123", "http://orchestrator.metal-music-app-agentic-system.svc:8080/health", "python:3.12-slim"),
     meta("zammad", "Zammad", "Tickets", "ticket", "wide", "music-store", "incident-tools", "—", "10.47.7.83", "http://zammad-nginx.incident-tools.svc:8080/", "—"),
     meta("zammad-db", "Postgres", "Database", "db", "wide", "music-store", "incident-tools", "—", "10.106.205.2", "zammad-postgresql.incident-tools.svc:5432", "—"),
@@ -99,15 +94,10 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   ];
 
   var EDGES = [
-    ["e-users-shop", "users-vm", "shop163", "HTTP"],
-    ["e-shop-cart", "shop163", "shop-cart", "HTTP"],
-    ["e-shop-order", "shop163", "shop-order", "HTTP"],
-    ["e-shop-dsm", "shop163", "dsm", "TCP 5432"],
-    ["e-traffic-shop", "traffic", "shop163", "HTTP"],
+    ["e-music-vm", "music", "users-vm", "HTTP"],
     ["e-music-chat", "music", "chat", "HTTP"],
     ["e-music-cart", "music", "cart", "HTTP"],
     ["e-music-order", "music", "order", "HTTP"],
-    ["e-music-users", "music", "shop-users", "HTTP"],
     ["e-music-dsm", "music", "dsm", "TCP 5432"],
     ["e-chat-order", "chat", "order", "HTTP"],
     ["e-chat-dsm", "chat", "dsm", "TCP 5432"],
@@ -160,8 +150,8 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
 
   function layout() {
     var nodes = {};
-    var tzCard = 150;
-    var tzGap = 12;
+    var tzCard = 116;
+    var tzGap = 10;
     var tzTotal = 3 * tzCard + 2 * tzGap;
     var tz0 = G.tzX + Math.round((G.tzW - tzTotal) / 2);
     var step = tzCard + tzGap;
@@ -169,37 +159,30 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     place(nodes, "k8s-agent", tz0, G.bY, tzCard, G.bH, { mode: "stack" });
     place(nodes, "vcf-agent", tz0 + 2 * step, G.bY, tzCard, G.bH, { mode: "stack" });
 
-    var aw = 148;
+    var aw = 132;
     var ag = 8;
-    var aTotal = 6 * aw + 5 * ag;
-    var a0 = G.appX + Math.round((G.appW - aTotal) / 2);
-    row(nodes, ["music", "chat", "cart", "order", "shop-users", "pii"], a0, G.r1, aw, G.rowH, ag);
-    row(nodes, ["shop163", "shop-cart", "shop-order", "traffic", "orch"], a0, G.r2, aw, G.rowH, ag);
-    row(nodes, ["zammad", "zammad-db", "zammad-redis", "zammad-cache"], a0, G.r3, aw, G.rowH, ag);
-    row(nodes, ["avi-mcp", "k8s-mcp", "vcf-mcp"], a0, G.r4, aw, G.rowH, ag);
+    var a0 = G.appX + 16;
+    row(nodes, ["users-vm", "music", "chat", "cart", "order"], a0, G.r1, aw, G.rowH, ag);
+    row(nodes, ["zammad", "zammad-db", "zammad-redis", "zammad-cache", "pii", "orch"], a0, G.r2, aw, G.rowH, ag);
+    row(nodes, ["avi-mcp", "k8s-mcp", "vcf-mcp"], a0, G.r3, aw, G.rowH, ag);
 
-    place(nodes, "qwen", G.paiX + 12, 166, 152, 178);
-    place(nodes, "clm", G.paiX + 12, 428, 152, 176);
+    place(nodes, "qwen", G.paiX + 24, 168, 200, 170);
+    place(nodes, "clm", G.paiX + 24, 428, 200, 168);
 
-    var infraY = G.vksY + 52;
-    var infraH = 96;
-    row(nodes, ["vks-api", "cp-pwtc2", "worker-8n8n5", "worker-gjwhn"], 64, infraY, 250, infraH, 16);
-    var amW = 116;
-    var amGap = 8;
-    var amTotal = 5 * amW + 4 * amGap;
-    var am0 = G.amX + Math.round((G.amW - amTotal) / 2);
-    row(nodes, ["am-api", "am-cp", "am-w-7dsds", "am-w-gpn6h", "am-ui"], am0, infraY, amW, infraH, amGap);
+    row(nodes, ["vks-api", "cp-pwtc2", "worker-8n8n5", "worker-gjwhn"], G.appX + 24, 648, 190, 84, 12);
+    var amW = 70;
+    var amGap = 6;
+    var am0 = G.paiX + 16;
+    row(nodes, ["am-api", "am-cp", "am-w-7dsds", "am-w-gpn6h", "am-ui"], am0, 658, amW, 92, amGap);
 
-    place(nodes, "users-vm", 72, G.vcfY + 72, 380, 108);
     place(nodes, "dsm", 1416, G.vcfY + 90, 280, 96, { mode: "wide" });
 
     var zones = [
-      { id: "cfapps", title: "Applications  ·  Cloud Foundry", x: G.tzX, y: G.top, w: G.tzW, h: G.tzBot - G.top, accent: "#79b8ff" },
-      { id: "tanzu", title: "Tanzu Platform", mark: "tanzu", note: "Cloud Foundry supply chain", watermark: true, x: G.tzX, y: G.platY, w: G.tzW, h: G.platH, accent: "#79b8ff" },
-      { id: "apps", title: "Applications  ·  music-store", x: G.appX, y: G.top, w: G.appW, h: G.appBot - G.top, accent: "#56d4a0" },
-      { id: "pai", title: "Private AI", mark: "pai", x: G.paiX, y: G.top, w: G.paiW, h: G.appBot - G.top, accent: "#d2a8ff" },
-      { id: "vks", title: "VKS  ·  music-store", mark: "vks", x: G.vksX, y: G.vksY, w: G.vksW, h: G.vksH, accent: "#56d4a0" },
-      { id: "am", title: "AgentMinder", mark: "agentminder", x: G.amX, y: G.vksY, w: G.amW, h: G.vksH, accent: "#f0883e" },
+      { id: "cfapps", title: "Applications", x: G.tzX, y: G.top, w: G.tzW, h: G.tzBot - G.top, accent: "#79b8ff" },
+      { id: "tanzu", title: "Tanzu Platform", mark: "tanzu", note: "Supply chain", watermark: true, x: G.tzX, y: G.platY, w: G.tzW, h: G.platH, accent: "#79b8ff" },
+      { id: "vks", title: "VKS  ·  music-store", mark: "vks", x: G.appX, y: G.top, w: G.appW, h: 760 - G.top, accent: "#56d4a0" },
+      { id: "pai", title: "Private AI", mark: "pai", x: G.paiX, y: G.top, w: G.paiW, h: 480, accent: "#d2a8ff" },
+      { id: "am", title: "AgentMinder", mark: "agentminder", x: G.paiX, y: 616, w: G.paiW, h: 144, accent: "#f0883e" },
       { id: "vcf", title: "VCF  ·  vSphere Supervisor", mark: "vcf", x: 24, y: G.vcfY, w: 1800, h: G.vcfH, accent: "#79b8ff" },
       { id: "dsmz", title: "DSM", mark: "dsm", x: 1288, y: G.vcfY + 40, w: 500, h: G.vcfH - 56, accent: "#e3b341" }
     ];
@@ -252,42 +235,32 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       ]);
     }
 
+    add("e-music-vm", hlink(N["users-vm"], N.music));
     add("e-music-chat", hlink(N.music, N.chat));
     add("e-music-cart", rail(N.music, N.cart, G.yCart, "s", "s"));
     add("e-music-order", rail(N.music, N.order, G.yOrder, "s", "s"));
     add("e-chat-order", rail(N.chat, N.order, G.yChO, "s", "s"));
-    add("e-music-users", rail(N.music, N["shop-users"], G.yMusU, "s", "s"));
     add("e-orch-music", rail(N.orch, N.music, G.yOrchM, "n", "s"));
-    add("e-shop-cart", hlink(N.shop163, N["shop-cart"]));
-    add("e-shop-order", rail(N.shop163, N["shop-order"], G.yShopO, "s", "s"));
-    add("e-traffic-shop", rail(N.traffic, N.shop163, G.yTr, "s", "s"));
     add("e-zammad-db", hlink(N.zammad, N["zammad-db"]));
-    add("e-zammad-redis", rail(N.zammad, N["zammad-redis"], G.yZr, "s", "s"));
-    add("e-zammad-cache", rail(N.zammad, N["zammad-cache"], G.yZcache, "s", "s"));
+    add("e-zammad-redis", rail(N.zammad, N["zammad-redis"], 384, "s", "s"));
+    add("e-zammad-cache", rail(N.zammad, N["zammad-cache"], 396, "s", "s"));
     add("e-incident-orch", hlink(N.incident, N["cf-orch"]));
     add("e-cforch-lb", hlink(N["cf-orch"], N["lb-agent"]));
     add("e-cforch-k8s", rail(N["cf-orch"], N["k8s-agent"], G.yK8s, "s", "n"));
     add("e-cforch-vcf", rail(N["cf-orch"], N["vcf-agent"], G.yVcf, "s", "n"));
 
-    add("e-users-shop", [
-      [L(N["users-vm"]), cy(N["users-vm"])],
-      [G.leftU, cy(N["users-vm"])],
-      [G.leftU, G.yUsers],
-      [cx(N.shop163), G.yUsers],
-      [cx(N.shop163), T(N.shop163)]
-    ]);
     add("e-incident-zammad", [
       [L(N.incident), cy(N.incident)],
       [G.leftZ, cy(N.incident)],
-      [G.leftZ, G.yZi],
-      [L(N.zammad), G.yZi]
+      [G.leftZ, 328],
+      [L(N.zammad), 328]
     ]);
     add("e-cforch-zammad", [
       [cx(N["cf-orch"]), B(N["cf-orch"])],
       [cx(N["cf-orch"]), G.yCfZ],
       [col[10], G.yCfZ],
-      [col[10], G.yZc],
-      [L(N.zammad), G.yZc]
+      [col[10], 340],
+      [L(N.zammad), 340]
     ]);
 
     add("e-chat-qwen", [
@@ -349,13 +322,6 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     }
     dsmVia("e-music-dsm", N.music, G.yMd, pai[1], G.yMusD, tray[7], -18);
     dsmVia("e-chat-dsm", N.chat, G.yCd, pai[2], G.yChatD, tray[8], 0);
-    add("e-shop-dsm", [
-      [cx(N.shop163), B(N.shop163)],
-      [cx(N.shop163), G.yShopD],
-      [tray[9], G.yShopD],
-      [tray[9], cy(dsm) + 18],
-      [Rt(dsm), cy(dsm) + 18]
-    ]);
     return R;
   }
 
