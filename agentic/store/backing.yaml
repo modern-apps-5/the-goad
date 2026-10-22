@@ -1,5 +1,5 @@
 # Points the shop at the VM Service users VM and the DSM catalog.
-# Fill POSTGRES_HOST from BLANKS.md. Do not commit that address.
+# The catalog address is the live PostgresCluster address in this org.
 # USERS_HOST is the Goad VM Service address for music-users.
 apiVersion: v1
 kind: Service
@@ -17,7 +17,7 @@ metadata:
   name: postgres-service
 subsets:
   - addresses:
-      - ip: ${POSTGRES_HOST}
+      - ip: 10.47.7.78
     ports:
       - name: postgres
         port: 5432

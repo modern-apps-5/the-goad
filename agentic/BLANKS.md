@@ -1,14 +1,15 @@
 # Blanks
 
 Values to fill at apply time. Do not commit real addresses, tokens, or
-passwords. Examples are shapes.
+passwords. Examples are shapes. The Goad users Service and the DSM
+catalog address are written in `agentic/store/backing.yaml`.
 
 | Blank | What it is | Example |
 |---|---|---|
 | `STORE_HOST` | Avi DNS name for the shop ingress | `store.example.lab` |
 | `ZAMMAD_HOST` | Avi DNS name for Zammad | `zammad.example.lab` |
 | `GRAFANA_HOST` | Avi DNS name for Grafana | `grafana.example.lab` |
-| `POSTGRES_HOST` | DSM catalog address, from the live `PostgresCluster` status | `203.0.113.10` |
+| `POSTGRES_HOST` | DSM catalog address. The Goad address is in `agentic/store/backing.yaml` | `203.0.113.10` |
 | `USERS_HOST` | VM Service `users-service` address | `203.0.113.11` |
 | `QWEN_BASE_URL` | Private AI OpenAI base, model id `qwen` | `https://203.0.113.12/api/v1/compatibility/openai/v1` |
 | `QWEN_API_KEY` | Private AI API token. Not committed | (secret store) |
