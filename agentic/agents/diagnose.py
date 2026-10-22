@@ -18,7 +18,7 @@ from pathlib import Path
 
 import door
 
-NS = "metal-music-store"
+NS = "music-store"
 def _skill_text() -> str:
     candidates = (
         Path("/skills/SKILL.md"),

@@ -661,7 +661,7 @@ def _pod_guard(pod: dict) -> None:
 
 # Security INS-278 item 1. Create is namespace-wide in Kubernetes, so the
 # door only accepts the one pod that review approved.
-_LOAD_NS = "metal-music-store"
+_LOAD_NS = "music-store"
 _LOAD_NAME = "storage-load"
 _LOAD_NODE = "${K8S_NODE_B}"
 

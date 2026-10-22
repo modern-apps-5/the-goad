@@ -475,7 +475,7 @@ def main() -> None:
             "MCP_WRITE_TOKEN": mcp_write,
             "K8S_API_SERVER": os.environ.get("K8S_API_SERVER", ""),
             "K8S_TOKEN": os.environ.get("K8S_TOKEN", ""),
-            "K8S_NAMESPACE": "metal-music-store",
+            "K8S_NAMESPACE": "music-store",
             "K8S_API_TIMEOUT": "40",
         },
     )
@@ -568,7 +568,7 @@ def main() -> None:
         {
             "server": os.environ.get("K8S_API_SERVER", ""),
             "token": os.environ.get("K8S_TOKEN", ""),
-            "namespace": "metal-music-store",
+            "namespace": "music-store",
         },
     )
     ups(

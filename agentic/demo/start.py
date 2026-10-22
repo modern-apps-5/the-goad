@@ -13,7 +13,8 @@ import time
 import urllib.request
 
 TITLE = "Metal Music Store slow: checkout and catalog pages taking 10+ seconds"
-NS = "metal-music-store"
+# Shop namespace Argo runs from gitops/music-store-dev/app.
+NS = "music-store"
 
 APPLY_SQL = """
 DO $body$

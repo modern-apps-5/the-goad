@@ -264,7 +264,7 @@ def ensure_mcp_secrets(k: list[str]) -> None:
         "    insecure-skip-tls-verify: true\n"
         "contexts:\n- name: music-store\n  context:\n"
         "    cluster: music-store\n    user: mcp\n"
-        "    namespace: metal-music-store\n"
+        "    namespace: music-store\n"
         "current-context: music-store\n"
         "users:\n- name: mcp\n  user:\n"
         f"    token: {token}\n"
@@ -354,7 +354,7 @@ def pack_vcf_specs(k: list[str]) -> None:
 
 
 def main() -> None:
-    selected = sys.argv[1:] or ["store", "incident-tools", "agents", "mcp", "clm"]
+    selected = sys.argv[1:] or ["incident-tools", "agents", "mcp", "clm"]
     for name in REQUIRED:
         need(name)
     ensure_admin_password()
@@ -373,27 +373,9 @@ def main() -> None:
         raise SystemExit("nothing selected")
 
     if "store" in selected:
-        _apply_secret(k, [
-            "create", "secret", "generic", "store-db", "-n", "metal-music-store",
-            f"--from-literal=password={store_password()}", "--dry-run=client", "-o", "yaml",
-        ])
-        _apply_secret(k, [
-            "create", "secret", "generic", "metal-oracle-model", "-n", "metal-music-store",
-            f"--from-literal=base-url={need('QWEN_BASE_URL')}",
-            f"--from-literal=api-key={need('QWEN_API_KEY')}",
-            "--from-literal=model=qwen",
-            "--dry-run=client", "-o", "yaml",
-        ])
-
-        rendered = subprocess.run(
-            ["kubectl", "kustomize", "--load-restrictor", "LoadRestrictionsNone", str(ROOT / "store")],
-            capture_output=True, text=True,
-        )
-        if rendered.returncode != 0:
-            raise SystemExit(rendered.stderr.strip() or "kustomize failed")
-        # Server-side: the cover ConfigMap is larger than the
-        # last-applied-configuration annotation limit.
-        run(k + ["apply", "--server-side", "--force-conflicts", "-f", "-"], input_text=fill(rendered.stdout))
+        # The shop is owned by gitops/music-store-dev/app. Applying
+        # agentic/store would recreate the retired namespace.
+        print("store apply skipped: the shop is owned by gitops/music-store-dev/app")
 
     if "incident-tools" in selected:
         zammad = fill((ROOT / "incident-tools" / "zammad.yaml").read_text())
