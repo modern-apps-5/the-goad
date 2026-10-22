@@ -2,10 +2,10 @@
 # music-store. Argo CD syncs this directory with the Application
 # music-store-dev-app into the namespace music-store.
 #
-# The storefront is agentic/store: store, cart, order, and chat, run from
-# source on python:3.12-slim, with /health on cart, order, and chat.
-# The Goad ingress is ingress.yaml in this directory. It is not the copy
-# under agentic/store, which is pinned to another namespace.
+# The storefront source lives in this directory: store, cart, order, and
+# chat, run from source on python:3.12-slim, with /health on cart, order,
+# and chat. Argo's kustomize will not load files outside this directory.
+# The Goad ingress is ingress.yaml.
 #
 # The users service and the catalog are not containers. services.yaml
 # gives the containers the names they already call, postgres-service and
@@ -19,7 +19,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../../agentic/store/workloads.yaml
+  - workloads.yaml
   - services.yaml
   - persistence.yaml
   - ingress.yaml
@@ -30,28 +30,28 @@ generatorOptions:
 configMapGenerator:
   - name: store-src
     files:
-      - app.py=../../../agentic/store/src/store/app.py
-      - requirements.txt=../../../agentic/store/src/store/requirements.txt
+      - app.py=src/store/app.py
+      - requirements.txt=src/store/requirements.txt
   - name: cart-src
     files:
-      - app.py=../../../agentic/store/src/cart/app.py
-      - requirements.txt=../../../agentic/store/src/cart/requirements.txt
+      - app.py=src/cart/app.py
+      - requirements.txt=src/cart/requirements.txt
   - name: order-src
     files:
-      - app.py=../../../agentic/store/src/order/app.py
-      - requirements.txt=../../../agentic/store/src/order/requirements.txt
+      - app.py=src/order/app.py
+      - requirements.txt=src/order/requirements.txt
   - name: chat-src
     files:
-      - app.py=../../../agentic/store/src/chat/app.py
-      - requirements.txt=../../../agentic/store/src/chat/requirements.txt
+      - app.py=src/chat/app.py
+      - requirements.txt=src/chat/requirements.txt
   - name: store-covers
     files:
-      - ../../../agentic/store/covers/Inflames_colony.jpeg
-      - ../../../agentic/store/covers/Iron_Maiden-Somewhere_in_Time.jpg
-      - ../../../agentic/store/covers/Metallica_-_...And_Justice_for_All_cover.jpg
-      - ../../../agentic/store/covers/Pantera-VulgarDisplayofPower.jpg
-      - ../../../agentic/store/covers/Sound_garden-Superunknown.jpg
-      - ../../../agentic/store/covers/System_of_a_down-system_of_a_down.jpg
+      - covers/Inflames_colony.jpeg
+      - covers/Iron_Maiden-Somewhere_in_Time.jpg
+      - covers/Metallica_-_...And_Justice_for_All_cover.jpg
+      - covers/Pantera-VulgarDisplayofPower.jpg
+      - covers/Sound_garden-Superunknown.jpg
+      - covers/System_of_a_down-system_of_a_down.jpg
 
 patches:
   - path: cart-persistence.yaml
