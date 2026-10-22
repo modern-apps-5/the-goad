@@ -93,6 +93,8 @@ spec:
               value: "true"
             - name: GF_USERS_DEFAULT_THEME
               value: dark
+            - name: GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS
+              value: goad-topology
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -111,6 +113,8 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards
             - name: boards
               mountPath: /var/lib/grafana/dashboards
+            - name: topology
+              mountPath: /var/lib/grafana/plugins/goad-topology
       volumes:
         - name: datasources
           configMap:
@@ -121,6 +125,9 @@ spec:
         - name: boards
           configMap:
             name: grafana-dashboards
+        - name: topology
+          configMap:
+            name: goad-topology
 ---
 apiVersion: v1
 kind: Service
