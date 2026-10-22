@@ -1,0 +1,17 @@
+{
+  "type": "panel",
+  "name": "Goad topology",
+  "id": "goad-topology",
+  "info": {
+    "description": "Full-screen Goad application topology",
+    "author": { "name": "Goad" },
+    "keywords": ["topology", "goad"],
+    "logos": { "small": "logo.svg", "large": "logo.svg" },
+    "version": "1.3.0",
+    "updated": "2026-10-22"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=10.0.0",
+    "plugins": []
+  }
+}

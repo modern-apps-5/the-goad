@@ -1,0 +1,65 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "type": "goad-topology",
+      "title": "",
+      "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "goad-prometheus" },
+      "gridPos": { "h": 36, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "arch_up",
+          "instant": true,
+          "range": false,
+          "exemplar": false,
+          "editorMode": "code",
+          "format": "table",
+          "legendFormat": "__auto",
+          "datasource": { "type": "prometheus", "uid": "goad-prometheus" }
+        },
+        {
+          "refId": "B",
+          "expr": "arch_edge",
+          "instant": true,
+          "range": false,
+          "exemplar": false,
+          "editorMode": "code",
+          "format": "table",
+          "legendFormat": "__auto",
+          "datasource": { "type": "prometheus", "uid": "goad-prometheus" }
+        },
+        {
+          "refId": "C",
+          "expr": "arch_latency_ms",
+          "instant": true,
+          "range": false,
+          "exemplar": false,
+          "editorMode": "code",
+          "format": "table",
+          "legendFormat": "__auto",
+          "datasource": { "type": "prometheus", "uid": "goad-prometheus" }
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["goad", "architecture"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "hidden": true },
+  "timezone": "browser",
+  "title": "Goad architecture",
+  "uid": "goad-architecture",
+  "version": 2
+}

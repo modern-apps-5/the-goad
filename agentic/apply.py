@@ -70,6 +70,8 @@ def fill(text: str) -> str:
         "IDSP_GATEWAY_VCF",
         "VCF_MCP_AUDIENCES",
         "CLM_URL",
+        "CLM_HEALTH_URL",
+        "QWEN_MODELS_URL",
         "INCIDENT_HOST",
         "STORE_WORKER_VMS",
     ):
@@ -77,6 +79,10 @@ def fill(text: str) -> str:
             value = os.environ.get(name, "http://prometheus.example.invalid")
         elif name == "CLM_URL":
             value = os.environ.get("CLM_URL", os.environ.get("CLM_BASE_URL", ""))
+        elif name == "CLM_HEALTH_URL":
+            value = os.environ.get("CLM_HEALTH_URL", os.environ.get("CLM_URL", ""))
+        elif name == "QWEN_MODELS_URL":
+            value = os.environ.get("QWEN_MODELS_URL", "")
         else:
             value = os.environ.get(name, "")
         text = text.replace("${" + name + "}", value)
@@ -104,6 +110,15 @@ def load_doors() -> dict:
             parts.append(f"http://{host}/mcp")
         os.environ["VCF_MCP_AUDIENCES"] = ",".join(parts)
     return doc
+
+
+def _topology_plugin(k: list[str]) -> None:
+    topo = ROOT / "incident-tools" / "topology"
+    _cm(k, "goad-topology", "incident-tools", [
+        ("plugin.json", topo / "plugin.json"),
+        ("module.js", topo / "module.js"),
+        ("logo.svg", topo / "logo.svg"),
+    ])
 
 
 def _cm(k: list[str], name: str, namespace: str, files: list[tuple[str, Path]]) -> None:
@@ -167,6 +182,7 @@ def ensure_agent_objects(k: list[str]) -> None:
     _cm(k, "skill-k8s", ns, [("SKILL.md", agents / "k8s-diagnostic" / "skills" / "SKILL.md")])
     _cm(k, "skill-vcf", ns, [("SKILL.md", agents / "vcf-diagnostic" / "skills" / "SKILL.md")])
     _cm(k, "pii-scrub", ns, [("scrub.py", ROOT / "pii" / "scrub.py")])
+    _topology_plugin(k)
     run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "incident-tools" / "grafana.yaml").read_text()))
     run(k + ["apply", "-f", "-"], input_text=fill((agents / "workloads.yaml").read_text()))
     for name in (
@@ -384,7 +400,12 @@ def main() -> None:
         grafana = fill((ROOT / "incident-tools" / "grafana.yaml").read_text())
         metrics = fill((ROOT / "incident-tools" / "prometheus.yaml").read_text())
         run(k + ["apply", "-f", "-"], input_text=zammad)
+        _topology_plugin(k)
         run(k + ["apply", "-f", "-"], input_text=grafana)
+        board = ROOT / "incident-tools" / "dashboards" / "goad-architecture.json"
+        if board.is_file():
+            patch = json.dumps({"data": {"goad-architecture.json": board.read_text()}})
+            run(k + ["patch", "configmap", "grafana-dashboards", "-n", "incident-tools", "--type", "merge", "-p", patch])
         run(k + ["apply", "-f", "-"], input_text=metrics)
         zenv = "\n".join([
             "POSTGRESQL_HOST=zammad-postgresql",
