@@ -1,5 +1,6 @@
 # Points the shop at the VM Service users VM and the DSM catalog.
-# Fill POSTGRES_HOST and USERS_HOST from BLANKS.md. Do not commit them.
+# Fill POSTGRES_HOST from BLANKS.md. Do not commit that address.
+# USERS_HOST is the Goad VM Service address for music-users.
 apiVersion: v1
 kind: Service
 metadata:
@@ -37,7 +38,7 @@ metadata:
   name: users-service
 subsets:
   - addresses:
-      - ip: ${USERS_HOST}
+      - ip: 10.47.7.52
     ports:
       - name: http
         port: 5003
