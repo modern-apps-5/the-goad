@@ -1,5 +1,5 @@
 # The addresses behind users-service and postgres-service in the VKS
-# cluster music-store, where gitops/music-store-dev/app runs the shop's
+# cluster music-store, where gitops/music-store/app runs the shop's
 # containers.
 #
 # The users VM and the catalog run in this Supervisor Namespace, and the

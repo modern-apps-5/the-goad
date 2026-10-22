@@ -373,8 +373,8 @@ def main() -> None:
         raise SystemExit("nothing selected")
 
     if "store" in selected:
-        # The shop is owned by gitops/music-store-dev/app. This tree has no store.
-        print("store apply skipped: the shop is owned by gitops/music-store-dev/app")
+        # The shop is owned by gitops/music-store/app. This tree has no store.
+        print("store apply skipped: the shop is owned by gitops/music-store/app")
 
     if "incident-tools" in selected:
         zammad = fill((ROOT / "zammad" / "zammad.yaml").read_text())

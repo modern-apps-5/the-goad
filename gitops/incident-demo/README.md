@@ -2,7 +2,7 @@
 
 The Metal Music incident demo. It runs beside the shop. Nothing here is
 a secret. The shop is not in this tree. Argo CD syncs it from
-`gitops/music-store-dev/app` into namespace `music-store`.
+`gitops/music-store/app` into namespace `music-store`.
 
 | Directory | What it is |
 |---|---|
@@ -28,7 +28,7 @@ they are deployed are in `gitops/README.md`.
 | Piece | Cluster | Namespace |
 |---|---|---|
 | Storefront, cart, orders, chat, ingress | `music-store` | `music-store` |
-| Users VM, DSM catalog, VKS cluster | supervisor | `gitops/music-store` and `gitops/music-store-dev/users-vm` |
+| Users VM, DSM catalog, VKS cluster | supervisor | `gitops/music-store` and `gitops/music-store/users-vm` |
 | Incident response chat, orchestrator, three diagnostic agents, three MCP servers, pii-scrub | Tanzu Platform org `Goad` | space `metal-music-app-agentic-system` |
 | Zammad and Grafana | `music-store` | `incident-tools` |
 | Qwen | Private AI `ModelEndpoint` `qwen` | the Private AI namespace |

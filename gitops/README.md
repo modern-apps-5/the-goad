@@ -17,13 +17,17 @@ Applications. Those Applications are not edited from this directory.
    catalog from `music-store`.
    - `private-ai` — wave 0 database, wave 1 the address Job, wave 2
      Private AI Services, wave 3 model `qwen-14b-xlarge`.
-   - `music-store` — wave 0 catalog and VKS cluster `music-store`,
-     wave 1 the catalog address, wave 2 catalog init.
-   - `music-store-dev/users-vm` — wave 0 the users VM, wave 1 the Job
-     that writes `users-service` and `postgres-service` into the VKS
-     cluster. No address is in git.
-   - `music-store-dev/app` — the shop in namespace `music-store` of
-     that cluster.
+   - `music-store/` — one folder, three Applications. The parent
+     Application `music-store` syncs only the files in that directory
+     (`cluster.yaml`, `catalog.yaml`). It does not recurse, so `app/`
+     and `users-vm/` are not part of it. Wave 0 is the catalog and the
+     VKS cluster `music-store`, wave 1 the catalog address, wave 2
+     catalog init.
+   - `music-store/users-vm` — Application `music-store-dev-vm`. Wave 0
+     the users VM, wave 1 the Job that writes `users-service` and
+     `postgres-service` into the VKS cluster. No address is in git.
+   - `music-store/app` — Application `music-store-dev-app`. The shop in
+     namespace `music-store` of that cluster.
 4. The incident demo is not an Argo CD Application. After the shop
    answers, `incident-demo/apply.py` fills Zammad, Grafana, the guest
    agent manifests, and the MCP servers. `incident-demo/tanzu-agents/push.py`
@@ -35,9 +39,7 @@ Applications. Those Applications are not edited from this directory.
 | Folder | Owner | What it deploys |
 |---|---|---|
 | `private-ai/` | platform engineer | DSM database, Private AI Services, and the Qwen model. Application `private-ai`. |
-| `music-store/` | platform engineer | DSM catalog `catalog` and VKS cluster `music-store`. Application `music-store`. |
-| `music-store-dev/users-vm/` | developer | Users VM and the Endpoints Job. Application `music-store-dev-vm`. |
-| `music-store-dev/app/` | developer | Store, cart, order, and chat, from source in this directory, plus the ingress. Application `music-store-dev-app`, namespace `music-store`. |
+| `music-store/` | platform engineer and developer | One shop folder. `cluster.yaml` and `catalog.yaml` are Application `music-store` (the VKS cluster and the DSM catalog). `users-vm/` is Application `music-store-dev-vm`. `app/` is Application `music-store-dev-app`, namespace `music-store`. |
 | `incident-demo/` | incident demo | Observability, Zammad, agents and orchestrator, Tanzu push, MCP, PII scrub, CLM, AgentMinder registration, and the walk. Not synced by Argo CD. |
 
 `incident/` at the repository root is an older copy of the demo. It is
