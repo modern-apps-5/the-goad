@@ -440,7 +440,7 @@ def main() -> None:
     pii = stage_tree(ROOT / "pii", ["scrub.py"])
     push(base_app("pii-scrub", pii, "256M", "512M", "python scrub.py", ["python_buildpack"]))
 
-    live = stage_tree(ROOT / "orchestrator", ["harness.py"])
+    live = stage_tree(ROOT / "agents" / "orchestrator", ["harness.py"])
     push(base_app("metal-incident-live", live, "512M", "1G", "python harness.py", ["python_buildpack"]))
 
     for name, (entry, skill) in AGENTS.items():
@@ -716,7 +716,7 @@ def push_agents() -> None:
         push(spec)
         clear_command(name)
         bind(name, "goad-qwen")
-    live = stage_tree(ROOT / "orchestrator", ["harness.py"])
+    live = stage_tree(ROOT / "agents" / "orchestrator", ["harness.py"])
     push(base_app("metal-incident-live", live, "512M", "1G", "python harness.py", ["python_buildpack"]))
     zammad = app_env("incident-response-agent")
     set_env(

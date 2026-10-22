@@ -1,6 +1,0 @@
-# Omitted from kustomization.yml. The shop namespace is music-store,
-# owned by gitops/music-store-dev/app.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: metal-music-store

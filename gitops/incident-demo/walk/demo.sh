@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cmd="${1:-}"
 case "$cmd" in
-  start) exec python3 "$ROOT/demo/start.py" ;;
+  start) exec python3 "$ROOT/walk/start.py" ;;
   *)
     echo "Usage: ./demo.sh start"
     echo "start slows catalog queries and opens the incident ticket."

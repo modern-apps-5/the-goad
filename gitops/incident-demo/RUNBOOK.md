@@ -11,10 +11,9 @@ that cost a wrong turn. No secrets in this file. Fill blanks from
   guest namespace `metal-music-app-agentic-system` was the wrong runtime.
   Do not delete those pods until a second approval, and do not add new
   ones.
-- The shop is the Red Lab storefront copied from the other organization
-  (read-only export): store, cart, orders, and chat, in guest namespace
-  `metal-music-store`. Do not deploy the home-lab container shop
-  (`app/music-store`, the `ghcr.io/niranec77/metal-music-store` images).
+- The shop is `gitops/music-store-dev/app`, namespace `music-store` on
+  the VKS cluster `music-store`. Argo CD syncs it. This tree has no
+  store. Do not deploy `app/music-store`.
 - Users are the VM Service VM `music-users` and `users-service`. The
   catalog is the DSM `PostgresCluster` `catalog`. The slow-page fault is
   the view `albums` over `albums_data` (`pg_sleep`). Do not run a
@@ -119,7 +118,7 @@ Avi.
 
 | Piece | Where |
 |---|---|
-| Storefront | VKS `music-store`, namespace `metal-music-store` |
+| Storefront | VKS `music-store`, namespace `music-store`, path `gitops/music-store-dev/app` |
 | Users VM, DSM catalog | supervisor namespace for `music-store` |
 | Zammad, Grafana | VKS `music-store`, namespace `incident-tools` |
 | Qwen 14B | Goad Private AI `ModelEndpoint` `qwen` |
@@ -138,8 +137,9 @@ Routes, after `cf push`:
 - `https://metal-incident-live.${TANZU_APPS_DOMAIN}/health`
 - `https://pii-scrub.${TANZU_APPS_DOMAIN}/health`
 
-Manifests: `tanzu/manifest.yml`, `tanzu/mcp.yml`, `tanzu/live.yml`,
-`tanzu/pii.yml`. Push: `tanzu/push.py`.
+Manifests: `tanzu-agents/manifest.yml`, `tanzu-agents/mcp.yml`,
+`tanzu-agents/live.yml`, `tanzu-agents/pii.yml`. Push:
+`tanzu-agents/push.py`.
 
 ## Rebuild order
 
@@ -151,23 +151,22 @@ Manifests: `tanzu/manifest.yml`, `tanzu/mcp.yml`, `tanzu/live.yml`,
    view (`relkind` `v`) over `albums_data` (`relkind` `r`).
 4. Confirm Private AI `ModelEndpoint` `qwen` is the 14B endpoint on
    `best-effort-xlarge` and Ready. A one-word completion returns.
-5. Apply the storefront from `store/` (the copied shop). Ingress host
-   is `STORE_HOST`. `GET /` is HTTP 200 and slow while the view delay
-   is in place.
-6. Apply Zammad and Grafana from `incident-tools/` into namespace
-   `incident-tools`. `ZAMMAD_HTTP_TYPE` is `http` because the published
+5. The shop is already `gitops/music-store-dev/app`. Confirm
+   `GET /` on `STORE_HOST` is HTTP 200. This tree does not apply a store.
+6. Apply Zammad from `zammad/` and Grafana from `observability/` into
+   namespace `incident-tools`. `ZAMMAD_HTTP_TYPE` is `http` because the published
    URL is `http://`. Set Grafana `admin` and the Zammad admin password
    in the cluster secrets to the standard lab password. Do not print it.
 7. `cf target -o Goad -s metal-music-app-agentic-system` on
    `https://api.sys.tp.gpu.set.lab`. Create the org and space if they
    are absent. Do not push into org `demo`.
-8. `python3 tanzu/push.py` with the blanks in the environment
+8. `python3 tanzu-agents/push.py` with the blanks in the environment
    (`QWEN_*`, `ZAMMAD_*`, `GRAFANA_*`, `K8S_TOKEN`, Avi controller
    fields). The script does not print them.
 9. Point the three AgentMinder resource servers `goad-k8s-mcp`,
    `goad-avi-mcp`, and `goad-vcf-mcp` at
    `https://metal-*-mcp.${TANZU_APPS_DOMAIN}/mcp`.
-10. `demo/demo.sh start` slows the catalog and opens one Zammad ticket.
+10. `walk/demo.sh start` slows the catalog and opens one Zammad ticket.
     It does not start the agents.
 
 ## Verification

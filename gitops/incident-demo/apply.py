@@ -113,7 +113,7 @@ def load_doors() -> dict:
 
 
 def _topology_plugin(k: list[str]) -> None:
-    topo = ROOT / "incident-tools" / "topology"
+    topo = ROOT / "observability" / "topology"
     _cm(k, "goad-topology", "incident-tools", [
         ("plugin.json", topo / "plugin.json"),
         ("module.js", topo / "module.js"),
@@ -176,14 +176,14 @@ def ensure_agent_objects(k: list[str]) -> None:
         ("diagnose.py", agents / "diagnose.py"),
         ("door.py", agents / "door.py"),
     ])
-    _cm(k, "orchestrator-code", ns, [("harness.py", ROOT / "orchestrator" / "harness.py")])
+    _cm(k, "orchestrator-code", ns, [("harness.py", ROOT / "agents" / "orchestrator" / "harness.py")])
     _cm(k, "skill-incident-response", ns, [("SKILL.md", agents / "incident-response" / "skills" / "SKILL.md")])
     _cm(k, "skill-lb", ns, [("SKILL.md", agents / "lb-diagnostic" / "skills" / "SKILL.md")])
     _cm(k, "skill-k8s", ns, [("SKILL.md", agents / "k8s-diagnostic" / "skills" / "SKILL.md")])
     _cm(k, "skill-vcf", ns, [("SKILL.md", agents / "vcf-diagnostic" / "skills" / "SKILL.md")])
     _cm(k, "pii-scrub", ns, [("scrub.py", ROOT / "pii" / "scrub.py")])
     _topology_plugin(k)
-    run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "incident-tools" / "grafana.yaml").read_text()))
+    run(k + ["apply", "-f", "-"], input_text=fill((ROOT / "observability" / "grafana.yaml").read_text()))
     run(k + ["apply", "-f", "-"], input_text=fill((agents / "workloads.yaml").read_text()))
     for name in (
         "incident-response-agent",
@@ -220,7 +220,7 @@ def wizard_b64() -> str:
 
 
 def store_password() -> str:
-    text = (ROOT.parent / "app" / "music-store" / "k8s-deployment.yaml").read_text()
+    text = (ROOT.parents[1] / "app" / "music-store" / "k8s-deployment.yaml").read_text()
     for line in text.splitlines():
         if "music_password" in line and "DB_PASSWORD" not in line:
             # the value line is the next assignment; handled below
@@ -312,7 +312,7 @@ def pack_vcf_specs(k: list[str]) -> None:
     """
     spec_dir = ROOT / "mcp" / "vcf" / "specs"
     if not (spec_dir / "vcenter.yaml").is_file():
-        raise SystemExit("vcf OpenAPI specs are not in agentic/mcp/vcf/specs")
+        raise SystemExit("vcf OpenAPI specs are not in mcp/vcf/specs")
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as archive:
         archive.add(spec_dir, arcname="specs")
@@ -373,18 +373,17 @@ def main() -> None:
         raise SystemExit("nothing selected")
 
     if "store" in selected:
-        # The shop is owned by gitops/music-store-dev/app. Applying
-        # agentic/store would recreate the retired namespace.
+        # The shop is owned by gitops/music-store-dev/app. This tree has no store.
         print("store apply skipped: the shop is owned by gitops/music-store-dev/app")
 
     if "incident-tools" in selected:
-        zammad = fill((ROOT / "incident-tools" / "zammad.yaml").read_text())
-        grafana = fill((ROOT / "incident-tools" / "grafana.yaml").read_text())
-        metrics = fill((ROOT / "incident-tools" / "prometheus.yaml").read_text())
+        zammad = fill((ROOT / "zammad" / "zammad.yaml").read_text())
+        grafana = fill((ROOT / "observability" / "grafana.yaml").read_text())
+        metrics = fill((ROOT / "observability" / "prometheus.yaml").read_text())
         run(k + ["apply", "-f", "-"], input_text=zammad)
         _topology_plugin(k)
         run(k + ["apply", "-f", "-"], input_text=grafana)
-        board = ROOT / "incident-tools" / "dashboards" / "goad-architecture.json"
+        board = ROOT / "observability" / "dashboards" / "goad-architecture.json"
         if board.is_file():
             patch = json.dumps({"data": {"goad-architecture.json": board.read_text()}})
             run(k + ["patch", "configmap", "grafana-dashboards", "-n", "incident-tools", "--type", "merge", "-p", patch])

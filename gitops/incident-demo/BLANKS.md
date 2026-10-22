@@ -1,15 +1,16 @@
 # Blanks
 
 Values to fill at apply time. Do not commit real addresses, tokens, or
-passwords. Examples are shapes. The Goad users Service and the DSM
-catalog address are written in `agentic/store/backing.yaml`.
+passwords. Examples are shapes. The users and catalog addresses are
+written by the Job in `gitops/music-store-dev/users-vm/shop-endpoints.yaml`.
+No address is in git.
 
 | Blank | What it is | Example |
 |---|---|---|
 | `STORE_HOST` | Avi DNS name for the shop ingress | `store.example.lab` |
 | `ZAMMAD_HOST` | Avi DNS name for Zammad | `zammad.example.lab` |
 | `GRAFANA_HOST` | Avi DNS name for Grafana | `grafana.example.lab` |
-| `POSTGRES_HOST` | DSM catalog address. The Goad address is in `agentic/store/backing.yaml` | `203.0.113.10` |
+| `POSTGRES_HOST` | DSM catalog address. The Job in `gitops/music-store-dev/users-vm` writes it | `203.0.113.10` |
 | `USERS_HOST` | VM Service `users-service` address | `203.0.113.11` |
 | `QWEN_BASE_URL` | Private AI OpenAI base, model id `qwen` | `https://203.0.113.12/api/v1/compatibility/openai/v1` |
 | `QWEN_API_KEY` | Private AI API token. Not committed | (secret store) |
@@ -18,7 +19,7 @@ catalog address are written in `agentic/store/backing.yaml`.
 | `ZAMMAD_DB_PASSWORD` | Zammad Postgres password. Not committed | (secret store) |
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin password. Not committed | (secret store) |
 | `CLM_URL` | Orchestrator decision gate. POST `{CLM_URL}/v1/systemone`. Blank means the walk uses the fallback and the report says so | (blank until a CLM image exists) |
-| `CLM_BASE_URL` | Same root, read by `orchestrator/clm.py`. The pod env is `CLM_URL` | `http://clm.example.lab:8700` |
+| `CLM_BASE_URL` | Same root, read by `agents/orchestrator/clm.py`. The pod env is `CLM_URL` | `http://clm.example.lab:8700` |
 | `CLM_IMAGE` | Image for the CLM server. Empty means do not apply `clm/clm.yaml` | (empty until the image exists here) |
 | `TANZU_APPS_DOMAIN` | Cloud Foundry apps domain for org `Goad` | `apps.example.lab` |
 | `GOAD_VCFA_SPACE` | Tanzu space. The approved name is `metal-music-app-agentic-system` | `metal-music-app-agentic-system` |
@@ -34,10 +35,10 @@ catalog address are written in `agentic/store/backing.yaml`.
 | `VCF_MCP_AUDIENCES` | Comma-separated JWT audiences for the VCF door | (set by `agentminder/register.py`) |
 | `KUBECONFIG` | Guest cluster kubeconfig. Not committed | (operator file) |
 
-The shop database user and password stay the ones already published in
-`app/music-store`. Apply writes them into secret `store-db`. Chat's
-`metal-oracle-model` secret is created at apply from `QWEN_BASE_URL`,
-`QWEN_API_KEY`, and model id `qwen`. Agent apply also creates
+The shop database secret `store-db` and the chat secret
+`metal-oracle-model` already live in namespace `music-store`. This
+apply does not write them. The shop is `gitops/music-store-dev/app`.
+Agent apply creates
 `agent-doors`, `qwen-model`, `zammad-api`, `walk-targets`, and
 `grafana-annotator` in `metal-music-app-agentic-system`. The key names
 for every Secret apply creates are in `secrets/templates.yaml`. That
