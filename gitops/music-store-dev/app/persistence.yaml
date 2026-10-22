@@ -1,0 +1,24 @@
+# Disks already bound in namespace music-store. Her cart and order
+# create their own tables on these files. The claims stay so Argo prune
+# does not delete them.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cart-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: order-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

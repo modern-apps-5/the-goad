@@ -1,27 +1,71 @@
 # The developer's deploy: the shop's containers on the VKS cluster
-# music-store, which the platform engineer builds from
-# gitops/music-store/cluster.yaml.
+# music-store. Argo CD syncs this directory with the Application
+# music-store-dev-app into the namespace music-store.
 #
-# Argo CD syncs this directory with the Application music-store-dev-app
-# into the namespace music-store of that cluster. Terraform creates the
-# Application, in terraform/platform-engineer/gitops.tf.
+# The storefront is agentic/store: store, cart, order, and chat, run from
+# source on python:3.12-slim, with /health on cart, order, and chat.
+# The Goad ingress is ingress.yaml in this directory. It is not the copy
+# under agentic/store, which is pinned to another namespace.
 #
-# The containers are app/music-store, as listed in its kustomization.yml.
-# The users service and the catalog are not containers. They run in the
-# Supervisor Namespace: the users VM in gitops/music-store-dev/users-vm,
-# the catalog in gitops/music-store. services.yaml gives the containers
-# the names they already call, and the Job shop-endpoints in
-# gitops/music-store-dev/users-vm writes the addresses behind them.
+# The users service and the catalog are not containers. services.yaml
+# gives the containers the names they already call, postgres-service and
+# users-service. The Job shop-endpoints in gitops/music-store-dev/users-vm
+# writes the addresses. This directory does not contain Endpoints.
+#
+# cart-pvc and order-pvc stay mounted. The 1.0.63 sqlite files on those
+# disks use different tables, so her cart and order open new files beside
+# them. The old store PVC is not mounted by this shop.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../../app/music-store
+  - ../../../agentic/store/workloads.yaml
   - services.yaml
+  - persistence.yaml
+  - ingress.yaml
 
-# The cluster has no default StorageClass. This is the Supervisor's name,
-# the same storageClass as in gitops/music-store/cluster.yaml.
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: store-src
+    files:
+      - app.py=../../../agentic/store/src/store/app.py
+      - requirements.txt=../../../agentic/store/src/store/requirements.txt
+  - name: cart-src
+    files:
+      - app.py=../../../agentic/store/src/cart/app.py
+      - requirements.txt=../../../agentic/store/src/cart/requirements.txt
+  - name: order-src
+    files:
+      - app.py=../../../agentic/store/src/order/app.py
+      - requirements.txt=../../../agentic/store/src/order/requirements.txt
+  - name: chat-src
+    files:
+      - app.py=../../../agentic/store/src/chat/app.py
+      - requirements.txt=../../../agentic/store/src/chat/requirements.txt
+  - name: store-covers
+    files:
+      - ../../../agentic/store/covers/Inflames_colony.jpeg
+      - ../../../agentic/store/covers/Iron_Maiden-Somewhere_in_Time.jpg
+      - ../../../agentic/store/covers/Metallica_-_...And_Justice_for_All_cover.jpg
+      - ../../../agentic/store/covers/Pantera-VulgarDisplayofPower.jpg
+      - ../../../agentic/store/covers/Sound_garden-Superunknown.jpg
+      - ../../../agentic/store/covers/System_of_a_down-system_of_a_down.jpg
+
 patches:
+  - path: cart-persistence.yaml
+  - path: order-persistence.yaml
+  # Six covers do not fit in a client-side last-applied annotation.
+  # Her own apply path uses server-side apply for the same reason.
+  - target:
+      kind: ConfigMap
+      name: store-covers
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-options: ServerSideApply=true
   - target:
       kind: PersistentVolumeClaim
     patch: |-

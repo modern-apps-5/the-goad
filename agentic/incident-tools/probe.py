@@ -17,8 +17,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import quote
 
 CHECKS = (
-    ("store", os.environ.get("STORE_URL", "http://music-store-1-service.metal-music-store.svc:5000/")),
-    ("users", os.environ.get("USERS_URL", "http://users-service.metal-music-store.svc:5003/health")),
+    ("store", os.environ.get("STORE_URL", "http://music-store-1-service.music-store.svc:5000/")),
+    ("users", os.environ.get("USERS_URL", "http://users-service.music-store.svc:5003/health")),
     ("zammad", os.environ.get("ZAMMAD_URL", "http://zammad-nginx.incident-tools.svc:8080/")),
     ("qwen", os.environ.get("QWEN_MODELS_URL", "")),
     ("clm", os.environ.get("CLM_URL", "")),
@@ -70,20 +70,16 @@ ARCH = (
     item("am-w-7dsds", "AM worker 7dsds", "host", "agentminder", "agentminder-z7v8k", "agentminder-workers-h746j-6mwj7-7dsds", "172.30.0.36:10250", "kubelet", KUBELET, "kubelet", host="172.30.0.36", port=10250, ip="172.30.0.36"),
     item("am-w-gpn6h", "AM worker gpn6h", "host", "agentminder", "agentminder-z7v8k", "agentminder-workers-h746j-6mwj7-gpn6h", "172.30.0.35:10250", "kubelet", KUBELET, "kubelet", host="172.30.0.35", port=10250, ip="172.30.0.35"),
     item("users-vm", "Users VM", "vmsvc", "music-store", "music-store-8q8l6", "music-users", "http://10.47.7.52:5003/health", "HTTP", "ubuntu-24.04-cloud best-effort-small", "http", url="http://10.47.7.52:5003/health", ip="10.47.7.52"),
-    item("shop-users", "Shop users", "service", "music-store", "metal-music-store", "-", "http://users-service.metal-music-store.svc:5003/health", "HTTP", "-", "http", url="http://users-service.metal-music-store.svc:5003/health", ip="10.47.7.52"),
+    item("shop-users", "Shop users", "service", "music-store", "music-store", "-", "http://users-service.music-store.svc:5003/health", "HTTP", "-", "http", url="http://users-service.music-store.svc:5003/health", ip="10.47.7.52"),
     item("dsm", "DSM catalog", "database", "music-store", "music-store-8q8l6", "-", "10.47.7.78:5432", "TCP", "16.14+vmware.v9.1.1.0", "tcp", host="10.47.7.78", port=5432, ip="10.47.7.78"),
     item("vcf-ops", "VCF Ops", "console", "vcf", "ops01", "-", "10.47.0.221:443", "TCP", "ops01.gpu.set.lab", "tcp", host="10.47.0.221", port=443, ip="10.47.0.221"),
     item("vcfa", "VCFA", "console", "vcf", "auto", "-", "10.47.0.224:443", "TCP", "auto.gpu.set.lab", "tcp", host="10.47.0.224", port=443, ip="10.47.0.224"),
     item("vcenter", "vCenter", "console", "vcf", "vc01", "-", "10.47.0.200:443", "TCP", "vc01.gpu.set.lab", "tcp", host="10.47.0.200", port=443, ip="10.47.0.200"),
     item("nsx", "NSX", "console", "vcf", "nsx01", "-", "10.47.0.230:443", "TCP", "nsx01.gpu.set.lab", "tcp", host="10.47.0.230", port=443, ip="10.47.0.230"),
-    item("music", "Music shop", "app", "music-store", "metal-music-store", NODE_8, "http://music-store-1-service.metal-music-store.svc:5000/", "HTTP", "python:3.12-slim", "http", url="http://music-store-1-service.metal-music-store.svc:5000/", ip="10.96.203.228"),
-    item("chat", "Chat", "app", "music-store", "metal-music-store", NODE_8, "http://chat-service.metal-music-store.svc:5005/health", "HTTP", "python:3.12-slim", "http", url="http://chat-service.metal-music-store.svc:5005/health", ip="10.103.127.222"),
-    item("cart", "Cart", "app", "music-store", "metal-music-store", NODE_8, "http://cart-service.metal-music-store.svc:5002/health", "HTTP", "python:3.12-slim", "http", url="http://cart-service.metal-music-store.svc:5002/health", ip="10.110.165.207"),
-    item("order", "Order", "app", "music-store", "metal-music-store", NODE_8, "http://order-service.metal-music-store.svc:5001/health", "HTTP", "python:3.12-slim", "http", url="http://order-service.metal-music-store.svc:5001/health", ip="10.101.157.182"),
-    item("shop163", "Shop 1.0.63", "app", "music-store", "music-store", NODE_8, "http://10.47.7.89:5000/", "HTTP", "1.0.63", "http", url="http://10.47.7.89:5000/", ip="10.47.7.89"),
-    item("shop-cart", "Shop cart", "app", "music-store", "music-store", NODE_8, "http://cart-service.music-store.svc:5002/", "HTTP", "1.0.63", "http", url="http://cart-service.music-store.svc:5002/", ip="10.97.251.112"),
-    item("shop-order", "Shop order", "app", "music-store", "music-store", NODE_8, "http://order-service.music-store.svc:5001/", "HTTP", "1.0.63", "http", url="http://order-service.music-store.svc:5001/", ip="10.111.74.18"),
-    item("traffic", "Traffic", "app", "music-store", "music-store", NODE_G, "http://10.47.7.60:5004/health", "HTTP", "1.0.63", "http", url="http://10.47.7.60:5004/health", ip="10.47.7.60"),
+    item("music", "Music shop", "app", "music-store", "music-store", NODE_8, "http://music-store-1-service.music-store.svc:5000/", "HTTP", "python:3.12-slim", "http", url="http://music-store-1-service.music-store.svc:5000/", ip="10.101.76.254"),
+    item("chat", "Chat", "app", "music-store", "music-store", NODE_8, "http://chat-service.music-store.svc:5005/health", "HTTP", "python:3.12-slim", "http", url="http://chat-service.music-store.svc:5005/health", ip="10.111.73.154"),
+    item("cart", "Cart", "app", "music-store", "music-store", NODE_8, "http://cart-service.music-store.svc:5002/health", "HTTP", "python:3.12-slim", "http", url="http://cart-service.music-store.svc:5002/health", ip="10.97.251.112"),
+    item("order", "Order", "app", "music-store", "music-store", NODE_8, "http://order-service.music-store.svc:5001/health", "HTTP", "python:3.12-slim", "http", url="http://order-service.music-store.svc:5001/health", ip="10.111.74.18"),
     item("zammad", "Zammad", "app", "music-store", "incident-tools", "-", "http://zammad-nginx.incident-tools.svc:8080/", "HTTP", "-", "http", url="http://zammad-nginx.incident-tools.svc:8080/", ip="10.47.7.83"),
     item("zammad-db", "Zammad DB", "database", "music-store", "incident-tools", "-", "zammad-postgresql.incident-tools.svc:5432", "TCP", "-", "tcp", host="zammad-postgresql.incident-tools.svc", port=5432, ip="10.106.205.2"),
     item("zammad-redis", "Zammad Redis", "service", "music-store", "incident-tools", "-", "zammad-redis.incident-tools.svc:6379", "TCP", "-", "tcp", host="zammad-redis.incident-tools.svc", port=6379, ip="10.97.122.51"),
@@ -105,11 +101,6 @@ ARCH = (
 
 # Calls observed in this org. A path is up only when both ends are up.
 EDGES = (
-    ("e-users-shop", "users-vm", "shop163", "HTTP"),
-    ("e-shop-cart", "shop163", "shop-cart", "HTTP"),
-    ("e-shop-order", "shop163", "shop-order", "HTTP"),
-    ("e-shop-dsm", "shop163", "dsm", "TCP 5432"),
-    ("e-traffic-shop", "traffic", "shop163", "HTTP"),
     ("e-music-chat", "music", "chat", "HTTP"),
     ("e-music-cart", "music", "cart", "HTTP"),
     ("e-music-order", "music", "order", "HTTP"),
@@ -159,7 +150,7 @@ def one(url: str, headers: dict | None = None) -> tuple[int, int]:
 
 
 def catalog() -> int:
-    host = os.environ.get("CATALOG_HOST", "postgres-service.metal-music-store.svc")
+    host = os.environ.get("CATALOG_HOST", "postgres-service.music-store.svc")
     try:
         with socket.create_connection((host, 5432), 5):
             return 1
