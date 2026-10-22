@@ -1,5 +1,5 @@
 # One hostname for the shop. The Service it calls is music-store-1-service
-# from agentic/store/workloads.yaml, in this same namespace.
+# from workloads.yaml, in this same namespace.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
