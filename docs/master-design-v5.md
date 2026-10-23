@@ -2,7 +2,7 @@
 
 Master Design & Walkthrough Document V5
 
-Personas: Niran Evenchen, William Arroyo, Ronak Mukhopadhyay, Chris McCain.
+Personas: Niran Evenchen, William Arroyo, Ronak Mukhopadhyay, Chris McCain, Thomas Kraus
 
 This document outlines the blueprint for "The Grandmother of All
 Demos" (GOAD). The objective is to show the full, integrated power
