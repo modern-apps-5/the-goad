@@ -3,33 +3,38 @@
   "order": ["store", "pods", "vms", "datastore"],
   "checked_at": null,
   "checked_through": "placeholder until cluster goad-store exists; fill from a live read in a later pull request",
-  "note": "Placeholders only. No inventory ids. Pods that a Deployment owns change name when they restart, so each pod row names its workload.",
+  "note": "Placeholders only. No inventory ids. Pods that a Deployment owns change name when they restart, so each pod row names its workload. platform and kind name where that workload runs.",
   "store": {
     "name": "Metal Music Store",
     "url": "https://${STORE_HOST}/",
     "cluster": "goad-store",
     "namespace": "metal-music-store",
     "ingress_class": "avi",
-    "service_engine_group": "goad-se-group"
+    "service_engine_group": "goad-se-group",
+    "platform": "VKS",
+    "kind": "app"
   },
   "pods": [
-    {"name": "music-store-1", "workload": "Deployment music-store-1", "role": "store front end", "vm": "${K8S_NODE_A}"},
-    {"name": "order-service", "workload": "Deployment order-service", "role": "orders", "vm": "${K8S_NODE_A}"},
-    {"name": "users-service", "workload": "Deployment users-service", "role": "users", "vm": "${K8S_NODE_A}"},
-    {"name": "cart-service", "workload": "Deployment cart-service", "role": "cart", "vm": "${K8S_NODE_B}"},
-    {"name": "traffic-generator", "workload": "Deployment traffic-generator", "role": "shopper traffic", "vm": "${K8S_NODE_B}"},
-    {"name": "postgres", "workload": "Deployment postgres", "role": "database", "vm": "${K8S_NODE_C}"}
+    {"name": "music-store-1", "workload": "Deployment music-store-1", "role": "store front end", "vm": "${K8S_NODE_A}", "platform": "VKS", "kind": "app"},
+    {"name": "order-service", "workload": "Deployment order-service", "role": "orders", "vm": "${K8S_NODE_A}", "platform": "VKS", "kind": "app"},
+    {"name": "users-service", "workload": "Deployment users-service", "role": "users", "vm": "${K8S_NODE_A}", "platform": "VM", "kind": "app"},
+    {"name": "cart-service", "workload": "Deployment cart-service", "role": "cart", "vm": "${K8S_NODE_B}", "platform": "VKS", "kind": "app"},
+    {"name": "traffic-generator", "workload": "Deployment traffic-generator", "role": "shopper traffic", "vm": "${K8S_NODE_B}", "platform": "VKS", "kind": "app"},
+    {"name": "postgres", "workload": "Deployment postgres", "role": "database", "vm": "${K8S_NODE_C}", "platform": "DSM", "kind": "data"}
   ],
   "vms": [
-    {"name": "${K8S_NODE_A}", "vcenter_id": null, "node_ip": "${K8S_NODE_A_IP}", "role": "worker", "datastore": "${VSAN_DATASTORE}"},
-    {"name": "${K8S_NODE_B}", "vcenter_id": null, "node_ip": "${K8S_NODE_B_IP}", "role": "worker", "datastore": "${VSAN_DATASTORE}"},
-    {"name": "${K8S_NODE_CP}", "vcenter_id": null, "node_ip": null, "role": "control plane", "datastore": "${VSAN_DATASTORE}"}
+    {"name": "${K8S_NODE_A}", "vcenter_id": null, "node_ip": "${K8S_NODE_A_IP}", "role": "worker", "datastore": "${VSAN_DATASTORE}", "platform": "VKS", "kind": "platform"},
+    {"name": "${K8S_NODE_B}", "vcenter_id": null, "node_ip": "${K8S_NODE_B_IP}", "role": "worker", "datastore": "${VSAN_DATASTORE}", "platform": "VKS", "kind": "platform"},
+    {"name": "${K8S_NODE_CP}", "vcenter_id": null, "node_ip": null, "role": "control plane", "datastore": "${VSAN_DATASTORE}", "platform": "VKS", "kind": "platform"},
+    {"name": "${K8S_NODE_C}", "vcenter_id": null, "node_ip": null, "role": "worker", "datastore": "${VSAN_DATASTORE}", "platform": "VKS", "kind": "platform"}
   ],
   "datastore": {
     "name": "${VSAN_DATASTORE}",
     "vcenter_id": null,
     "type": null,
     "capacity_bytes": null,
-    "shared_with": null
+    "shared_with": null,
+    "platform": "VCF",
+    "kind": "platform"
   }
 }

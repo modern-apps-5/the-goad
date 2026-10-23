@@ -5,36 +5,38 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   var gd = dataMod && dataMod.PanelPlugin ? dataMod : (dataMod && dataMod.default) || dataMod;
 
   var HEALTH = { up: "#3dd68c", down: "#ff5d73", slow: "#f5c16c", unknown: "#64748b" };
-  var PROTO = { HTTP: "#79b8ff", HTTPS: "#d2a8ff", TCP: "#e3b341", MCP: "#56d4a0", OAuth: "#f0883e" };
+  var PROTO = { HTTP: "#79b8ff", HTTPS: "#d2a8ff", TCP: "#e3b341", MCP: "#7ec8c3", OAuth: "#f0a35e" };
+  var INK = "#e8eef6";
+  var BG = "#070b14";
 
-  // Box fill is the platform. The left bar and the workload chip are the
-  // kind. Up and down stay on the border and the status dot.
+  // The platform accent is the signal: group outline, header band, and the
+  // thin outline of every box inside. Boxes themselves stay the panel color.
+  // None of these accents are green or red. Those two stay on the status dot.
   var PLATFORMS = {
-    vks: { legend: "VKS", short: "VKS", fill: "#b9d4ff", accent: "#0d3f86" },
-    tanzu: { legend: "Tanzu", short: "Tanzu", fill: "#e0d0ff", accent: "#4c1d95" },
-    vm: { legend: "VM", short: "VM", fill: "#ffd08a", accent: "#8a3d08" },
-    dsm: { legend: "DSM", short: "DSM", fill: "#ffe56b", accent: "#7a5b00" },
-    "private-ai": { legend: "Private AI", short: "Private AI", fill: "#f5c4ef", accent: "#7a1b68" },
-    avi: { legend: "Avi", short: "Avi", fill: "#9eefe8", accent: "#0b5c62" },
-    agentminder: { legend: "AgentMinder", short: "AM", fill: "#f7b8c4", accent: "#8a2040" },
-    vcf: { legend: "VCF", short: "VCF", fill: "#e6e1d6", accent: "#3e3a32" }
+    vks: { legend: "VKS", header: "VKS (Kubernetes)", box: "VKS", accent: "#4c8dff", ink: "#b9d4ff" },
+    tanzu: { legend: "Tanzu", header: "Tanzu Platform", box: "Tanzu", accent: "#b794f6", ink: "#e0d4ff" },
+    vm: { legend: "VM", header: "VM Service", box: "VM", accent: "#f5a524", ink: "#ffd7a1" },
+    dsm: { legend: "DSM", header: "DSM", box: "DSM", accent: "#e6c229", ink: "#ffe58a" },
+    "private-ai": { legend: "Private AI", header: "Private AI", box: "Private AI", accent: "#e879f9", ink: "#f6c2ff" },
+    avi: { legend: "Avi", header: "Avi", box: "Avi", accent: "#2dd4bf", ink: "#9cf3e8" },
+    agentminder: { legend: "AgentMinder", header: "AgentMinder", box: "AM", accent: "#f472b6", ink: "#ffc2da" },
+    vcf: { legend: "VCF", header: "VCF", box: "VCF", accent: "#94a3b8", ink: "#d5dee8" }
   };
   var KINDS = {
-    app: { legend: "App", color: "#b86e00" },
-    agent: { legend: "Agent", color: "#c2185b" },
-    mcp: { legend: "MCP", color: "#01579b" },
-    data: { legend: "Data", color: "#00695c" },
-    model: { legend: "Model", color: "#8e24aa" },
-    platform: { legend: "Platform", color: "#37474f" }
+    app: { legend: "app", color: "#8eb4ff" },
+    agent: { legend: "agent", color: "#d4b6ff" },
+    mcp: { legend: "mcp", color: "#7fd6ea" },
+    data: { legend: "data", color: "#f0d060" },
+    model: { legend: "model", color: "#f0a0e8" },
+    platform: { legend: "platform", color: "#c5d0dc" }
   };
-  var TITLE = "#102033";
   var PLATFORM_OF = {
     "vks-api": "vks", "cp-pwtc2": "vks", "worker-8n8n5": "vks", "worker-gjwhn": "vks",
     "users-vm": "vm",
     "am-api": "agentminder", "am-cp": "agentminder", "am-w-7dsds": "agentminder", "am-w-gpn6h": "agentminder", "am-ui": "agentminder",
-    music: "vks", chat: "vks", cart: "vks", order: "vks", pii: "vks", zammad: "vks",
+    music: "vks", chat: "vks", cart: "vks", order: "vks", zammad: "vks",
     "zammad-db": "vks", "zammad-redis": "vks", "zammad-cache": "vks", orch: "vks",
-    "k8s-mcp": "vks", "vcf-mcp": "vks", "avi-mcp": "avi",
+    pii: "tanzu", "k8s-mcp": "tanzu", "vcf-mcp": "tanzu", "avi-mcp": "avi",
     dsm: "dsm", qwen: "private-ai", clm: "private-ai",
     incident: "tanzu", "cf-orch": "tanzu", "lb-agent": "tanzu", "k8s-agent": "tanzu", "vcf-agent": "tanzu",
     "vcf-ops": "vcf", vcfa: "vcf", vcenter: "vcf", nsx: "vcf"
@@ -51,39 +53,18 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     "vcf-ops": "platform", vcfa: "platform", vcenter: "platform", nsx: "platform"
   };
 
-  // Left column: agents, Tanzu supply chain, VKS runtime. App row:
-  // Users VM, VKS workloads, DSM, Private AI. VCF is the full-width floor.
-  // Gutters are the only legal wire paths.
-  var G = {
-    tzX: 24, tzW: 400, tzR: 424,
-    usersX: 436, usersW: 172,
-    appX: 620, appW: 636, appR: 1256,
-    dsmX: 1268, dsmW: 152,
-    paiX: 1432, paiW: 400, paiR: 1832,
-    top: 120,
-    aY: 164, aH: 96,
-    bY: 344, bH: 96,
-    tzBot: 456,
-    platY: 540, platH: 88,
-    runY: 640, runH: 88,
-    r1: 156, rowH: 80,
-    r2: 314,
-    r3: 500,
-    r4: 610,
-    vksY: 706, vksH: 68,
-    appBot: 800,
-    vcfY: 824, vcfH: 232,
-    yCross: 454,
-    yMcp: 594,
-    yDsm: 298,
-    yCart: 250, yOrder: 266, yChO: 282,
-    yZr: 408, yZcache: 422,
-    yOrch: 486,
-    lane: 96,
-    sky: [70, 77, 84, 91, 98, 105, 112],
-    tray: [1844, 1852, 1860, 1868, 1876, 1884, 1892, 1900, 1908],
-    gutter: 430,
-    leftX: 12
+  // Groups are platforms. Gutters and the top lanes are the wire paths.
+  var GEO = {
+    zoneY: 108,
+    zoneH: 600,
+    tz: { x: 16, y: 108, w: 440, h: 600 },
+    vm: { x: 468, y: 108, w: 156, h: 600 },
+    vks: { x: 636, y: 108, w: 660, h: 600 },
+    dsm: { x: 1308, y: 108, w: 148, h: 600 },
+    avi: { x: 1468, y: 108, w: 140, h: 600 },
+    pai: { x: 1620, y: 108, w: 284, h: 340 },
+    am: { x: 1620, y: 460, w: 284, h: 248 },
+    vcf: { x: 16, y: 724, w: 1888, h: 340 }
   };
 
   function meta(id, label, role, icon, mode, cluster, namespace, node, ip, endpoint, version) {
@@ -194,53 +175,46 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     });
   }
 
+  function grid(nodes, ids, x0, y0, cols, w, h, gx, gy) {
+    ids.forEach(function (id, i) {
+      var c = i % cols;
+      var r = Math.floor(i / cols);
+      place(nodes, id, x0 + c * (w + gx), y0 + r * (h + gy), w, h);
+    });
+  }
+
+  function zoneOf(key, mark) {
+    var g = GEO[key];
+    var plat = PLATFORMS[key === "pai" ? "private-ai" : key === "am" ? "agentminder" : key === "tz" ? "tanzu" : key];
+    return {
+      id: key, title: plat.header, mark: mark, accent: plat.accent, ink: plat.ink,
+      x: g.x, y: g.y, w: g.w, h: g.h
+    };
+  }
+
   function layout() {
     var nodes = {};
-    var tzCard = 116;
-    var tzGap = 10;
-    var tzTotal = 3 * tzCard + 2 * tzGap;
-    var tz0 = G.tzX + Math.round((G.tzW - tzTotal) / 2);
-    var step = tzCard + tzGap;
-    row(nodes, ["incident", "cf-orch", "lb-agent"], tz0, G.aY, tzCard, G.aH, tzGap, { mode: "stack" });
-    place(nodes, "k8s-agent", tz0, G.bY, tzCard, G.bH, { mode: "stack" });
-    place(nodes, "vcf-agent", tz0 + 2 * step, G.bY, tzCard, G.bH, { mode: "stack" });
+    grid(nodes, ["incident", "cf-orch", "lb-agent", "k8s-agent", "vcf-agent", "pii", "k8s-mcp", "vcf-mcp"], 30, 148, 2, 201, 120, 10, 10);
+    place(nodes, "users-vm", 482, 156, 128, 100);
+    row(nodes, ["music", "chat", "cart", "order"], 650, 148, 152, 112, 8);
+    row(nodes, ["zammad", "zammad-db", "zammad-redis", "zammad-cache"], 650, 272, 152, 112, 8);
+    place(nodes, "orch", 650, 396, 152, 112);
+    row(nodes, ["vks-api", "cp-pwtc2", "worker-8n8n5", "worker-gjwhn"], 650, 520, 152, 112, 8);
+    place(nodes, "dsm", 1320, 156, 124, 200);
+    place(nodes, "avi-mcp", 1482, 200, 112, 160);
+    place(nodes, "qwen", 1636, 156, 252, 130);
+    place(nodes, "clm", 1636, 300, 252, 128);
+    row(nodes, ["am-api", "am-cp", "am-ui"], 1632, 508, 80, 90, 8);
+    row(nodes, ["am-w-7dsds", "am-w-gpn6h"], 1632, 606, 80, 90, 8);
+    var fw = 420;
+    var fg = 24;
+    var f0 = 16 + Math.round((1888 - (4 * fw + 3 * fg)) / 2);
+    row(nodes, ["vcf-ops", "vcfa", "vcenter", "nsx"], f0, 800, fw, 180, fg);
 
-    place(nodes, "users-vm", G.usersX + 16, 188, 140, 156, { mode: "vmhost" });
-
-    var aw = 144;
-    var ag = 8;
-    var a0 = G.appX + 22;
-    row(nodes, ["music", "chat", "cart", "order"], a0, G.r1, aw, G.rowH, ag);
-    row(nodes, ["zammad", "zammad-db", "zammad-redis", "zammad-cache"], a0, G.r2, aw, G.rowH, ag);
-    row(nodes, ["pii", "orch"], a0, G.r3, aw, G.rowH, ag);
-    row(nodes, ["avi-mcp", "k8s-mcp", "vcf-mcp"], a0, G.r4, aw, G.rowH, ag);
-    row(nodes, ["vks-api", "cp-pwtc2", "worker-8n8n5", "worker-gjwhn"], a0, G.vksY, aw, G.vksH, ag);
-
-    place(nodes, "dsm", G.dsmX + 10, 188, 132, 132, { mode: "stack" });
-
-    place(nodes, "qwen", G.paiX + 24, 168, 200, 170);
-    place(nodes, "clm", G.paiX + 24, 428, 200, 168);
-    var amW = 70;
-    var amGap = 6;
-    var am0 = G.paiX + 16;
-    row(nodes, ["am-api", "am-cp", "am-w-7dsds", "am-w-gpn6h", "am-ui"], am0, 658, amW, 92, amGap);
-
-    var fw = 300;
-    var fg = 28;
-    var f0 = 24 + Math.round((1872 - (4 * fw + 3 * fg)) / 2);
-    row(nodes, ["vcf-ops", "vcfa", "vcenter", "nsx"], f0, G.vcfY + 78, fw, 112, fg);
-
-    var zones = [
-      { id: "agents", title: "agents", x: G.tzX, y: G.top, w: G.tzW, h: G.tzBot - G.top, accent: "#79b8ff" },
-      { id: "tanzu", title: "Tanzu Platform", mark: "tanzu", note: "Supply chain", watermark: true, x: G.tzX, y: G.platY, w: G.tzW, h: G.platH, accent: "#79b8ff" },
-      { id: "vksrun", title: "VKS runtime", mark: "vks", watermark: true, x: G.tzX, y: G.runY, w: G.tzW, h: G.runH, accent: "#56d4a0" },
-      { id: "users", title: "Users", note: "VM services", x: G.usersX, y: G.top, w: G.usersW, h: 248, accent: "#7dd3c0" },
-      { id: "vks", title: "VKS  ·  music-store", mark: "vks", x: G.appX, y: G.top, w: G.appW, h: G.appBot - G.top, accent: "#56d4a0" },
-      { id: "dsmz", title: "DSM", mark: "dsm", note: "Catalog", x: G.dsmX, y: G.top, w: G.dsmW, h: 248, accent: "#e3b341" },
-      { id: "pai", title: "Private AI", mark: "pai", x: G.paiX, y: G.top, w: G.paiW, h: 480, accent: "#d2a8ff" },
-      { id: "am", title: "AgentMinder", mark: "agentminder", x: G.paiX, y: 616, w: G.paiW, h: 144, accent: "#f0883e" },
-      { id: "vcf", title: "VCF", mark: "vcf", x: 24, y: G.vcfY, w: 1872, h: G.vcfH, accent: "#79b8ff" }
-    ];
+    var zones = ["tz", "vm", "vks", "dsm", "avi", "pai", "am", "vcf"].map(function (key) {
+      var mark = { tz: "tanzu", vm: "vm", vks: "vks", dsm: "dsm", avi: "avi", pai: "pai", am: "agentminder", vcf: "vcf" }[key];
+      return zoneOf(key, mark);
+    });
     return { zones: zones, nodes: nodes };
   }
 
@@ -270,125 +244,151 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     function Rt(n) { return n.x + n.w; }
     function T(n) { return n.y; }
     function B(n) { return n.y + n.h; }
-    var tray = G.tray;
-    var sky = G.sky;
-    var q = N.qwen;
-    var dsm = N.dsm;
-    var ui = N["am-ui"];
-    var padL = G.appX + 10;
+    var sky = [58, 63, 68, 73, 78, 88, 93, 98, 103];
+    var leftX = 8;
+    var rightX = 1912;
+    var gT = GEO.tz.x + GEO.tz.w + (GEO.vm.x - (GEO.tz.x + GEO.tz.w)) / 2;
 
-    function overTop(id, node, skyY, trayX, enterY, side) {
-      add(id, [
-        [cx(node), T(node)],
-        [cx(node), skyY],
-        [trayX, skyY],
-        [trayX, enterY],
-        [side, enterY]
-      ]);
-    }
-
-    add("e-music-vm", [
-      [Rt(N["users-vm"]), cy(N["users-vm"])],
-      [G.appX - 8, cy(N["users-vm"])],
-      [G.appX - 8, cy(N.music)],
-      [L(N.music), cy(N.music)]
-    ]);
-    add("e-music-chat", hlink(N.music, N.chat));
-    add("e-music-cart", rail(N.music, N.cart, G.yCart, "s", "s"));
-    add("e-music-order", rail(N.music, N.order, G.yOrder, "s", "s"));
-    add("e-chat-order", rail(N.chat, N.order, G.yChO, "s", "s"));
-    add("e-zammad-db", hlink(N.zammad, N["zammad-db"]));
-    add("e-zammad-redis", rail(N.zammad, N["zammad-redis"], G.yZr, "s", "s"));
-    add("e-zammad-cache", rail(N.zammad, N["zammad-cache"], G.yZcache, "s", "s"));
     add("e-incident-orch", hlink(N.incident, N["cf-orch"]));
-    add("e-cforch-lb", hlink(N["cf-orch"], N["lb-agent"]));
-    add("e-cforch-k8s", rail(N["cf-orch"], N["k8s-agent"], 276, "s", "n"));
-    add("e-cforch-vcf", rail(N["cf-orch"], N["vcf-agent"], 292, "s", "n"));
-
-    add("e-orch-music", [
-      [cx(N.orch), T(N.orch)],
-      [cx(N.orch), G.yOrch],
-      [padL, G.yOrch],
-      [padL, cy(N.music)],
-      [L(N.music), cy(N.music)]
+    add("e-music-chat", hlink(N.music, N.chat));
+    add("e-zammad-db", hlink(N.zammad, N["zammad-db"]));
+    add("e-cforch-k8s", [
+      [cx(N["cf-orch"]), B(N["cf-orch"])],
+      [cx(N["k8s-agent"]), T(N["k8s-agent"])]
     ]);
 
+    var yT01 = Math.round((B(N.incident) + T(N["lb-agent"])) / 2);
+    add("e-cforch-lb", [
+      [cx(N["cf-orch"]), B(N["cf-orch"])],
+      [cx(N["cf-orch"]), yT01],
+      [cx(N["lb-agent"]), yT01],
+      [cx(N["lb-agent"]), T(N["lb-agent"])]
+    ]);
+    var yT12 = Math.round((B(N["lb-agent"]) + T(N["vcf-agent"])) / 2);
+    add("e-cforch-vcf", [
+      [Rt(N["cf-orch"]), cy(N["cf-orch"])],
+      [gT, cy(N["cf-orch"])],
+      [gT, yT12],
+      [cx(N["vcf-agent"]), yT12],
+      [cx(N["vcf-agent"]), T(N["vcf-agent"])]
+    ]);
+    var yT23 = Math.round((B(N["vcf-agent"]) + T(N["k8s-mcp"])) / 2);
+    add("e-k8s-mcp", [
+      [Rt(N["k8s-agent"]), cy(N["k8s-agent"])],
+      [gT, cy(N["k8s-agent"])],
+      [gT, yT23],
+      [cx(N["k8s-mcp"]), yT23],
+      [cx(N["k8s-mcp"]), T(N["k8s-mcp"])]
+    ]);
+    add("e-vcf-mcp", [
+      [cx(N["vcf-agent"]), B(N["vcf-agent"])],
+      [cx(N["vcf-agent"]), yT23],
+      [cx(N["vcf-mcp"]), yT23],
+      [cx(N["vcf-mcp"]), T(N["vcf-mcp"])]
+    ]);
+
+    var yShop = Math.round((B(N.music) + T(N.zammad)) / 2);
+    add("e-music-cart", [
+      [cx(N.music), B(N.music)],
+      [cx(N.music), yShop - 4],
+      [cx(N.cart), yShop - 4],
+      [cx(N.cart), B(N.cart)]
+    ]);
+    add("e-music-order", [
+      [cx(N.music), B(N.music)],
+      [cx(N.music), yShop],
+      [cx(N.order), yShop],
+      [cx(N.order), B(N.order)]
+    ]);
+    add("e-chat-order", [
+      [cx(N.chat), B(N.chat)],
+      [cx(N.chat), yShop],
+      [cx(N.order), yShop],
+      [cx(N.order), B(N.order)]
+    ]);
+    add("e-music-dsm", [
+      [cx(N.music), B(N.music)],
+      [cx(N.music), yShop - 4],
+      [L(N.dsm), yShop - 4]
+    ]);
+    add("e-chat-dsm", [
+      [cx(N.chat), B(N.chat)],
+      [cx(N.chat), yShop + 2],
+      [L(N.dsm), yShop + 2]
+    ]);
+
+    var yBus = 270;
     add("e-incident-zammad", [
-      [L(N.incident), cy(N.incident)],
-      [G.leftX, cy(N.incident)],
-      [G.leftX, G.yCross],
-      [cx(N.zammad) - 14, G.yCross],
-      [cx(N.zammad) - 14, B(N.zammad)]
+      [cx(N.incident), B(N.incident)],
+      [cx(N.incident), yBus],
+      [cx(N.zammad) - 14, yBus],
+      [cx(N.zammad) - 14, T(N.zammad)]
     ]);
     add("e-cforch-zammad", [
       [cx(N["cf-orch"]), B(N["cf-orch"])],
-      [cx(N["cf-orch"]), G.yCross + 16],
-      [cx(N.zammad) + 14, G.yCross + 16],
-      [cx(N.zammad) + 14, B(N.zammad)]
+      [cx(N["cf-orch"]), yBus],
+      [cx(N.zammad) + 14, yBus],
+      [cx(N.zammad) + 14, T(N.zammad)]
+    ]);
+    add("e-music-vm", [
+      [Rt(N["users-vm"]), cy(N.music)],
+      [L(N.music), cy(N.music)]
     ]);
 
-    add("e-chat-qwen", [
-      [cx(N.chat), T(N.chat)],
-      [cx(N.chat), G.lane],
-      [L(q) - 16, G.lane],
-      [L(q) - 16, cy(q)],
-      [L(q), cy(q)]
+    var yData = Math.round((B(N.zammad) + T(N.orch)) / 2);
+    add("e-zammad-redis", [
+      [cx(N.zammad), B(N.zammad)],
+      [cx(N.zammad), yData - 3],
+      [cx(N["zammad-redis"]), yData - 3],
+      [cx(N["zammad-redis"]), B(N["zammad-redis"])]
+    ]);
+    add("e-zammad-cache", [
+      [cx(N.zammad), B(N.zammad)],
+      [cx(N.zammad), yData + 3],
+      [cx(N["zammad-cache"]), yData + 3],
+      [cx(N["zammad-cache"]), B(N["zammad-cache"])]
+    ]);
+
+    var pad = N.music.x - 8;
+    add("e-orch-music", [
+      [L(N.orch), cy(N.orch)],
+      [pad, cy(N.orch)],
+      [pad, cy(N.music)],
+      [L(N.music), cy(N.music)]
     ]);
     add("e-orch-qwen", [
       [Rt(N.orch), cy(N.orch)],
-      [G.dsmX - 8, cy(N.orch)],
-      [G.dsmX - 8, B(q) + 16],
-      [cx(q), B(q) + 16],
-      [cx(q), B(q)]
+      [rightX, cy(N.orch)],
+      [rightX, cy(N.qwen)],
+      [Rt(N.qwen), cy(N.qwen)]
     ]);
-    function overSide(id, node, skyY, trayX, enterY, side, exitX) {
-      var startX = exitX < cx(node) ? L(node) : Rt(node);
-      add(id, [
-        [startX, cy(node)],
-        [exitX, cy(node)],
-        [exitX, skyY],
-        [trayX, skyY],
-        [trayX, enterY],
-        [side, enterY]
-      ]);
-    }
-    overTop("e-cforch-qwen", N["cf-orch"], sky[0], tray[0], cy(q) - 28, Rt(q));
-    overTop("e-lb-qwen", N["lb-agent"], sky[1], tray[1], cy(q) - 10, Rt(q));
-    overSide("e-k8s-qwen", N["k8s-agent"], sky[2], tray[2], cy(q) + 10, Rt(q), G.leftX);
-    overSide("e-vcf-qwen", N["vcf-agent"], sky[3], tray[3], cy(q) + 28, Rt(q), G.gutter);
-    overTop("e-lb-am", N["lb-agent"], sky[4], tray[4], cy(ui) - 18, Rt(ui));
-    overSide("e-k8s-am", N["k8s-agent"], sky[5], tray[5], cy(ui), Rt(ui), G.leftX);
-    overSide("e-vcf-am", N["vcf-agent"], sky[6], tray[6], cy(ui) + 18, Rt(ui), G.gutter);
 
-    function toMcp(id, node, target, exitX) {
-      var startX = exitX < cx(node) ? L(node) : Rt(node);
-      var pts = [
-        [startX, cy(node)],
-        [exitX, cy(node)]
-      ];
-      if (exitX < 24) {
-        pts.push([exitX, 760], [G.gutter, 760], [G.gutter, G.yMcp]);
-      } else {
-        pts.push([exitX, G.yMcp]);
-      }
-      pts.push([cx(target), G.yMcp], [cx(target), T(target)]);
+    function skyFrom(node, lane, exit) {
+      if (exit === "n") return [[cx(node), T(node)], [cx(node), lane]];
+      if (exit === "w") return [[L(node), cy(node)], [leftX, cy(node)], [leftX, lane]];
+      return [[Rt(node), cy(node)], [gT, cy(node)], [gT, lane]];
+    }
+    function overTop(id, node, lane, dropX, targetTop, exit) {
+      var pts = skyFrom(node, lane, exit);
+      pts.push([dropX, lane], [dropX, targetTop]);
       add(id, pts);
     }
-    toMcp("e-lb-avi", N["lb-agent"], N["avi-mcp"], G.gutter);
-    toMcp("e-k8s-mcp", N["k8s-agent"], N["k8s-mcp"], G.leftX);
-    toMcp("e-vcf-mcp", N["vcf-agent"], N["vcf-mcp"], G.gutter);
+    var q = N.qwen;
+    overTop("e-cforch-qwen", N["cf-orch"], sky[0], 1765, T(q), "n");
+    overTop("e-lb-qwen", N["lb-agent"], sky[1], 1795, T(q), "w");
+    overTop("e-k8s-qwen", N["k8s-agent"], sky[2], 1825, T(q), "e");
+    overTop("e-vcf-qwen", N["vcf-agent"], sky[3], 1855, T(q), "w");
+    overTop("e-chat-qwen", N.chat, sky[4], 1878, T(q), "n");
+    overTop("e-lb-avi", N["lb-agent"], sky[5], 1570, T(N["avi-mcp"]), "w");
 
-    function toDsm(id, node, dy) {
-      add(id, [
-        [cx(node), B(node)],
-        [cx(node), G.yDsm],
-        [G.dsmX - 8, G.yDsm],
-        [G.dsmX - 8, cy(dsm) + dy],
-        [L(dsm), cy(dsm) + dy]
-      ]);
+    function toAm(id, node, lane, entryY, exit) {
+      var pts = skyFrom(node, lane, exit);
+      pts.push([rightX, lane], [rightX, entryY], [Rt(N["am-ui"]), entryY]);
+      add(id, pts);
     }
-    toDsm("e-music-dsm", N.music, -16);
-    toDsm("e-chat-dsm", N.chat, 16);
+    toAm("e-lb-am", N["lb-agent"], sky[6], cy(N["am-ui"]) - 16, "w");
+    toAm("e-k8s-am", N["k8s-agent"], sky[7], cy(N["am-ui"]), "e");
+    toAm("e-vcf-am", N["vcf-agent"], sky[8], cy(N["am-ui"]) + 16, "w");
     return R;
   }
 
@@ -401,7 +401,9 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       dsm: '<ellipse cx="9" cy="4.4" rx="6" ry="2.1"' + s + '/><path d="M3 4.4v8.8c0 1.2 2.7 2.3 6 2.3s6-1.1 6-2.3V4.4"' + s + '/><path d="M3 8.8c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2"' + s + '/>',
       vcf: '<rect x="1.6" y="1.6" width="6.2" height="6.2" rx="1.4"' + s + '/><rect x="10.2" y="1.6" width="6.2" height="6.2" rx="1.4"' + s + '/><rect x="1.6" y="10.2" width="6.2" height="6.2" rx="1.4"' + s + '/><rect x="10.2" y="10.2" width="6.2" height="6.2" rx="1.4"' + s + '/>',
       agentminder: '<rect x="2" y="2.4" width="14" height="13.2" rx="3"' + s + '/><circle cx="9" cy="8.2" r="2.2"' + s + '/><path d="M6.2 13.2c.6-1.5 1.6-2.2 2.8-2.2s2.2.7 2.8 2.2"' + s + '/>',
-      pai: '<rect x="5.2" y="5.2" width="7.6" height="7.6" rx="1.5"' + s + '/><path d="M7.4 2v2.4M10.6 2v2.4M7.4 13.6V16M10.6 13.6V16M2 7.4h2.4M2 10.6h2.4M13.6 7.4H16M13.6 10.6H16"' + s + '/>'
+      pai: '<rect x="5.2" y="5.2" width="7.6" height="7.6" rx="1.5"' + s + '/><path d="M7.4 2v2.4M10.6 2v2.4M7.4 13.6V16M10.6 13.6V16M2 7.4h2.4M2 10.6h2.4M13.6 7.4H16M13.6 10.6H16"' + s + '/>',
+      vm: '<rect x="2" y="3.2" width="14" height="9" rx="1.4"' + s + '/><path d="M6 15.4h6M9 12.2v3.2"' + s + '/>',
+      avi: '<path d="M1.8 11.6h14.4M9 11.6V4.4M4.6 6.6 9 4.4l4.4 2.2"' + s + '/>'
     };
     return paths[name] || "";
   }
@@ -627,38 +629,28 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     var parts = [];
     parts.push('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">');
     parts.push('<defs>');
-    parts.push('<linearGradient id="zoneFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#172338"/><stop offset="1" stop-color="#0c121c"/></linearGradient>');
-    parts.push('<linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.07"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/></linearGradient>');
-    parts.push('<pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.9" fill="rgba(255,255,255,0.035)"/></pattern>');
-    parts.push('<filter id="blur" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="8"/></filter>');
-    parts.push('<marker id="chev" viewBox="0 0 8 8" refX="6.2" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M1.4 1.5 L6.2 4 L1.4 6.5" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>');
-    parts.push('<style>text{font-family:Inter,Segoe UI,system-ui,sans-serif}</style>');
+    parts.push('<pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.7" fill="rgba(255,255,255,0.035)"/></pattern>');
+    parts.push('<marker id="chev" viewBox="0 0 8 8" refX="6.2" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M1.6 1.8 L6.2 4 L1.6 6.2" fill="none" stroke="context-stroke" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></marker>');
+    parts.push('<style>text{font-family:Inter,Segoe UI,system-ui,sans-serif;font-weight:400}</style>');
     parts.push('</defs>');
-    parts.push('<rect width="1920" height="1080" fill="#070b14"/>');
-    parts.push('<ellipse cx="260" cy="-20" rx="760" ry="340" fill="#16325c" opacity="0.45"/>');
-    parts.push('<ellipse cx="1680" cy="1120" rx="680" ry="320" fill="#2a1848" opacity="0.4"/>');
+    parts.push('<rect width="1920" height="1080" fill="' + BG + '"/>');
     parts.push('<rect width="1920" height="1080" fill="url(#dots)"/>');
 
+    function paint(x, y, anchor, fill, size, weight, value) {
+      return '<text x="' + x + '" y="' + y + '" text-anchor="' + anchor + '" fill="' + fill + '" font-size="' + size + '" font-weight="' + weight + '">' + esc(value) + '</text>';
+    }
+
     PLACED.zones.forEach(function (z) {
-      parts.push('<rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="' + z.h + '" rx="22" fill="url(#zoneFill)" stroke="' + z.accent + '" stroke-opacity="0.38" stroke-width="1.25"/>');
-      var tx = z.x + 18;
+      var clip = "clip-" + z.id;
+      parts.push('<clipPath id="' + clip + '"><rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="' + z.h + '" rx="14"/></clipPath>');
+      parts.push('<rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="' + z.h + '" rx="14" fill="' + BG + '" fill-opacity="0.25" stroke="' + z.accent + '" stroke-width="1.5"/>');
+      parts.push('<g clip-path="url(#' + clip + ')"><rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="30" fill="' + z.accent + '" fill-opacity="0.20"/></g>');
+      var tx = z.x + 12;
       if (z.mark) {
-        parts.push('<g transform="translate(' + (z.x + 16) + ' ' + (z.y + 12) + ')">' + badge(z.mark, z.accent) + '</g>');
-        tx = z.x + 40;
+        parts.push('<g transform="translate(' + (z.x + 10) + ' ' + (z.y + 7) + ')">' + badge(z.mark, z.ink) + '</g>');
+        tx = z.x + 32;
       }
-      parts.push('<text x="' + tx + '" y="' + (z.y + 28) + '" fill="' + z.accent + '" font-size="18" font-weight="700" letter-spacing="0.6">' + esc(z.title) + '</text>');
-      if (z.suffix) {
-        var sx = tx + Math.round(z.title.length * 8.4);
-        parts.push('<text x="' + sx + '" y="' + (z.y + 26) + '" fill="#8ea0b8" font-size="11" font-weight="550" letter-spacing="1">' + esc(z.suffix) + '</text>');
-      }
-      if (z.watermark && z.mark) {
-        parts.push('<g transform="translate(' + (z.x + z.w - 86) + ' ' + (z.y + 22) + ') scale(3)" opacity="0.28">' + badge(z.mark, z.accent) + '</g>');
-      }
-      if (z.note && !z.watermark && z.h <= 280) {
-        parts.push('<text x="' + tx + '" y="' + (z.y + 48) + '" fill="#93a4bb" font-size="11" font-weight="550">' + esc(z.note) + '</text>');
-      } else if (z.note) {
-        parts.push('<text x="' + (z.x + z.w * 0.42) + '" y="' + (z.y + z.h * 0.62) + '" text-anchor="middle" fill="#b7c6da" font-size="15" font-weight="550">' + esc(z.note) + '</text>');
-      }
+      parts.push(paint(tx, z.y + 20, "start", z.ink, 14, "500", z.title));
     });
 
     var drawn = [];
@@ -673,170 +665,95 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       if (b.edge.state === "down") return -1;
       return 0;
     });
-
     drawn.forEach(function (item, index) {
       var d = pathOf(item.pts);
       var down = item.edge.state === "down";
       var unknown = item.edge.state === "unknown";
-      var color = down ? "#ff5d73" : (unknown ? "#5c6b82" : item.color);
-      var width = down ? 2.3 : (item.len > 280 ? 1.8 : 1.55);
-      var dash = down ? ' stroke-dasharray="7 6"' : (unknown ? ' stroke-dasharray="2 5"' : "");
+      var color = down ? HEALTH.down : (unknown ? "#5c6b82" : item.color);
+      var dash = down ? ' stroke-dasharray="4 5"' : (unknown ? ' stroke-dasharray="1.5 4"' : "");
       var marker = item.len > 48 && !unknown ? ' marker-end="url(#chev)"' : "";
-      parts.push('<path id="p-' + item.id + '" d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + width + '" stroke-linecap="round" stroke-linejoin="round" opacity="' + (down ? "0.95" : "0.82") + '"' + dash + marker + '/>');
-      parts.push('<path data-k="e:' + item.id + '" d="' + d + '" fill="none" stroke="transparent" stroke-width="14" style="cursor:pointer"/>');
+      var opacity = down ? "0.55" : "0.34";
+      parts.push('<path id="p-' + item.id + '" d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round" opacity="' + opacity + '"' + dash + marker + '/>');
+      parts.push('<path data-k="e:' + item.id + '" d="' + d + '" fill="none" stroke="transparent" stroke-width="12" style="cursor:pointer"/>');
       if (!down && !unknown) {
-        var dur = Math.max(2.6, Math.min(7.5, item.len / 150)).toFixed(1);
+        var dur = Math.max(2.8, Math.min(8, item.len / 140)).toFixed(1);
         var begin = ((index % 7) * 0.35).toFixed(2);
-        parts.push('<circle r="3" fill="' + color + '"><animateMotion dur="' + dur + 's" begin="' + begin + 's" repeatCount="indefinite" rotate="auto"><mpath href="#p-' + item.id + '" xlink:href="#p-' + item.id + '"/></animateMotion></circle>');
+        parts.push('<circle r="2" fill="' + color + '" opacity="0.7"><animateMotion dur="' + dur + 's" begin="' + begin + 's" repeatCount="indefinite" rotate="auto"><mpath href="#p-' + item.id + '" xlink:href="#p-' + item.id + '"/></animateMotion></circle>');
       }
     });
 
-    function glyphWidth(label, size) {
-      return String(label).length * size * 0.56;
-    }
-
-    function titleLines(label, maxW, preferred) {
-      var natural = glyphWidth(label, preferred);
-      if (natural <= maxW) return { size: preferred, lines: [label], lengths: [0] };
-      if (natural <= maxW * 1.25) return { size: preferred, lines: [label], lengths: [maxW] };
-      var words = String(label).split(" ");
-      if (words.length > 1) {
-        var mid = Math.ceil(words.length / 2);
-        var lines = [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
-        var wide = Math.max(glyphWidth(lines[0], preferred), glyphWidth(lines[1], preferred));
-        if (wide <= maxW) return { size: preferred, lines: lines, lengths: [0, 0] };
-        if (wide <= maxW * 1.18) {
-          return {
-            size: preferred,
-            lines: lines,
-            lengths: lines.map(function (line) { return glyphWidth(line, preferred) > maxW ? maxW : 0; })
-          };
-        }
-      }
-      var size = preferred;
-      while (size > 16 && glyphWidth(label, size) > maxW * 1.12) size -= 1;
-      var w = glyphWidth(label, size);
-      return { size: size, lines: [label], lengths: [w > maxW ? maxW : 0] };
-    }
-
-    function paintText(x, y, anchor, fill, size, weight, value, textLength) {
-      var fit = textLength ? ' textLength="' + textLength.toFixed(1) + '" lengthAdjust="spacingAndGlyphs"' : "";
-      return '<text x="' + x + '" y="' + y + '" text-anchor="' + anchor + '" fill="' + fill + '" font-size="' + size + '" font-weight="' + weight + '"' + fit + '>' + esc(value) + '</text>';
-    }
-
     CATALOG.forEach(function (spec) {
       var n = PLACED.nodes[spec.id];
+      if (!n) return;
       var info = model.nodes[spec.id];
       var color = HEALTH[info.state] || HEALTH.unknown;
       var plat = PLATFORMS[n.platform] || PLATFORMS.vks;
       var kind = KINDS[n.kind] || KINDS.app;
-      var glow = info.state === "unknown" ? 0 : (info.state === "down" ? 0.28 : 0.12);
-      var dash = n.mode === "vmhost" ? ' stroke-dasharray="7 5"' : "";
+      var down = info.state === "down";
+      var titleFill = down ? "#8e9aab" : INK;
+      var platFill = down ? "#7d8b9e" : plat.ink;
+      var kindFill = down ? "#6e7d90" : "#b7c3d4";
+      var titleSize = n.w >= 300 ? 16 : (n.w >= 140 ? 15 : 14);
+      var platLabel = plat.box === "AM" && n.w >= 78 ? "AgentMinder" : plat.box;
+      var kindLabel = kind.legend;
       parts.push('<g data-k="n:' + spec.id + '" style="cursor:pointer">');
-      if (glow) {
-        parts.push('<rect x="' + (n.x - 4) + '" y="' + (n.y - 4) + '" width="' + (n.w + 8) + '" height="' + (n.h + 8) + '" rx="18" fill="' + color + '" opacity="' + glow + '" filter="url(#blur)"/>');
-      }
-      parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="14" fill="' + plat.fill + '" stroke="' + color + '" stroke-width="3"' + dash + '/>');
-      parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="14" fill="url(#sheen)"/>');
-      parts.push('<rect x="' + (n.x + 5) + '" y="' + (n.y + 8) + '" width="6" height="' + (n.h - 16) + '" rx="3" fill="' + kind.color + '"/>');
-      var dot = n.w >= 200 ? 7 : 5.5;
-      parts.push('<circle cx="' + (n.x + n.w - dot - 6) + '" cy="' + (n.y + dot + 6) + '" r="' + dot + '" fill="' + color + '" stroke="#070b14" stroke-width="2"/>');
-
-      if (n.mode === "vmhost") {
-        var screenX = n.x + 18;
-        var screenY = n.y + 14;
-        var screenW = n.w - 36;
-        var screenH = 58;
-        parts.push('<rect x="' + screenX + '" y="' + screenY + '" width="' + screenW + '" height="' + screenH + '" rx="8" fill="#0c121c" stroke="' + kind.color + '" stroke-opacity="0.8" stroke-width="1.4"/>');
-        var vmSize = 30;
-        parts.push('<g transform="translate(' + (n.x + (n.w - vmSize) / 2).toFixed(1) + ' ' + (screenY + (screenH - vmSize) / 2).toFixed(1) + ') scale(' + (vmSize / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
-        parts.push(paintText(mx(n), n.y + n.h - 36, "middle", TITLE, 22, "750", n.label));
-        parts.push(paintText(mx(n), n.y + n.h - 16, "middle", plat.accent, 14, "650", plat.short));
-      } else if (n.mode === "feature") {
-        var fSize = 36;
-        parts.push('<g transform="translate(' + (n.x + (n.w - fSize) / 2).toFixed(1) + ' ' + (n.y + 28) + ') scale(' + (fSize / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
-        parts.push(paintText(mx(n), n.y + 112, "middle", TITLE, 28, "750", n.label));
-        parts.push(paintText(mx(n), n.y + 136, "middle", plat.accent, 16, "650", plat.short));
-        parts.push(paintText(mx(n), n.y + 156, "middle", kind.color, 14, "650", kind.legend));
-      } else if (n.mode === "stack") {
-        var narrow = n.w < 90;
-        var top = n.y + 10;
-        if (!narrow) {
-          var iconSize = 22;
-          parts.push('<g transform="translate(' + (n.x + (n.w - iconSize) / 2).toFixed(1) + ' ' + (n.y + 8) + ') scale(' + (iconSize / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
-          top = n.y + 44;
-        }
-        var fitted = titleLines(n.label, n.w - (narrow ? 16 : 18), narrow ? 16 : 18);
-        fitted.lines.forEach(function (line, i) {
-          parts.push(paintText(mx(n), top + i * (fitted.size + 2), "middle", TITLE, fitted.size, "750", line, fitted.lengths[i]));
-        });
-        var platY = top + fitted.lines.length * (fitted.size + 2) + 4;
-        if (platY < n.y + n.h - 4) {
-          parts.push(paintText(mx(n), platY, "middle", plat.accent, narrow ? 12 : 13, "650", plat.short));
-        }
-      } else if (n.w >= 240) {
-        var big = 32;
-        parts.push('<g transform="translate(' + (n.x + 18) + ' ' + (n.y + (n.h - big) / 2).toFixed(1) + ') scale(' + (big / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
-        parts.push(paintText(n.x + 64, n.y + n.h / 2 - 6, "start", TITLE, 28, "750", n.label));
-        parts.push(paintText(n.x + 64, n.y + n.h / 2 + 22, "start", plat.accent, 16, "650", plat.legend));
+      parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="10" fill="' + BG + '" stroke="' + plat.accent + '" stroke-width="1.5" stroke-opacity="' + (down ? "0.4" : "1") + '"/>');
+      var dot = n.w >= 200 ? 4.5 : 3.5;
+      parts.push('<circle cx="' + (n.x + n.w - dot - 7) + '" cy="' + (n.y + dot + 7) + '" r="' + dot + '" fill="' + color + '"/>');
+      if (n.w >= 300) {
+        var titleY = n.y + Math.round(n.h / 2) - 4;
+        parts.push(paint(n.x + 22, titleY, "start", titleFill, titleSize, "500", n.label));
+        parts.push(paint(n.x + 22, titleY + 22, "start", platFill, 11, "400", platLabel));
+        var kx = n.x + 22 + Math.round(platLabel.length * 6.4) + 16;
+        parts.push('<circle cx="' + kx + '" cy="' + (titleY + 18) + '" r="3" fill="' + kind.color + '"/>');
+        parts.push(paint(kx + 8, titleY + 22, "start", kindFill, 11, "400", kindLabel));
+      } else if (n.w < 100) {
+        parts.push(paint(n.x + 8, n.y + 32, "start", titleFill, titleSize, "500", n.label));
+        parts.push(paint(n.x + 8, n.y + 48, "start", platFill, 10, "400", platLabel));
+        parts.push('<circle cx="' + (n.x + 10) + '" cy="' + (n.y + 62) + '" r="2.5" fill="' + kind.color + '"/>');
+        parts.push(paint(n.x + 18, n.y + 66, "start", kindFill, 10, "400", kindLabel));
       } else {
-        var preferred = n.h >= 76 ? 20 : 18;
-        var fittedWide = titleLines(n.label, n.w - 26, preferred);
-        var wideBase = n.y + (fittedWide.lines.length > 1 ? 28 : Math.round(n.h * 0.42));
-        fittedWide.lines.forEach(function (line, i) {
-          parts.push(paintText(n.x + 18, wideBase + i * (fittedWide.size + 2), "start", TITLE, fittedWide.size, "750", line, fittedWide.lengths[i]));
-        });
-        var subY = wideBase + (fittedWide.lines.length - 1) * (fittedWide.size + 2) + fittedWide.size * 0.72 + 8;
-        if (subY <= n.y + n.h - 8) {
-          parts.push(paintText(n.x + 18, subY, "start", plat.accent, 13, "650", plat.short));
-          var kindX = n.x + 18 + glyphWidth(plat.short, 13) + 8;
-          if (kindX + glyphWidth(kind.legend, 13) < n.x + n.w - 16) {
-            parts.push(paintText(kindX, subY, "start", kind.color, 13, "650", kind.legend));
-          }
-        }
+        parts.push(paint(n.x + 12, n.y + 36, "start", titleFill, titleSize, "500", n.label));
+        parts.push(paint(n.x + 12, n.y + 54, "start", platFill, 11, "400", platLabel));
+        parts.push('<circle cx="' + (n.x + 15) + '" cy="' + (n.y + 68) + '" r="2.7" fill="' + kind.color + '"/>');
+        parts.push(paint(n.x + 24, n.y + 72, "start", kindFill, 10.5, "400", kindLabel));
       }
       parts.push('</g>');
     });
 
     var any = CATALOG.some(function (n) { return model.nodes[n.id].value != null && model.nodes[n.id].value !== ""; });
     parts.push('<g pointer-events="none">');
-    parts.push('<rect x="28" y="8" width="30" height="30" rx="8" fill="#e23b4a"/>');
-    parts.push('<path d="M35 32 L43 16 L51 32" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>');
-    parts.push('<text x="68" y="30" fill="#f4f7fb" font-size="22" font-weight="700">Goad</text>');
-    parts.push('<text x="138" y="30" fill="#8ea0b8" font-size="15">Application topology</text>');
-    parts.push('<circle cx="318" cy="25" r="4" fill="' + (any ? "#3dd68c" : "#64748b") + '"><animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/></circle>');
-    parts.push('<text x="328" y="30" fill="#8ea0b8" font-size="13">' + (any ? "Live" : "Waiting") + '</text>');
-    var legend = [["HTTP", PROTO.HTTP], ["HTTPS", PROTO.HTTPS], ["TCP", PROTO.TCP], ["MCP", PROTO.MCP], ["OAuth", PROTO.OAuth]];
-    var lx = 430;
-    legend.forEach(function (item) {
-      parts.push('<line x1="' + lx + '" y1="25" x2="' + (lx + 18) + '" y2="25" stroke="' + item[1] + '" stroke-width="2"/>');
-      parts.push('<circle cx="' + (lx + 9) + '" cy="25" r="2.2" fill="' + item[1] + '"/>');
-      parts.push('<text x="' + (lx + 22) + '" y="29" fill="#c5d0e0" font-size="13">' + item[0] + '</text>');
-      lx += item[0].length * 8 + 40;
+    parts.push(paint(24, 24, "start", INK, 16, "500", "Goad"));
+    parts.push(paint(78, 24, "start", "#9aa8bc", 13, "400", "Application topology"));
+    parts.push('<circle cx="236" cy="19" r="3.5" fill="' + (any ? HEALTH.up : HEALTH.unknown) + '"><animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/></circle>');
+    parts.push(paint(246, 24, "start", "#9aa8bc", 12, "400", any ? "Live" : "Waiting"));
+    var lx = 310;
+    [["HTTP", PROTO.HTTP], ["HTTPS", PROTO.HTTPS], ["TCP", PROTO.TCP], ["MCP", PROTO.MCP], ["OAuth", PROTO.OAuth]].forEach(function (item) {
+      parts.push('<line x1="' + lx + '" y1="20" x2="' + (lx + 16) + '" y2="20" stroke="' + item[1] + '" stroke-width="1.2" opacity="0.8"/>');
+      parts.push(paint(lx + 20, 24, "start", "#9aa8bc", 11, "400", item[0]));
+      lx += item[0].length * 6.4 + 36;
     });
-    parts.push('<line x1="' + lx + '" y1="25" x2="' + (lx + 18) + '" y2="25" stroke="#ff5d73" stroke-width="2.4" stroke-dasharray="4 3"/>');
-    parts.push('<text x="' + (lx + 22) + '" y="29" fill="#c5d0e0" font-size="13">Down</text>');
 
-    function chip(x, y, fill, label) {
-      parts.push('<rect x="' + x + '" y="' + (y - 11) + '" width="12" height="12" rx="3" fill="' + fill + '" stroke="#102033" stroke-opacity="0.45" stroke-width="1"/>');
-      parts.push('<text x="' + (x + 16) + '" y="' + y + '" fill="#eef3fb" font-size="14" font-weight="650">' + esc(label) + '</text>');
-      return x + 16 + label.length * 8.1 + 12;
-    }
-    var hy = 54;
-    parts.push('<text x="28" y="' + hy + '" fill="#8ea0b8" font-size="13" font-weight="650">Platform</text>');
-    var hx = 96;
+    var hy = 48;
+    var hx = 24;
     ["vks", "tanzu", "vm", "dsm", "private-ai", "avi", "agentminder", "vcf"].forEach(function (key) {
-      hx = chip(hx, hy, PLATFORMS[key].fill, PLATFORMS[key].legend);
+      var plat = PLATFORMS[key];
+      parts.push('<rect x="' + hx + '" y="' + (hy - 9) + '" width="10" height="10" rx="2" fill="' + plat.accent + '"/>');
+      parts.push(paint(hx + 14, hy, "start", "#d5deea", 11, "400", plat.legend));
+      hx += 14 + plat.legend.length * 6.3 + 14;
     });
-    parts.push('<text x="' + (hx + 6) + '" y="' + hy + '" fill="#8ea0b8" font-size="13" font-weight="650">Workload</text>');
-    hx += 78;
+    hx += 8;
     ["app", "agent", "mcp", "data", "model", "platform"].forEach(function (key) {
-      hx = chip(hx, hy, KINDS[key].color, KINDS[key].legend);
+      var kind = KINDS[key];
+      parts.push('<circle cx="' + (hx + 3) + '" cy="' + (hy - 4) + '" r="3" fill="' + kind.color + '"/>');
+      parts.push(paint(hx + 10, hy, "start", "#b7c3d4", 11, "400", kind.legend));
+      hx += 10 + kind.legend.length * 6.2 + 12;
     });
-    parts.push('<circle cx="' + (hx + 8) + '" cy="' + (hy - 4) + '" r="5" fill="' + HEALTH.up + '" stroke="#070b14" stroke-width="1.5"/>');
-    parts.push('<text x="' + (hx + 18) + '" y="' + hy + '" fill="#eef3fb" font-size="14" font-weight="650">Up</text>');
-    parts.push('<circle cx="' + (hx + 52) + '" cy="' + (hy - 4) + '" r="5" fill="' + HEALTH.down + '" stroke="#070b14" stroke-width="1.5"/>');
-    parts.push('<text x="' + (hx + 62) + '" y="' + hy + '" fill="#eef3fb" font-size="14" font-weight="650">Down</text>');
+    hx += 6;
+    parts.push('<circle cx="' + (hx + 4) + '" cy="' + (hy - 4) + '" r="4" fill="' + HEALTH.up + '"/>');
+    parts.push(paint(hx + 12, hy, "start", "#d5deea", 11, "400", "up"));
+    parts.push('<circle cx="' + (hx + 42) + '" cy="' + (hy - 4) + '" r="4" fill="' + HEALTH.down + '"/>');
+    parts.push(paint(hx + 50, hy, "start", "#d5deea", 11, "400", "down"));
     parts.push('</g>');
     parts.push('</svg>');
     return parts.join("");
@@ -913,7 +830,7 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     },
       React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 } },
         React.createElement("span", { style: { width: 8, height: 8, borderRadius: 99, background: accent, display: "inline-block" } }),
-        React.createElement("strong", { style: { fontSize: 14, fontWeight: 650 } }, title)
+        React.createElement("strong", { style: { fontSize: 14, fontWeight: 500 } }, title)
       ),
       body
     );

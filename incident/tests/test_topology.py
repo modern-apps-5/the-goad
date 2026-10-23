@@ -28,6 +28,18 @@ class TopologyTest(unittest.TestCase):
         doc = topology.load()
         self.assertIn(doc["datastore"]["name"], topology.text(doc))
 
+    def test_goad_map_names_platforms(self):
+        path = Path(__file__).resolve().parents[1] / "topology" / "goad-music.json"
+        doc = topology.load(path)
+        self.assertEqual(doc["store"]["platform"], "VKS")
+        self.assertEqual(doc["store"]["kind"], "app")
+        details = " ".join(row["detail"] for row in topology.rows(doc))
+        self.assertIn("platform VKS", details)
+        self.assertIn("platform VM", details)
+        self.assertIn("platform DSM", details)
+        self.assertIn("platform VCF", details)
+        self.assertIn("kind data", details)
+
 
 if __name__ == "__main__":
     unittest.main()
