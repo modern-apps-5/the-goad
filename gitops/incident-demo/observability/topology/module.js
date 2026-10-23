@@ -7,6 +7,50 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   var HEALTH = { up: "#3dd68c", down: "#ff5d73", slow: "#f5c16c", unknown: "#64748b" };
   var PROTO = { HTTP: "#79b8ff", HTTPS: "#d2a8ff", TCP: "#e3b341", MCP: "#56d4a0", OAuth: "#f0883e" };
 
+  // Box fill is the platform. The left bar and the workload chip are the
+  // kind. Up and down stay on the border and the status dot.
+  var PLATFORMS = {
+    vks: { legend: "VKS", short: "VKS", fill: "#b9d4ff", accent: "#0d3f86" },
+    tanzu: { legend: "Tanzu", short: "Tanzu", fill: "#e0d0ff", accent: "#4c1d95" },
+    vm: { legend: "VM", short: "VM", fill: "#ffd08a", accent: "#8a3d08" },
+    dsm: { legend: "DSM", short: "DSM", fill: "#ffe56b", accent: "#7a5b00" },
+    "private-ai": { legend: "Private AI", short: "Private AI", fill: "#f5c4ef", accent: "#7a1b68" },
+    avi: { legend: "Avi", short: "Avi", fill: "#9eefe8", accent: "#0b5c62" },
+    agentminder: { legend: "AgentMinder", short: "AM", fill: "#f7b8c4", accent: "#8a2040" },
+    vcf: { legend: "VCF", short: "VCF", fill: "#e6e1d6", accent: "#3e3a32" }
+  };
+  var KINDS = {
+    app: { legend: "App", color: "#b86e00" },
+    agent: { legend: "Agent", color: "#c2185b" },
+    mcp: { legend: "MCP", color: "#01579b" },
+    data: { legend: "Data", color: "#00695c" },
+    model: { legend: "Model", color: "#8e24aa" },
+    platform: { legend: "Platform", color: "#37474f" }
+  };
+  var TITLE = "#102033";
+  var PLATFORM_OF = {
+    "vks-api": "vks", "cp-pwtc2": "vks", "worker-8n8n5": "vks", "worker-gjwhn": "vks",
+    "users-vm": "vm",
+    "am-api": "agentminder", "am-cp": "agentminder", "am-w-7dsds": "agentminder", "am-w-gpn6h": "agentminder", "am-ui": "agentminder",
+    music: "vks", chat: "vks", cart: "vks", order: "vks", pii: "vks", zammad: "vks",
+    "zammad-db": "vks", "zammad-redis": "vks", "zammad-cache": "vks", orch: "vks",
+    "k8s-mcp": "vks", "vcf-mcp": "vks", "avi-mcp": "avi",
+    dsm: "dsm", qwen: "private-ai", clm: "private-ai",
+    incident: "tanzu", "cf-orch": "tanzu", "lb-agent": "tanzu", "k8s-agent": "tanzu", "vcf-agent": "tanzu",
+    "vcf-ops": "vcf", vcfa: "vcf", vcenter: "vcf", nsx: "vcf"
+  };
+  var KIND_OF = {
+    "vks-api": "platform", "cp-pwtc2": "platform", "worker-8n8n5": "platform", "worker-gjwhn": "platform",
+    "users-vm": "app",
+    "am-api": "platform", "am-cp": "platform", "am-w-7dsds": "platform", "am-w-gpn6h": "platform", "am-ui": "platform",
+    music: "app", chat: "app", cart: "app", order: "app", pii: "app", zammad: "app",
+    "zammad-db": "data", "zammad-redis": "data", "zammad-cache": "data", orch: "agent",
+    "k8s-mcp": "mcp", "vcf-mcp": "mcp", "avi-mcp": "mcp",
+    dsm: "data", qwen: "model", clm: "model",
+    incident: "agent", "cf-orch": "agent", "lb-agent": "agent", "k8s-agent": "agent", "vcf-agent": "agent",
+    "vcf-ops": "platform", vcfa: "platform", vcenter: "platform", nsx: "platform"
+  };
+
   // Left column: agents, Tanzu supply chain, VKS runtime. App row:
   // Users VM, VKS workloads, DSM, Private AI. VCF is the full-width floor.
   // Gutters are the only legal wire paths.
@@ -22,20 +66,21 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     tzBot: 456,
     platY: 540, platH: 88,
     runY: 640, runH: 88,
-    r1: 176, rowH: 56,
-    r2: 348,
-    r3: 560,
-    r4: 648,
-    vksY: 728, vksH: 56,
+    r1: 156, rowH: 80,
+    r2: 314,
+    r3: 500,
+    r4: 610,
+    vksY: 706, vksH: 68,
     appBot: 800,
     vcfY: 824, vcfH: 232,
-    yCross: 490,
-    yMcp: 632,
-    yDsm: 312,
-    yCart: 252, yOrder: 268, yChO: 284,
-    yZr: 424, yZcache: 440,
+    yCross: 454,
+    yMcp: 594,
+    yDsm: 298,
+    yCart: 250, yOrder: 266, yChO: 282,
+    yZr: 408, yZcache: 422,
+    yOrch: 486,
     lane: 96,
-    sky: [62, 70, 78, 86, 94, 102, 110],
+    sky: [70, 77, 84, 91, 98, 105, 112],
     tray: [1844, 1852, 1860, 1868, 1876, 1884, 1892, 1900, 1908],
     gutter: 430,
     leftX: 12
@@ -123,7 +168,11 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   ];
 
   var BY_ID = {};
-  CATALOG.forEach(function (n) { BY_ID[n.id] = n; });
+  CATALOG.forEach(function (n) {
+    n.platform = PLATFORM_OF[n.id] || "vks";
+    n.kind = KIND_OF[n.id] || "app";
+    BY_ID[n.id] = n;
+  });
 
   function pack(ids, zoneX, zoneW, y, h, cardW, gap, into) {
     var total = ids.length * cardW + (ids.length - 1) * gap;
@@ -258,8 +307,8 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
 
     add("e-orch-music", [
       [cx(N.orch), T(N.orch)],
-      [cx(N.orch), 528],
-      [padL, 528],
+      [cx(N.orch), G.yOrch],
+      [padL, G.yOrch],
       [padL, cy(N.music)],
       [L(N.music), cy(N.music)]
     ]);
@@ -357,9 +406,10 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     return paths[name] || "";
   }
 
-  function icon(name) {
-    var s = ' fill="none" stroke="#d7e2f0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
-    var f = ' fill="#d7e2f0" stroke="none"';
+  function icon(name, color) {
+    color = color || "#d7e2f0";
+    var s = ' fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+    var f = ' fill="' + color + '" stroke="none"';
     var paths = {
       cluster: '<polygon points="12,2.4 20.8,7.4 20.8,16.6 12,21.6 3.2,16.6 3.2,7.4"' + s + '/><circle cx="12" cy="12" r="2.1"' + f + '/>',
       server: '<rect x="5" y="3" width="14" height="18" rx="2"' + s + '/><path d="M8 7.5h8M8 11.5h8M8 15.5h4"' + s + '/><circle cx="15.2" cy="16.6" r="1"' + f + '/>',
@@ -511,6 +561,8 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       nodes[n.id] = {
         label: n.label,
         role: n.role,
+        platform: n.platform,
+        kind: n.kind,
         cluster: pick(live.cluster, n.cluster),
         namespace: pick(live.namespace, n.namespace),
         node: pick(live.node, n.node),
@@ -594,12 +646,11 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
         parts.push('<g transform="translate(' + (z.x + 16) + ' ' + (z.y + 12) + ')">' + badge(z.mark, z.accent) + '</g>');
         tx = z.x + 40;
       }
-      parts.push('<text x="' + tx + '" y="' + (z.y + 26) + '" fill="' + z.accent + '" font-size="13" font-weight="650" letter-spacing="1.4">' + esc(z.title) + '</text>');
+      parts.push('<text x="' + tx + '" y="' + (z.y + 28) + '" fill="' + z.accent + '" font-size="18" font-weight="700" letter-spacing="0.6">' + esc(z.title) + '</text>');
       if (z.suffix) {
         var sx = tx + Math.round(z.title.length * 8.4);
         parts.push('<text x="' + sx + '" y="' + (z.y + 26) + '" fill="#8ea0b8" font-size="11" font-weight="550" letter-spacing="1">' + esc(z.suffix) + '</text>');
       }
-      parts.push('<rect x="' + tx + '" y="' + (z.y + 34) + '" width="32" height="2" rx="1" fill="' + z.accent + '" opacity="0.8"/>');
       if (z.watermark && z.mark) {
         parts.push('<g transform="translate(' + (z.x + z.w - 86) + ' ' + (z.y + 22) + ') scale(3)" opacity="0.28">' + badge(z.mark, z.accent) + '</g>');
       }
@@ -640,88 +691,152 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       }
     });
 
+    function glyphWidth(label, size) {
+      return String(label).length * size * 0.56;
+    }
+
+    function titleLines(label, maxW, preferred) {
+      var natural = glyphWidth(label, preferred);
+      if (natural <= maxW) return { size: preferred, lines: [label], lengths: [0] };
+      if (natural <= maxW * 1.25) return { size: preferred, lines: [label], lengths: [maxW] };
+      var words = String(label).split(" ");
+      if (words.length > 1) {
+        var mid = Math.ceil(words.length / 2);
+        var lines = [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
+        var wide = Math.max(glyphWidth(lines[0], preferred), glyphWidth(lines[1], preferred));
+        if (wide <= maxW) return { size: preferred, lines: lines, lengths: [0, 0] };
+        if (wide <= maxW * 1.18) {
+          return {
+            size: preferred,
+            lines: lines,
+            lengths: lines.map(function (line) { return glyphWidth(line, preferred) > maxW ? maxW : 0; })
+          };
+        }
+      }
+      var size = preferred;
+      while (size > 16 && glyphWidth(label, size) > maxW * 1.12) size -= 1;
+      var w = glyphWidth(label, size);
+      return { size: size, lines: [label], lengths: [w > maxW ? maxW : 0] };
+    }
+
+    function paintText(x, y, anchor, fill, size, weight, value, textLength) {
+      var fit = textLength ? ' textLength="' + textLength.toFixed(1) + '" lengthAdjust="spacingAndGlyphs"' : "";
+      return '<text x="' + x + '" y="' + y + '" text-anchor="' + anchor + '" fill="' + fill + '" font-size="' + size + '" font-weight="' + weight + '"' + fit + '>' + esc(value) + '</text>';
+    }
+
     CATALOG.forEach(function (spec) {
       var n = PLACED.nodes[spec.id];
       var info = model.nodes[spec.id];
       var color = HEALTH[info.state] || HEALTH.unknown;
-      var glow = info.state === "unknown" ? 0 : (info.state === "down" ? 0.5 : 0.3);
-      if (n.mode === "vmhost") {
-        parts.push('<g data-k="n:' + spec.id + '" style="cursor:pointer">');
-        if (glow) {
-          parts.push('<rect x="' + (n.x - 5) + '" y="' + (n.y - 5) + '" width="' + (n.w + 10) + '" height="' + (n.h + 10) + '" rx="22" fill="' + color + '" opacity="' + glow + '" filter="url(#blur)"/>');
-        }
-        parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="18" fill="#121a2b" stroke="' + color + '" stroke-width="1.8" stroke-dasharray="7 5"/>');
-        parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="18" fill="url(#sheen)"/>');
-        var screenX = n.x + 16;
-        var screenY = n.y + 16;
-        var screenW = n.w - 32;
-        var screenH = 64;
-        parts.push('<rect x="' + screenX + '" y="' + screenY + '" width="' + screenW + '" height="' + screenH + '" rx="8" fill="#0c121c" stroke="' + color + '" stroke-opacity="0.5" stroke-width="1.15"/>');
-        var vmSize = 34;
-        var vix = n.x + (n.w - vmSize) / 2;
-        var viy = screenY + (screenH - vmSize) / 2;
-        parts.push('<g transform="translate(' + vix.toFixed(1) + ' ' + viy.toFixed(1) + ') scale(' + (vmSize / 24).toFixed(3) + ')">' + icon(n.icon) + '</g>');
-        parts.push('<text x="' + mx(n) + '" y="' + (n.y + n.h - 34) + '" text-anchor="middle" fill="#f4f7fb" font-size="13" font-weight="650">' + esc(n.label) + '</text>');
-        parts.push('<text x="' + mx(n) + '" y="' + (n.y + n.h - 16) + '" text-anchor="middle" fill="#93a4bb" font-size="11">' + esc(n.role) + '</text>');
-        parts.push('<circle cx="' + (n.x + n.w - 16) + '" cy="' + (n.y + 16) + '" r="4" fill="' + color + '" stroke="#121a2b" stroke-width="2"/>');
-        parts.push('</g>');
-        return;
-      }
+      var plat = PLATFORMS[n.platform] || PLATFORMS.vks;
+      var kind = KINDS[n.kind] || KINDS.app;
+      var glow = info.state === "unknown" ? 0 : (info.state === "down" ? 0.28 : 0.12);
+      var dash = n.mode === "vmhost" ? ' stroke-dasharray="7 5"' : "";
+      parts.push('<g data-k="n:' + spec.id + '" style="cursor:pointer">');
       if (glow) {
         parts.push('<rect x="' + (n.x - 4) + '" y="' + (n.y - 4) + '" width="' + (n.w + 8) + '" height="' + (n.h + 8) + '" rx="18" fill="' + color + '" opacity="' + glow + '" filter="url(#blur)"/>');
       }
-      parts.push('<g data-k="n:' + spec.id + '" style="cursor:pointer">');
-      parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="14" fill="#121a2b" stroke="' + color + '" stroke-width="1.6"/>');
+      parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="14" fill="' + plat.fill + '" stroke="' + color + '" stroke-width="3"' + dash + '/>');
       parts.push('<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="14" fill="url(#sheen)"/>');
-      if (n.mode !== "feature") {
-        parts.push('<rect x="' + (n.x + 1.5) + '" y="' + (n.y + 12) + '" width="3" height="' + (n.h - 24) + '" rx="1.5" fill="' + color + '"/>');
-      }
-      var size = n.mode === "feature" ? 42 : (n.mode === "stack" ? 28 : 24);
-      var ix, iy;
-      if (n.mode === "feature") {
-        ix = n.x + (n.w - size) / 2;
-        iy = n.y + 36;
+      parts.push('<rect x="' + (n.x + 5) + '" y="' + (n.y + 8) + '" width="6" height="' + (n.h - 16) + '" rx="3" fill="' + kind.color + '"/>');
+      var dot = n.w >= 200 ? 7 : 5.5;
+      parts.push('<circle cx="' + (n.x + n.w - dot - 6) + '" cy="' + (n.y + dot + 6) + '" r="' + dot + '" fill="' + color + '" stroke="#070b14" stroke-width="2"/>');
+
+      if (n.mode === "vmhost") {
+        var screenX = n.x + 18;
+        var screenY = n.y + 14;
+        var screenW = n.w - 36;
+        var screenH = 58;
+        parts.push('<rect x="' + screenX + '" y="' + screenY + '" width="' + screenW + '" height="' + screenH + '" rx="8" fill="#0c121c" stroke="' + kind.color + '" stroke-opacity="0.8" stroke-width="1.4"/>');
+        var vmSize = 30;
+        parts.push('<g transform="translate(' + (n.x + (n.w - vmSize) / 2).toFixed(1) + ' ' + (screenY + (screenH - vmSize) / 2).toFixed(1) + ') scale(' + (vmSize / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
+        parts.push(paintText(mx(n), n.y + n.h - 36, "middle", TITLE, 22, "750", n.label));
+        parts.push(paintText(mx(n), n.y + n.h - 16, "middle", plat.accent, 14, "650", plat.short));
+      } else if (n.mode === "feature") {
+        var fSize = 36;
+        parts.push('<g transform="translate(' + (n.x + (n.w - fSize) / 2).toFixed(1) + ' ' + (n.y + 28) + ') scale(' + (fSize / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
+        parts.push(paintText(mx(n), n.y + 112, "middle", TITLE, 28, "750", n.label));
+        parts.push(paintText(mx(n), n.y + 136, "middle", plat.accent, 16, "650", plat.short));
+        parts.push(paintText(mx(n), n.y + 156, "middle", kind.color, 14, "650", kind.legend));
       } else if (n.mode === "stack") {
-        ix = n.x + (n.w - size) / 2;
-        iy = n.y + 16;
+        var narrow = n.w < 90;
+        var top = n.y + 10;
+        if (!narrow) {
+          var iconSize = 22;
+          parts.push('<g transform="translate(' + (n.x + (n.w - iconSize) / 2).toFixed(1) + ' ' + (n.y + 8) + ') scale(' + (iconSize / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
+          top = n.y + 44;
+        }
+        var fitted = titleLines(n.label, n.w - (narrow ? 16 : 18), narrow ? 16 : 18);
+        fitted.lines.forEach(function (line, i) {
+          parts.push(paintText(mx(n), top + i * (fitted.size + 2), "middle", TITLE, fitted.size, "750", line, fitted.lengths[i]));
+        });
+        var platY = top + fitted.lines.length * (fitted.size + 2) + 4;
+        if (platY < n.y + n.h - 4) {
+          parts.push(paintText(mx(n), platY, "middle", plat.accent, narrow ? 12 : 13, "650", plat.short));
+        }
+      } else if (n.w >= 240) {
+        var big = 32;
+        parts.push('<g transform="translate(' + (n.x + 18) + ' ' + (n.y + (n.h - big) / 2).toFixed(1) + ') scale(' + (big / 24).toFixed(3) + ')">' + icon(n.icon, kind.color) + '</g>');
+        parts.push(paintText(n.x + 64, n.y + n.h / 2 - 6, "start", TITLE, 28, "750", n.label));
+        parts.push(paintText(n.x + 64, n.y + n.h / 2 + 22, "start", plat.accent, 16, "650", plat.legend));
       } else {
-        ix = n.x + 14;
-        iy = n.y + (n.h - size) / 2;
+        var preferred = n.h >= 76 ? 20 : 18;
+        var fittedWide = titleLines(n.label, n.w - 26, preferred);
+        var wideBase = n.y + (fittedWide.lines.length > 1 ? 28 : Math.round(n.h * 0.42));
+        fittedWide.lines.forEach(function (line, i) {
+          parts.push(paintText(n.x + 18, wideBase + i * (fittedWide.size + 2), "start", TITLE, fittedWide.size, "750", line, fittedWide.lengths[i]));
+        });
+        var subY = wideBase + (fittedWide.lines.length - 1) * (fittedWide.size + 2) + fittedWide.size * 0.72 + 8;
+        if (subY <= n.y + n.h - 8) {
+          parts.push(paintText(n.x + 18, subY, "start", plat.accent, 13, "650", plat.short));
+          var kindX = n.x + 18 + glyphWidth(plat.short, 13) + 8;
+          if (kindX + glyphWidth(kind.legend, 13) < n.x + n.w - 16) {
+            parts.push(paintText(kindX, subY, "start", kind.color, 13, "650", kind.legend));
+          }
+        }
       }
-      parts.push('<g transform="translate(' + ix.toFixed(1) + ' ' + iy.toFixed(1) + ') scale(' + (size / 24).toFixed(3) + ')">' + icon(n.icon) + '</g>');
-      if (n.mode === "feature") {
-        parts.push('<text x="' + mx(n) + '" y="' + (n.y + 128) + '" text-anchor="middle" fill="#f4f7fb" font-size="18" font-weight="650">' + esc(n.label) + '</text>');
-        parts.push('<text x="' + mx(n) + '" y="' + (n.y + 152) + '" text-anchor="middle" fill="#93a4bb" font-size="12">' + esc(n.role) + '</text>');
-      } else if (n.mode === "stack") {
-        parts.push('<text x="' + mx(n) + '" y="' + (n.y + 62) + '" text-anchor="middle" fill="#f4f7fb" font-size="13" font-weight="650">' + esc(n.label) + '</text>');
-        parts.push('<text x="' + mx(n) + '" y="' + (n.y + 80) + '" text-anchor="middle" fill="#93a4bb" font-size="11">' + esc(n.role) + '</text>');
-      } else {
-        var tx = n.x + 46;
-        parts.push('<text x="' + tx + '" y="' + (n.y + n.h / 2 - 2) + '" fill="#f4f7fb" font-size="13" font-weight="650">' + esc(n.label) + '</text>');
-        parts.push('<text x="' + tx + '" y="' + (n.y + n.h / 2 + 14) + '" fill="#93a4bb" font-size="11">' + esc(n.role) + '</text>');
-      }
-      parts.push('<circle cx="' + (n.x + n.w - 12) + '" cy="' + (n.y + 12) + '" r="4" fill="' + color + '" stroke="#121a2b" stroke-width="2"/>');
       parts.push('</g>');
     });
 
     var any = CATALOG.some(function (n) { return model.nodes[n.id].value != null && model.nodes[n.id].value !== ""; });
     parts.push('<g pointer-events="none">');
-    parts.push('<rect x="28" y="16" width="34" height="34" rx="9" fill="#e23b4a"/>');
-    parts.push('<path d="M36 40 L45 22 L54 40" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>');
-    parts.push('<text x="74" y="40" fill="#f4f7fb" font-size="22" font-weight="700">Goad</text>');
-    parts.push('<text x="148" y="40" fill="#8ea0b8" font-size="15">Application topology</text>');
-    parts.push('<circle cx="330" cy="35" r="4" fill="' + (any ? "#3dd68c" : "#64748b") + '"><animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/></circle>');
-    parts.push('<text x="340" y="40" fill="#8ea0b8" font-size="12">' + (any ? "Live" : "Waiting") + '</text>');
+    parts.push('<rect x="28" y="8" width="30" height="30" rx="8" fill="#e23b4a"/>');
+    parts.push('<path d="M35 32 L43 16 L51 32" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>');
+    parts.push('<text x="68" y="30" fill="#f4f7fb" font-size="22" font-weight="700">Goad</text>');
+    parts.push('<text x="138" y="30" fill="#8ea0b8" font-size="15">Application topology</text>');
+    parts.push('<circle cx="318" cy="25" r="4" fill="' + (any ? "#3dd68c" : "#64748b") + '"><animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/></circle>');
+    parts.push('<text x="328" y="30" fill="#8ea0b8" font-size="13">' + (any ? "Live" : "Waiting") + '</text>');
     var legend = [["HTTP", PROTO.HTTP], ["HTTPS", PROTO.HTTPS], ["TCP", PROTO.TCP], ["MCP", PROTO.MCP], ["OAuth", PROTO.OAuth]];
-    var lx = 1120;
+    var lx = 430;
     legend.forEach(function (item) {
-      parts.push('<line x1="' + lx + '" y1="35" x2="' + (lx + 22) + '" y2="35" stroke="' + item[1] + '" stroke-width="2"/>');
-      parts.push('<circle cx="' + (lx + 11) + '" cy="35" r="2.4" fill="' + item[1] + '"/>');
-      parts.push('<text x="' + (lx + 28) + '" y="39" fill="#c5d0e0" font-size="12">' + item[0] + '</text>');
-      lx += 92;
+      parts.push('<line x1="' + lx + '" y1="25" x2="' + (lx + 18) + '" y2="25" stroke="' + item[1] + '" stroke-width="2"/>');
+      parts.push('<circle cx="' + (lx + 9) + '" cy="25" r="2.2" fill="' + item[1] + '"/>');
+      parts.push('<text x="' + (lx + 22) + '" y="29" fill="#c5d0e0" font-size="13">' + item[0] + '</text>');
+      lx += item[0].length * 8 + 40;
     });
-    parts.push('<line x1="' + lx + '" y1="35" x2="' + (lx + 22) + '" y2="35" stroke="#ff5d73" stroke-width="2" stroke-dasharray="4 3"/>');
-    parts.push('<text x="' + (lx + 28) + '" y="39" fill="#c5d0e0" font-size="12">Down</text>');
+    parts.push('<line x1="' + lx + '" y1="25" x2="' + (lx + 18) + '" y2="25" stroke="#ff5d73" stroke-width="2.4" stroke-dasharray="4 3"/>');
+    parts.push('<text x="' + (lx + 22) + '" y="29" fill="#c5d0e0" font-size="13">Down</text>');
+
+    function chip(x, y, fill, label) {
+      parts.push('<rect x="' + x + '" y="' + (y - 11) + '" width="12" height="12" rx="3" fill="' + fill + '" stroke="#102033" stroke-opacity="0.45" stroke-width="1"/>');
+      parts.push('<text x="' + (x + 16) + '" y="' + y + '" fill="#eef3fb" font-size="14" font-weight="650">' + esc(label) + '</text>');
+      return x + 16 + label.length * 8.1 + 12;
+    }
+    var hy = 54;
+    parts.push('<text x="28" y="' + hy + '" fill="#8ea0b8" font-size="13" font-weight="650">Platform</text>');
+    var hx = 96;
+    ["vks", "tanzu", "vm", "dsm", "private-ai", "avi", "agentminder", "vcf"].forEach(function (key) {
+      hx = chip(hx, hy, PLATFORMS[key].fill, PLATFORMS[key].legend);
+    });
+    parts.push('<text x="' + (hx + 6) + '" y="' + hy + '" fill="#8ea0b8" font-size="13" font-weight="650">Workload</text>');
+    hx += 78;
+    ["app", "agent", "mcp", "data", "model", "platform"].forEach(function (key) {
+      hx = chip(hx, hy, KINDS[key].color, KINDS[key].legend);
+    });
+    parts.push('<circle cx="' + (hx + 8) + '" cy="' + (hy - 4) + '" r="5" fill="' + HEALTH.up + '" stroke="#070b14" stroke-width="1.5"/>');
+    parts.push('<text x="' + (hx + 18) + '" y="' + hy + '" fill="#eef3fb" font-size="14" font-weight="650">Up</text>');
+    parts.push('<circle cx="' + (hx + 52) + '" cy="' + (hy - 4) + '" r="5" fill="' + HEALTH.down + '" stroke="#070b14" stroke-width="1.5"/>');
+    parts.push('<text x="' + (hx + 62) + '" y="' + hy + '" fill="#eef3fb" font-size="14" font-weight="650">Down</text>');
     parts.push('</g>');
     parts.push('</svg>');
     return parts.join("");
@@ -750,8 +865,12 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       accent = HEALTH[n.state];
       var health = n.state === "up" ? "Up" : n.state === "down" ? "Down" : n.state === "slow" ? "Slow" : "Unknown";
       var lat = n.latency != null && !isNaN(n.latency) ? Math.round(n.latency) + " ms" : "";
+      var platName = (PLATFORMS[n.platform] && PLATFORMS[n.platform].legend) || n.platform;
+      var kindName = (KINDS[n.kind] && KINDS[n.kind].legend) || n.kind;
       body = [
         tipRow("Health", health),
+        tipRow("Platform", platName),
+        tipRow("Workload", kindName),
         tipRow("Cluster", n.cluster),
         tipRow("Namespace", n.namespace),
         tipRow("Node", n.node),
