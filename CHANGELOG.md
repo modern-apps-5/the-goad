@@ -12,8 +12,16 @@ What changed in this repository, newest first. The reasons are in
   MCP tools, and the two apps the agent flow needs
   (`metal-incident-live`, `pii-scrub`). `gitops/music-store` stays. The
   Diego runtime-config / OpenTelemetry collector is not a blocker on the
-  VKS runtime. Open questions are in the runbook. No decision yet: the
-  tile-versus-VKS question is unresolved, and nothing was applied.
+  VKS runtime. Nothing was applied.
+
+### Changed
+
+- The runbook now records the Broadcom 11.0 requirement for a dedicated
+  VKS cluster: the VMware Kubernetes Service Provider tile provisions
+  it, and an existing cluster cannot be attached. Sizing defaults are
+  3 control plane nodes in production, 3 workers, `guaranteed-medium`
+  (2 vCPU, 8 GB), and a 64 GiB `/var/lib/tanzu` disk. The Kubernetes
+  version is still unpublished. No decision yet.
 
 ## 2026-10-20 (one-shot IAM blocks)
 

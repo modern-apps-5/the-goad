@@ -64,6 +64,65 @@ Push is still `python3 tanzu-agents/push.py`, aimed at the 11.0 API
 once that API exists. Do not push into org `demo`. Do not push these
 apps onto cluster `music-store`.
 
+## Dedicated VKS cluster
+
+Yes. 11.0 does not attach a cluster that already exists. The VMware
+Kubernetes Service Provider tile provisions one and keeps it. Hub 11.0
+states: "You cannot connect an existing VKS cluster." Each resource
+segment then gets its own cluster: "each segment gets a dedicated
+cluster." These nine apps are one segment, so they share that one new
+cluster. They do not land on `music-store` or `agentminder`.
+
+Sources:
+
+- [Manage Kubernetes providers](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-hub/11-0/tnz-hub/foundations-kubernetes-provider-manage.html)
+- [Foundation profiles](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-hub/11-0/tnz-hub/foundations-profiles-overview.html)
+- [Tanzu Hub 11.0 release notes](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-hub/11-0/tnz-hub/release-notes.html)
+
+Install is a tile in Foundation Core, not a Supervisor Service and not
+a CLI. The tile is "VMware Kubernetes Service Provider on Tanzu
+Platform." Apply Changes provisions the cluster. App workloads then
+need the Applications on VKS profile (`tanzu-apps-on-vks`) and the
+Resource Segment for Kubernetes tile, which runs Diego cells as pods
+on the cluster the provider supplies. Ops Manager and Elastic
+Application Runtime are 11.0. The Tanzu Hub installer OVA is Hub, not
+this cluster.
+
+- [Configure the VMware Kubernetes Service Provider tile](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-hub/11-0/tnz-hub/foundations-configure-vks-provider.html) (22 October 2026)
+- [Tanzu Platform 11.0 release notes](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-platform/11-0/about-tnz-platform/release_notes.html) (11.0.0, 20 October 2026)
+- [Resource Segment for Kubernetes overview](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/elastic-application-runtime/11-0/eart/k8s-resource-segment-overview.html)
+- [Installing Resource Segment for Kubernetes](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/elastic-application-runtime/11-0/eart/installing-k8s-resource-segment.html)
+
+Sizing, from the tile's Node Configuration. Production control plane
+count is 3. Worker count defaults to 3. The default VM class for both
+is `guaranteed-medium`: 2 vCPU and 8 GB RAM. `guaranteed` reserves the
+whole amount. Storage class is the name of a class that already exists
+in the Supervisor namespace. The doc does not name one. Every control
+plane and worker node also gets a `/var/lib/tanzu` disk, default 64
+GiB, on a second storage class you name. Other VM classes on the tile
+run from `best-effort-xsmall` (2 vCPU, 2 GB) to `guaranteed-8xlarge`
+(32 vCPU, 128 GB).
+
+The workload cluster's Kubernetes version is not in these pages.
+
+Supervisor and VCF, from the same tile and from
+[Deploy a foundation](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-hub/11-0/tnz-hub/foundations-deploy-foundation.html):
+
+- Foundation Core is installed. The tile then reaches the Supervisor
+  either through VCF Automation (VCF 9 with VCFA: API URL, org, refresh
+  token, namespace) or through the Supervisor API (VCF 5.x on vSphere
+  8, or VCF 9 without VCFA: API URL, vCenter SSO, namespace).
+- A container registry: the Elastic Application Runtime internal
+  registry, or an external OCI registry.
+- The cluster must provide DNS. The resource segment's OpenTelemetry
+  collector is optional.
+- Foundation Core itself can be vended onto vSphere 8.0 or later, VCF
+  Automation 9.0 or 9.1, or vSphere Supervisor 9.0 or later. Vending
+  onto VCF 9 or a Supervisor is Tech Preview. A Supervisor target needs
+  Namespace Management API v2, NSX VPC, and VCF Networking with VPC. One
+  namespace maps to one foundation. Hub creates the content library
+  `tanzu-system-supervisor` if it is missing.
+
 ## Telemetry
 
 The Diego blocker is dropped. On the current foundation, app telemetry
@@ -83,10 +142,11 @@ diagram. Grafana in `incident-tools` and the VKS observability add-on
 
 ## When a later order says to execute
 
-1. Confirm the 11.0 runtime is a VKS cluster that is not
-   `music-store` and not an Acme or home-lab cluster. Record the API
-   and the apps domain. Do not reuse `api.sys.tp.gpu.set.lab` or
-   `*.apps.tp.gpu.set.lab` unless that order says they moved.
+1. The runtime is the VKS cluster the VKS Provider tile provisions.
+   It is not `music-store`, not `agentminder`, and not an Acme or
+   home-lab cluster. Record the API and the apps domain. Do not reuse
+   `api.sys.tp.gpu.set.lab` or `*.apps.tp.gpu.set.lab` unless that
+   order says they moved.
 2. `cf target` the 11.0 API, org `Goad`, space
    `metal-music-app-agentic-system`. Create the org and space if they
    are absent.
@@ -104,26 +164,41 @@ diagram. Grafana in `incident-tools` and the VKS observability add-on
 
 ## Open questions
 
-1. Tile or VKS install. Does an Ops Manager tile for 11.0 target a VKS
-   cluster in Goad, or is the supported landing the 11.0 OVA into the
-   VCF org, or a supervisor service on VCF 9.1? The announcement says
-   the platform is deployed as an OVA into a VCF org and that a
-   workload can be scheduled onto VKS or VMs. It does not say the
-   tile's Diego collector config applies to VKS. Unresolved. Do not
-   pick one.
-2. Which VKS cluster receives the 11.0 runtime? Not `music-store`.
-   Cluster `agentminder` already runs AgentMinder. Undecided.
+1. Resolved. The VKS runtime is the VMware Kubernetes Service Provider
+   tile in Foundation Core, plus the Applications on VKS profile and
+   the Resource Segment for Kubernetes tile. It is not a Supervisor
+   Service and not a CLI install. The Hub OVA installs Hub, not this
+   cluster. See Dedicated VKS cluster.
+2. Resolved. The tile provisions a new cluster. An existing cluster
+   cannot be connected, so the runtime is not `music-store` and not
+   `agentminder`. One resource segment, one cluster, for these nine
+   apps.
 3. API endpoint and apps domain for that runtime.
 4. Are `python_buildpack`, `agent_buildpack`, and the
    `agentminder-sdk` sidecar present on 11.0-on-VKS in this lab?
-5. Do `apps.internal` and app-to-app network policy behave on the VKS
-   runtime the way the chat needs? The Diego bosh-dns empty-answer
-   failure is a current-foundation fact. It is not carried forward.
+5. Resolved for the platform. Elastic Application Runtime 11.0 release
+   notes say container-to-container networking, network policies, and
+   internal route resolution work on VKS cells as they do on Diego
+   cells, and the policies become Kubernetes NetworkPolicy objects.
+   [Elastic Application Runtime 11.0 release notes](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/elastic-application-runtime/11-0/eart/runtime-rn.html).
+   The Diego bosh-dns empty-answer failure is not carried forward.
+   Whether this lab's chat still needs the `apps.internal` hostname
+   map is untested, and this draft does not test it.
 6. Where do 11.0-on-VKS logs, metrics, and agent traces land in Goad?
-   Platform UI only, an OTLP endpoint, the VKS observability add-on,
-   or Grafana in `incident-tools`? No destination is chosen.
+   The resource-segment collector is optional. Platform UI only, an
+   OTLP endpoint, the VKS observability add-on, or Grafana in
+   `incident-tools`? No destination is chosen.
 7. Are the AgentMinder resource-server URL updates in the same change
    as the push, or only after the new `/health` checks pass?
 8. When are the nine apps on the existing foundation stopped?
 9. May Acme be read as a layout reference? It stays read-only either
    way. Nothing is copied into Goad without a separate order.
+10. Which Kubernetes version does the VKS Provider tile put on the
+    cluster? The 11.0 tile page, the resource-segment pages, and the
+    platform release notes do not say.
+11. Which tile mode matches this lab, VCFA or direct Supervisor, and
+    does this Supervisor meet the vending rules (Supervisor 9.0 or
+    later, Namespace Management API v2, VCF Networking with VPC) if
+    Foundation Core is placed on it? Not checked. No cluster command.
+12. Which existing Supervisor storage class names go in the tile's
+    Storage Class and Ephemeral Disk Storage Class fields?
