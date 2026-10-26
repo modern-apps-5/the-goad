@@ -17,6 +17,12 @@ apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: music-store
+  # The platform-observability Supervisor Service onboards labelled
+  # clusters to VCF Operations and installs its collectors. The addon
+  # also needs helm-controller, which VKS already turns on for every
+  # cluster with the label value automatic.
+  labels:
+    addons.kubernetes.vmware.com/platform-observability: enabled
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
