@@ -16,6 +16,14 @@ vcfa_password = "CHANGE-ME"
 # value, and Terraform would rewrite the Secret. Copy the team's hash.
 pais_admin_password_hash = "$6$CHANGE-ME"
 
+# The music store's secrets, written to Secret Store (decision 38). In the
+# workflow they are the GitHub secrets MUSIC_STORE_DB_PASSWORD and
+# MUSIC_STORE_CHAT_API_KEY. Copy the team's values: a new database
+# password is set on the database at the next sync, and the shop's pods
+# need a restart to pick it up.
+music_store_db_password  = "CHANGE-ME"
+music_store_chat_api_key = "CHANGE-ME"
+
 # The other secret this root needs is a file, not a variable:
 #   .secrets/gitops-deploy-key
 # lab.auto.tfvars points at it. Copy the team's file there.

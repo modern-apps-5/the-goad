@@ -20,9 +20,11 @@ metadata:
   # The platform-observability Supervisor Service onboards labelled
   # clusters to VCF Operations and installs its collectors. The addon
   # also needs helm-controller, which VKS already turns on for every
-  # cluster with the label value automatic.
+  # cluster with the label value automatic. external-secrets.yaml installs
+  # ESO on clusters with the second label.
   labels:
     addons.kubernetes.vmware.com/platform-observability: enabled
+    addons.kubernetes.vmware.com/external-secrets: enabled
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:

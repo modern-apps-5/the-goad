@@ -9,11 +9,15 @@
 # assigned into the Service's Endpoints. The second Job creates the
 # shop user and loads the six albums when the table is empty.
 #
-# The shop user's password is not in git. catalog-init makes a random one
-# in the Secret catalog-music-user the first time, and sets it on the role
-# on every sync. The developer's Job shop-endpoints copies it into the VKS
-# cluster as store-db. Argo CD does not track that Secret, so it is not
-# pruned.
+# The shop user's password is not in git. Terraform writes it from a
+# GitHub secret into the KeyValueSecret music-store-catalog, in Secret
+# Store. catalog-init reads it through the Supervisor's vault injector and
+# sets it on the role on every sync. In the VKS cluster, ESO reads the same
+# KV as the Secret store-db (decision 38).
+#
+# SUPERVISOR_NAMESPACE below is a placeholder. The namespace name is
+# generated, so the Application music-store patches it in from Terraform
+# (terraform/platform-engineer/gitops.tf).
 apiVersion: databases.dataservices.vmware.com/v1alpha1
 kind: PostgresCluster
 metadata:
@@ -129,7 +133,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 data:
   init.sql: |
-    \getenv music_user_password MUSIC_PASSWORD
+    \set music_user_password `cat /vault/secrets/catalog`
     SELECT 'CREATE ROLE music_user LOGIN'
     WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'music_user') \gexec
     ALTER ROLE music_user PASSWORD :'music_user_password';
@@ -185,43 +189,6 @@ data:
     ALTER SEQUENCE IF EXISTS albums_id_seq OWNER TO music_user;
     ALTER SEQUENCE IF EXISTS orders_id_seq OWNER TO music_user;
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: catalog-init
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: catalog-init
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-rules:
-  # create cannot be limited to a name.
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["create"]
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["catalog-music-user"]
-    verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: catalog-init
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: catalog-init
-subjects:
-  - kind: ServiceAccount
-    name: catalog-init
----
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -233,33 +200,23 @@ metadata:
 spec:
   backoffLimit: 6
   template:
+    metadata:
+      # The Supervisor's vault injector writes the password to
+      # /vault/secrets/catalog before psql starts. Pre-populate only: no
+      # sidecar, so the Job can finish. Requests 0: a vSphere Pod's
+      # requests are reservations, and this namespace has none. The
+      # default agent image's registry does not resolve in the lab.
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-pre-populate-only: "true"
+        vault.hashicorp.com/agent-requests-cpu: "0"
+        vault.hashicorp.com/agent-requests-mem: "0"
+        vault.hashicorp.com/agent-image: quay.io/openbao/openbao:2.4.4
+        vault.hashicorp.com/role: SUPERVISOR_NAMESPACE
+        vault.hashicorp.com/agent-inject-secret-catalog: secret/data/SUPERVISOR_NAMESPACE/music-store-catalog
+        vault.hashicorp.com/agent-inject-template-catalog: '{{ with secret "secret/data/SUPERVISOR_NAMESPACE/music-store-catalog" }}{{ .Data.data.password }}{{ end }}'
     spec:
-      serviceAccountName: catalog-init
       restartPolicy: OnFailure
-      initContainers:
-        - name: password
-          image: alpine/k8s:1.34.1
-          resources:
-            requests: { cpu: "0", memory: "0" }
-            limits: { cpu: 500m, memory: 256Mi }
-          command: ["bash", "-euo", "pipefail", "-c"]
-          args:
-            - |
-              if kubectl get secret catalog-music-user >/dev/null 2>&1; then
-                echo "catalog-music-user exists"
-                exit 0
-              fi
-              password=$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
-              kubectl create -f - <<EOF
-              apiVersion: v1
-              kind: Secret
-              metadata:
-                name: catalog-music-user
-              type: Opaque
-              stringData:
-                password: $password
-              EOF
-              echo "catalog-music-user created"
       containers:
         - name: init
           image: postgres:16-alpine
@@ -276,11 +233,6 @@ spec:
               value: verify-full
             - name: PGSSLROOTCERT
               value: /ca/ca.crt
-            - name: MUSIC_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: catalog-music-user
-                  key: password
           command: ["psql", "-h", "postgres-service", "-U", "pgadmin", "-d", "music_store", "-v", "ON_ERROR_STOP=1", "-f", "/sql/init.sql"]
           volumeMounts:
             - name: ca

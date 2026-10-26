@@ -12,12 +12,10 @@
 # users-service. The Job shop-endpoints in gitops/music-store-dev/users-vm
 # writes the addresses. This directory does not contain Endpoints.
 #
-# store-db is the catalog password for music_user. It is not in git: the
-# Job shop-endpoints in gitops/music-store-dev/users-vm copies it from the
-# Supervisor Namespace. Until it exists the store and chat pods wait. The
-# chat Secret metal-oracle-model holds a model API
-# key and is not in git. The developer creates it; chat starts without it
-# and answers that it needs the model.
+# store-db (the catalog password) and metal-oracle-model (the chat model's
+# URL, API key and name) come from Secret Store through ESO, in
+# external-secrets.yaml. No value is in git. Until ESO has written them the
+# store and chat pods wait.
 #
 # cart-pvc and order-pvc stay mounted. The 1.0.63 sqlite files on those
 # disks use different tables, so her cart and order open new files beside
@@ -30,6 +28,7 @@ resources:
   - services.yaml
   - persistence.yaml
   - ingress.yaml
+  - external-secrets.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

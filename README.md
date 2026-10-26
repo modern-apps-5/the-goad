@@ -41,11 +41,14 @@ place:
   address into Endpoints in the VKS cluster.
 - `app/` goes into the namespace `music-store` of the VKS cluster. It is
   the store, cart, orders, and chat, run from the source in `app/src/`.
-  The catalog password is not in git: the platform engineer's
-  `catalog-init` Job makes a random one, and the Job in `users-vm/`
-  copies it into the cluster as the Secret `store-db`. Chat reads the Secret `metal-oracle-model`,
-  which holds a model API key and is not in git. The developer creates
-  it; until then chat answers that it needs the model.
+  The catalog password and the chat's model key are not in git. They are
+  GitHub secrets, which the platform engineer Terraform writes into Secret
+  Store; ESO in the cluster makes the Secrets `store-db` and
+  `metal-oracle-model` from them (decision 38).
+
+[gitops/music-store-platform](gitops/music-store-platform) is the platform
+engineer's part inside the VKS cluster: the `ClusterSecretStore` that ESO
+reads Secret Store with.
 
 The incident demo that runs beside the shop is in
 [incident-demo](incident-demo). A person runs it, so it is not under
