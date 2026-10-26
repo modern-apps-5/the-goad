@@ -12,9 +12,10 @@
 # users-service. The Job shop-endpoints in gitops/music-store-dev/users-vm
 # writes the addresses. This directory does not contain Endpoints.
 #
-# store-db is the catalog password for music_user. It is the same literal
-# that catalog-init in gitops/music-store/catalog.yaml sets, so it is in
-# git there already. The chat Secret metal-oracle-model holds a model API
+# store-db is the catalog password for music_user. It is not in git: the
+# Job shop-endpoints in gitops/music-store-dev/users-vm copies it from the
+# Supervisor Namespace. Until it exists the store and chat pods wait. The
+# chat Secret metal-oracle-model holds a model API
 # key and is not in git. The developer creates it; chat starts without it
 # and answers that it needs the model.
 #
@@ -32,11 +33,6 @@ resources:
 
 generatorOptions:
   disableNameSuffixHash: true
-
-secretGenerator:
-  - name: store-db
-    literals:
-      - password=music_password
 
 configMapGenerator:
   - name: store-src

@@ -39,7 +39,7 @@ demo is run by a person, so it is at the repository root in
 |---|---|---|---|
 | `private-ai/` | platform engineer | `private-ai` | DSM database, Private AI Services, and the Qwen model. |
 | `music-store/` | platform engineer | `music-store` | The VKS cluster `music-store` and the DSM catalog. |
-| `music-store-dev/users-vm/` | developer | `music-store-dev-vm` | The users VM and the Job `shop-endpoints`, in the `music-store` Supervisor Namespace. |
+| `music-store-dev/users-vm/` | developer | `music-store-dev-vm` | The users VM, and the Job `shop-endpoints` that copies the catalog's addresses and the `store-db` password into the VKS cluster. |
 | `music-store-dev/app/` | developer | `music-store-dev-app` | The shop's containers and their source, in namespace `music-store` of the VKS cluster. |
 
 Directories do not nest across owners. An Application syncs one

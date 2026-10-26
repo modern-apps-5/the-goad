@@ -69,7 +69,10 @@ spec:
         - name: POSTGRES_USER
           value: "music_user"
         - name: POSTGRES_PASSWORD
-          value: "music_password"
+          valueFrom:
+            secretKeyRef:
+              name: store-db
+              key: password
         - name: PGDATA
           value: "/var/lib/postgresql/data/pgdata"
         # No hardcoded version - let database initialize naturally

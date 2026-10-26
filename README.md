@@ -40,8 +40,10 @@ place:
   users VM, and a Job that writes the VM's address and the catalog's
   address into Endpoints in the VKS cluster.
 - `app/` goes into the namespace `music-store` of the VKS cluster. It is
-  the store, cart, orders, and chat, run from the source in `app/src/`,
-  and the Secret `store-db`. Chat reads the Secret `metal-oracle-model`,
+  the store, cart, orders, and chat, run from the source in `app/src/`.
+  The catalog password is not in git: the platform engineer's
+  `catalog-init` Job makes a random one, and the Job in `users-vm/`
+  copies it into the cluster as the Secret `store-db`. Chat reads the Secret `metal-oracle-model`,
   which holds a model API key and is not in git. The developer creates
   it; until then chat answers that it needs the model.
 

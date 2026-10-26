@@ -71,7 +71,10 @@ spec:
         - name: DB_USER
           value: "music_user"
         - name: DB_PASSWORD
-          value: "music_password"
+          valueFrom:
+            secretKeyRef:
+              name: store-db
+              key: password
         # Static files are included in the Docker image, no volume mount needed
 ---
 apiVersion: v1

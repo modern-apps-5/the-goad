@@ -810,11 +810,16 @@ under `gitops/incident-demo/`. Both are undone:
 - The incident demo is `incident-demo/` at the repository root. A person
   runs it (`apply.py`, `push.py`, `walk/demo.sh`), so by decision 10 and
   the placement rule in the README it is not under `gitops/`.
-- The shop's `store-db` Secret comes from a `secretGenerator` in
-  `gitops/music-store-dev/app/kustomization.yaml`. It was made by hand,
-  so a rebuild in a new org had store and cart pods waiting on a Secret
-  nobody made. The password is the literal `catalog-init` already sets in
-  `gitops/music-store/catalog.yaml`, so git holds nothing new.
+- No password is in git. The shop's catalog password was the literal
+  `music_password`, in `catalog-init` and in `app/music-store`, and the
+  Secret `store-db` was made by hand, so a rebuild in a new org had the
+  storefront and chat pods waiting on a Secret nobody made. Now
+  `catalog-init` makes a random password in the Supervisor Secret
+  `catalog-music-user` the first time, and sets it on the role
+  `music_user` on every sync. That also retires the old literal, which
+  stays in git history. The developer's Job `shop-endpoints` copies it
+  into the VKS cluster as `store-db`, beside the Endpoints it already
+  writes. The files in `app/music-store` read `store-db` too.
 - The chat Secret `metal-oracle-model` holds a model API key and stays out
   of git. Its keys are `optional`, so chat starts without it and answers
   that it needs the model. The developer creates it.

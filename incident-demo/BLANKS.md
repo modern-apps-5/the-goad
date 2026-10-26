@@ -35,8 +35,8 @@ No address is in git.
 | `VCF_MCP_AUDIENCES` | Comma-separated JWT audiences for the VCF door | (set by `agentminder/register.py`) |
 | `KUBECONFIG` | Guest cluster kubeconfig. Not committed | (operator file) |
 
-The shop database secret `store-db` comes from Argo CD, with the shop
-in `gitops/music-store-dev/app`. The chat secret `metal-oracle-model`
+The shop database secret `store-db` is copied into the cluster by the
+Job `shop-endpoints` in `gitops/music-store-dev/users-vm`. The chat secret `metal-oracle-model`
 is made by the developer in namespace `music-store`; its shape is in
 `secrets/templates.yaml`. This apply writes neither.
 Agent apply creates

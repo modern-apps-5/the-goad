@@ -1,6 +1,6 @@
 # The addresses behind users-service and postgres-service in the VKS
 # cluster music-store, where gitops/music-store-dev/app runs the shop's
-# containers.
+# containers, and the catalog password the containers log in with.
 #
 # The users VM and the catalog run in this Supervisor Namespace, and the
 # containers cannot see its Services. This Job reads the two addresses
@@ -8,6 +8,11 @@
 # engineer's catalog-endpoints Job wrote (gitops/music-store/catalog.yaml), and writes them as Endpoints into the namespace music-store of
 # the cluster. It reaches the cluster with the kubeconfig Secret that VKS
 # creates next to the Cluster. No address is in git.
+#
+# The catalog password is the Secret catalog-music-user, which the
+# platform engineer's catalog-init Job makes. This Job copies it into the
+# cluster as store-db. No password is in git. If the password changes,
+# sync this Application again and restart the shop's pods.
 #
 # Wave 1, after the users VM. The catalog and the cluster belong to the
 # platform engineer's Application, which this one cannot wait for. On a
@@ -30,7 +35,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    resourceNames: ["music-store-kubeconfig"]
+    resourceNames: ["music-store-kubeconfig", "catalog-music-user"]
     verbs: ["get"]
   - apiGroups: [""]
     resources: ["endpoints"]
@@ -82,6 +87,8 @@ spec:
               users=$(kubectl get service users-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
               [ -n "$catalog" ] || { echo "postgres-service has no address yet"; exit 1; }
               [ -n "$users" ] || { echo "users-service has no address yet"; exit 1; }
+              password=$(kubectl get secret catalog-music-user -o jsonpath='{.data.password}' 2>/dev/null || true)
+              [ -n "$password" ] || { echo "catalog-music-user does not exist yet"; exit 1; }
               echo "catalog is at $catalog, users is at $users"
               kubectl get secret music-store-kubeconfig -o jsonpath='{.data.value}' | base64 -d > /tmp/kubeconfig
               export KUBECONFIG=/tmp/kubeconfig
@@ -108,4 +115,12 @@ spec:
                   ports:
                     - name: http
                       port: 5003
+              ---
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: store-db
+              type: Opaque
+              data:
+                password: $password
               EOF

@@ -18,12 +18,17 @@ What changed in this repository, newest first. The reasons are in
 
 ### Added
 
-- The Secret `store-db`, from a `secretGenerator` in
-  `gitops/music-store-dev/app/kustomization.yaml`.
+- A random catalog password. `catalog-init` makes the Secret
+  `catalog-music-user` and sets the role `music_user` from it on every
+  sync; `shop-endpoints` copies it to `store-db` on the VKS cluster. On
+  the first sync after the merge the live password changes, so the
+  storefront and chat pods need a restart once `shop-endpoints` has run.
 - `optional: true` on the chat's `metal-oracle-model` Secret keys.
 
 ### Removed
 
+- The plain text password `music_password` from `catalog.yaml` and
+  `app/music-store`.
 - `gitops/music-store/app/backup/music-store-2026-10-22.json`, a live
   namespace snapshot with addresses.
 - `store_password()` in `incident-demo/apply.py`, which nothing called,
