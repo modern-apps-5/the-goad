@@ -242,16 +242,19 @@ spec:
                 secretKeyRef:
                   name: metal-oracle-model
                   key: base-url
+                  optional: true
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: metal-oracle-model
                   key: api-key
+                  optional: true
             - name: OPENAI_MODEL
               valueFrom:
                 secretKeyRef:
                   name: metal-oracle-model
                   key: model
+                  optional: true
             - name: OPENAI_TLS_VERIFY
               value: "false"
           ports:

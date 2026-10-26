@@ -19,10 +19,11 @@ the platform engineer, and the developer.
 | Developer | Argo CD | The shop's users VM, and the endpoints that point the VKS cluster at it and at the catalog | [gitops/music-store-dev/users-vm](gitops/music-store-dev/users-vm) |
 | Developer | Argo CD | The shop's containers, on the VKS cluster | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
 
-The music-store application is in [app/music-store](app/music-store) as
-plain container manifests. The platform engineer builds the VKS cluster
-`music-store` and the catalog database. The developer deploys the
-containers onto that cluster, and the users VM next to it.
+The music-store application, manifests and source, is in
+[gitops/music-store-dev/app](gitops/music-store-dev/app). The platform
+engineer builds the VKS cluster `music-store` and the catalog database.
+The developer deploys the containers onto that cluster, and the users VM
+next to it.
 
 [gitops/music-store](gitops/music-store) is the DSM catalog and the VKS
 cluster `music-store`. No file sets a namespace or an address. Terraform
@@ -39,9 +40,14 @@ place:
   users VM, and a Job that writes the VM's address and the catalog's
   address into Endpoints in the VKS cluster.
 - `app/` goes into the namespace `music-store` of the VKS cluster. It is
-  the store, cart, orders, and traffic generator from
-  [app/music-store](app/music-store). The chat service is not deployed
-  there. The walkthrough deploys it to Tanzu with `cf push`.
+  the store, cart, orders, and chat, run from the source in `app/src/`,
+  and the Secret `store-db`. Chat reads the Secret `metal-oracle-model`,
+  which holds a model API key and is not in git. The developer creates
+  it; until then chat answers that it needs the model.
+
+The incident demo that runs beside the shop is in
+[incident-demo](incident-demo). A person runs it, so it is not under
+`gitops/`.
 
 ## Automation flow
 
@@ -468,7 +474,9 @@ terraform/runner/              The self-hosted runner for the workflows. Not a p
 gitops/<namespace key>/        What Argo CD syncs into that namespace
 gitops/music-store-dev/        The developer's part: users-vm/ into the Supervisor Namespace, app/ into the VKS cluster
 scripts/                       What a person runs by hand, once
-app/music-store/               The application's container manifests, which gitops/music-store-dev/app builds
+incident-demo/                 The incident demo, run by hand after the shop answers
+incident/                      The earlier incident demo design, on its own cluster goad-store
+app/music-store/               The earlier container manifests and the Antrea policy tests; not deployed
 .github/workflows/             One Terraform workflow for each persona
 docs/                          Design, script, plan, decisions
 ```

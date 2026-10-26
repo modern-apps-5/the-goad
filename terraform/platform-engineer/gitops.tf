@@ -42,15 +42,11 @@ resource "kubectl_manifest" "application" {
     metadata   = { name = each.key, namespace = local.platform_namespace }
     spec = {
       project = "default"
-      source = merge({
+      source = {
         repoURL        = var.gitops_repo.url
         targetRevision = var.gitops_repo.revision
         path           = "gitops/${each.key}"
-        }, each.key == "music-store" ? {
-        # app/ and users-vm/ live in this directory and belong to the
-        # developer Applications. Directory apps do not recurse.
-        directory = { recurse = false }
-      } : {})
+      }
       destination = { name = each.key, namespace = each.value }
       syncPolicy  = { automated = { prune = true, selfHeal = true } }
     }
@@ -88,9 +84,9 @@ resource "kubectl_manifest" "gitops_repository" {
 # The developer owns two parts of the music store, each with its own
 # Application:
 #
-#   music-store-dev-vm   gitops/music-store/users-vm, into the
+#   music-store-dev-vm   gitops/music-store-dev/users-vm, into the
 #                        music-store Supervisor Namespace: the users VM.
-#   music-store-dev-app  gitops/music-store/app, into the namespace
+#   music-store-dev-app  gitops/music-store-dev/app, into the namespace
 #                        music-store of the VKS cluster: the containers.
 #
 # The platform engineer's Application music-store keeps the cluster and
@@ -144,7 +140,7 @@ resource "kubectl_manifest" "music_store_dev_vm_application" {
       source = {
         repoURL        = var.gitops_repo.url
         targetRevision = var.gitops_repo.revision
-        path           = "gitops/music-store/users-vm"
+        path           = "gitops/music-store-dev/users-vm"
       }
       destination = { name = "music-store", namespace = local.namespace_names["music-store"] }
       syncPolicy  = local.developer_sync_policy
@@ -167,7 +163,7 @@ resource "kubectl_manifest" "music_store_dev_app_application" {
       source = {
         repoURL        = var.gitops_repo.url
         targetRevision = var.gitops_repo.revision
-        path           = "gitops/music-store/app"
+        path           = "gitops/music-store-dev/app"
       }
       destination = { name = "music-store-cluster", namespace = "music-store" }
       # The namespace inside the VKS cluster is not a Supervisor Namespace,

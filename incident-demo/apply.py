@@ -219,19 +219,6 @@ def wizard_b64() -> str:
     return base64.b64encode(json.dumps(payload).encode()).decode()
 
 
-def store_password() -> str:
-    text = (ROOT.parents[1] / "app" / "music-store" / "k8s-deployment.yaml").read_text()
-    for line in text.splitlines():
-        if "music_password" in line and "DB_PASSWORD" not in line:
-            # the value line is the next assignment; handled below
-            pass
-    # The published manifest sets DB_PASSWORD to this literal.
-    marker = 'value: "music_password"'
-    if marker not in text:
-        raise SystemExit("shop database password is not in the published store manifest")
-    return "music_password"
-
-
 def ensure_admin_password() -> None:
     if os.environ.get("ZAMMAD_ADMIN_PASSWORD", "").strip():
         return
@@ -373,8 +360,8 @@ def main() -> None:
         raise SystemExit("nothing selected")
 
     if "store" in selected:
-        # The shop is owned by gitops/music-store/app. This tree has no store.
-        print("store apply skipped: the shop is owned by gitops/music-store/app")
+        # The shop is owned by gitops/music-store-dev/app. This tree has no store.
+        print("store apply skipped: the shop is owned by gitops/music-store-dev/app")
 
     if "incident-tools" in selected:
         zammad = fill((ROOT / "zammad" / "zammad.yaml").read_text())

@@ -1,5 +1,5 @@
 # Export record of the earlier host. Do not apply.
-# The Goad ingress is gitops/music-store/app/ingress.yaml.
+# The Goad ingress is gitops/music-store-dev/app/ingress.yaml.
 # Host that answered HTTPS 200 on 2026-10-11.
 # The live Ingress object was not exported. The Kubernetes MCP has no
 # ingress read. This records the host and the store service. It does not

@@ -793,3 +793,48 @@ next login.
 
 Look again if: the Argo CD `groups` claim from VCF Automation does not
 carry the org group's name. Then Argo CD has to map a different value.
+
+## 37. One owner per gitops directory; the incident demo is not gitops
+
+Two moves on 2026-10-22 put the developer's `app/` and `users-vm/` under
+the platform engineer's `gitops/music-store/`, and the incident demo
+under `gitops/incident-demo/`. Both are undone:
+
+- `gitops/music-store-dev/app/` and `gitops/music-store-dev/users-vm/`
+  are the developer's directories again, as in decision 34. The shop's
+  source and covers stay in `app/`, with its manifests: Argo CD's
+  kustomize does not load files from outside the directory it syncs.
+- The Application `music-store` no longer sets `directory.recurse =
+  false`. It syncs `gitops/music-store/` like every other namespace
+  (decision 13), and that directory has no subdirectories.
+- The incident demo is `incident-demo/` at the repository root. A person
+  runs it (`apply.py`, `push.py`, `walk/demo.sh`), so by decision 10 and
+  the placement rule in the README it is not under `gitops/`.
+- The shop's `store-db` Secret comes from a `secretGenerator` in
+  `gitops/music-store-dev/app/kustomization.yaml`. It was made by hand,
+  so a rebuild in a new org had store and cart pods waiting on a Secret
+  nobody made. The password is the literal `catalog-init` already sets in
+  `gitops/music-store/catalog.yaml`, so git holds nothing new.
+- The chat Secret `metal-oracle-model` holds a model API key and stays out
+  of git. Its keys are `optional`, so chat starts without it and answers
+  that it needs the model. The developer creates it.
+- The snapshot `app/backup/music-store-2026-10-22.json` is removed. It
+  held live addresses (decision 21) in a synced directory. Git history
+  has it.
+- `app/music-store/` is the earlier shape and the Antrea policy test. It
+  is not deployed.
+
+Why: one owner and one Application per directory means no Application
+can adopt or prune another owner's files. With the developer's files
+inside the platform engineer's directory, only a recurse flag kept the
+platform Application, which prunes, away from them.
+
+Cost: the platform engineer Terraform must apply after the merge so the
+two developer Applications point at the new paths. Until then they show
+a comparison error for a missing path and change nothing in the lab.
+`incident/` at the root is the earlier incident design (cluster
+`goad-store`) and still overlaps `incident-demo/`; `push.py` reads its
+`agents/sidecar` from a checkout of it.
+
+Look again if: the incident demo becomes something Argo CD syncs. Then
+its manifests move under `gitops/` and its scripts stay out.

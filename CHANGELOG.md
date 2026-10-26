@@ -3,6 +3,32 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-26 (gitops layout)
+
+### Changed
+
+- The developer's directories are `gitops/music-store-dev/app` and
+  `gitops/music-store-dev/users-vm` again (decision 37). The Applications
+  `music-store-dev-app` and `music-store-dev-vm` point there, and the
+  Application `music-store` no longer sets `directory.recurse`. Run the
+  platform engineer Terraform after the merge.
+- The incident demo moved from `gitops/incident-demo` to `incident-demo`
+  at the repository root. Argo CD does not sync it.
+- `app/music-store` is described as the earlier shape. It is not deployed.
+
+### Added
+
+- The Secret `store-db`, from a `secretGenerator` in
+  `gitops/music-store-dev/app/kustomization.yaml`.
+- `optional: true` on the chat's `metal-oracle-model` Secret keys.
+
+### Removed
+
+- `gitops/music-store/app/backup/music-store-2026-10-22.json`, a live
+  namespace snapshot with addresses.
+- `store_password()` in `incident-demo/apply.py`, which nothing called,
+  and `store-db` from `incident-demo/secrets/templates.yaml`.
+
 ## 2026-10-26 (platform observability labels)
 
 ### Added

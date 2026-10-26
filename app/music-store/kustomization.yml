@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# The containers that run on the VKS cluster: the store, cart, orders, and
-# the traffic generator. gitops/music-store-dev/app deploys this list.
+# The earlier shape of the shop: the store, cart, orders, and the traffic
+# generator. Not deployed. The shop that runs is gitops/music-store-dev/app.
 #
 # Not listed: the container database and the container users service,
 # which are the earlier shape (the catalog and the users VM replace them),

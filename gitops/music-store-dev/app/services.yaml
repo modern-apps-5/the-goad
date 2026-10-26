@@ -2,7 +2,7 @@
 # run in the Supervisor Namespace, not in this cluster.
 #
 # The Services have no selector. Their Endpoints are not in git: the Job
-# shop-endpoints in gitops/music-store/users-vm writes the addresses, the users
+# shop-endpoints in gitops/music-store-dev/users-vm writes the addresses, the users
 # VM's load balancer and the catalog's DSM address. Nothing here is an
 # address.
 apiVersion: v1
