@@ -18,6 +18,10 @@ kind: Cluster
 metadata:
   name: goad-store
   namespace: REPLACE_WITH_STORE_SUPERVISOR_NAMESPACE
+  # Onboards the cluster to VCF Operations through the
+  # platform-observability Supervisor Service.
+  labels:
+    addons.kubernetes.vmware.com/platform-observability: enabled
 spec:
   clusterNetwork:
     pods:

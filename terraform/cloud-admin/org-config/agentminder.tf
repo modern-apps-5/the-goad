@@ -58,6 +58,13 @@ resource "vcfa_vks_cluster" "agentminder" {
   name    = var.agentminder_cluster.name
   version = var.agentminder_cluster.kubernetes_version
 
+  # The platform-observability Supervisor Service onboards labelled
+  # clusters to VCF Operations and installs its collectors. VKS already
+  # turns on helm-controller, which the addon needs.
+  labels = {
+    "addons.kubernetes.vmware.com/platform-observability" = "enabled"
+  }
+
   context = {
     project   = var.cloud_admin_project
     namespace = local.agentminder_namespace

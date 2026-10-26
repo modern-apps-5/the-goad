@@ -3,6 +3,19 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-26 (platform observability labels)
+
+### Added
+
+- The label `addons.kubernetes.vmware.com/platform-observability: enabled`
+  on the clusters `music-store` (`gitops/music-store/cluster.yaml`),
+  `agentminder` (`terraform/cloud-admin/org-config/agentminder.tf`) and
+  `goad-store` (`incident/cluster/cluster.yaml`). The platform-observability
+  Supervisor Service onboards labelled clusters to VCF Operations and
+  installs the collectors. VKS already sets the helm-controller label the
+  addon needs. `music-store` and `agentminder` were labelled by hand in
+  the lab on 2026-10-26.
+
 ## 2026-10-20 (one-shot IAM blocks)
 
 ### Removed
