@@ -1,0 +1,11 @@
+# The platform engineer's part of the music store, in the music-store
+# Supervisor Namespace. A kustomization so that the Application
+# music-store can patch in the generated namespace name, which
+# catalog-init needs for Secret Store (terraform/platform-engineer/gitops.tf).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cluster.yaml
+  - catalog.yaml
+  - external-secrets.yaml

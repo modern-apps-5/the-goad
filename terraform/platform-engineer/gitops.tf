@@ -46,11 +46,7 @@ resource "kubectl_manifest" "application" {
         repoURL        = var.gitops_repo.url
         targetRevision = var.gitops_repo.revision
         path           = "gitops/${each.key}"
-        }, each.key == "music-store" ? {
-        # app/ and users-vm/ live in this directory and belong to the
-        # developer Applications. Directory apps do not recurse.
-        directory = { recurse = false }
-      } : {})
+      }, contains(keys(local.gitops_patches), each.key) ? { kustomize = { patches = local.gitops_patches[each.key] } } : {})
       destination = { name = each.key, namespace = each.value }
       syncPolicy  = { automated = { prune = true, selfHeal = true } }
     }
@@ -88,9 +84,9 @@ resource "kubectl_manifest" "gitops_repository" {
 # The developer owns two parts of the music store, each with its own
 # Application:
 #
-#   music-store-dev-vm   gitops/music-store/users-vm, into the
+#   music-store-dev-vm   gitops/music-store-dev/users-vm, into the
 #                        music-store Supervisor Namespace: the users VM.
-#   music-store-dev-app  gitops/music-store/app, into the namespace
+#   music-store-dev-app  gitops/music-store-dev/app, into the namespace
 #                        music-store of the VKS cluster: the containers.
 #
 # The platform engineer's Application music-store keeps the cluster and
@@ -101,8 +97,50 @@ resource "kubectl_manifest" "gitops_repository" {
 
 locals {
   music_store_cluster_name = yamldecode(file("${path.module}/../../gitops/music-store/cluster.yaml")).metadata.name
+  music_store_namespace    = local.namespace_names["music-store"]
+  music_store_kv_path      = { for k, name in local.music_store_kv : k => "secret/data/${local.music_store_namespace}/${name}" }
 
-  developer_sync_policy = {
+  # The generated Supervisor Namespace name, patched over the placeholder
+  # SUPERVISOR_NAMESPACE in the manifests that need it for Secret Store
+  # (decision 38). Keyed by Application name.
+  gitops_patches = {
+    "music-store" = [{
+      target = { kind = "Job", name = "catalog-init" }
+      patch = yamlencode({
+        apiVersion = "batch/v1"
+        kind       = "Job"
+        metadata   = { name = "catalog-init" }
+        spec = { template = { metadata = { annotations = {
+          "vault.hashicorp.com/role"                          = local.music_store_namespace
+          "vault.hashicorp.com/agent-inject-secret-catalog"   = local.music_store_kv_path.catalog
+          "vault.hashicorp.com/agent-inject-template-catalog" = "{{ with secret \"${local.music_store_kv_path.catalog}\" }}{{ .Data.data.password }}{{ end }}"
+        } } } }
+      })
+    }]
+    "music-store-platform" = [{
+      target = { kind = "ClusterSecretStore", name = "secret-store" }
+      patch = yamlencode({
+        apiVersion = "external-secrets.io/v1"
+        kind       = "ClusterSecretStore"
+        metadata   = { name = "secret-store" }
+        spec = { provider = { vault = { auth = { kubernetes = {
+          mountPath = "kubernetes-${local.music_store_namespace}-${local.music_store_cluster_name}"
+          role      = "${local.music_store_namespace}-${local.music_store_cluster_name}"
+        } } } } }
+      })
+    }]
+    "music-store-dev-app" = [for name, kv in { "store-db" = "catalog", "metal-oracle-model" = "chat" } : {
+      target = { kind = "ExternalSecret", name = name }
+      patch = yamlencode({
+        apiVersion = "external-secrets.io/v1"
+        kind       = "ExternalSecret"
+        metadata   = { name = name }
+        spec       = { dataFrom = [{ extract = { key = "${local.music_store_namespace}/${local.music_store_kv[kv]}" } }] }
+      })
+    }]
+  }
+
+  retry_sync_policy = {
     automated = { prune = true, selfHeal = true }
     retry     = { limit = 10, backoff = { duration = "1m", factor = 2, maxDuration = "10m" } }
   }
@@ -144,10 +182,10 @@ resource "kubectl_manifest" "music_store_dev_vm_application" {
       source = {
         repoURL        = var.gitops_repo.url
         targetRevision = var.gitops_repo.revision
-        path           = "gitops/music-store/users-vm"
+        path           = "gitops/music-store-dev/users-vm"
       }
       destination = { name = "music-store", namespace = local.namespace_names["music-store"] }
-      syncPolicy  = local.developer_sync_policy
+      syncPolicy  = local.retry_sync_policy
     }
   })
 
@@ -167,12 +205,40 @@ resource "kubectl_manifest" "music_store_dev_app_application" {
       source = {
         repoURL        = var.gitops_repo.url
         targetRevision = var.gitops_repo.revision
-        path           = "gitops/music-store/app"
+        path           = "gitops/music-store-dev/app"
+        kustomize      = { patches = local.gitops_patches["music-store-dev-app"] }
       }
       destination = { name = "music-store-cluster", namespace = "music-store" }
       # The namespace inside the VKS cluster is not a Supervisor Namespace,
       # and nothing else creates it.
-      syncPolicy = merge(local.developer_sync_policy, { syncOptions = ["CreateNamespace=true"] })
+      syncPolicy = merge(local.retry_sync_policy, { syncOptions = ["CreateNamespace=true"] })
+    }
+  })
+
+  depends_on = [kubectl_manifest.music_store_cluster_entity]
+}
+
+# The platform engineer's part inside the VKS cluster: the ClusterSecretStore
+# that ESO reads Secret Store with (decision 38). ESO itself is the addon
+# in gitops/music-store, so this retries until its CRDs exist.
+resource "kubectl_manifest" "music_store_platform_application" {
+  provider = kubectl.platform
+
+  validate_schema = false
+  yaml_body = yamlencode({
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "Application"
+    metadata   = { name = "music-store-platform", namespace = local.platform_namespace }
+    spec = {
+      project = "default"
+      source = {
+        repoURL        = var.gitops_repo.url
+        targetRevision = var.gitops_repo.revision
+        path           = "gitops/music-store-platform"
+        kustomize      = { patches = local.gitops_patches["music-store-platform"] }
+      }
+      destination = { name = "music-store-cluster", namespace = "secret-store" }
+      syncPolicy  = merge(local.retry_sync_policy, { syncOptions = ["CreateNamespace=true"] })
     }
   })
 

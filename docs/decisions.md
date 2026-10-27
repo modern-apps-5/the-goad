@@ -793,3 +793,129 @@ next login.
 
 Look again if: the Argo CD `groups` claim from VCF Automation does not
 carry the org group's name. Then Argo CD has to map a different value.
+
+## 37. One owner per gitops directory; the incident demo is not gitops
+
+Two moves on 2026-10-22 put the developer's `app/` and `users-vm/` under
+the platform engineer's `gitops/music-store/`, and the incident demo
+under `gitops/incident-demo/`. Both are undone:
+
+- `gitops/music-store-dev/app/` and `gitops/music-store-dev/users-vm/`
+  are the developer's directories again, as in decision 34. The shop's
+  source and covers stay in `app/`, with its manifests: Argo CD's
+  kustomize does not load files from outside the directory it syncs.
+- The Application `music-store` no longer sets `directory.recurse =
+  false`. It syncs `gitops/music-store/` like every other namespace
+  (decision 13), and that directory has no subdirectories.
+- The incident demo is `incident-demo/` at the repository root. A person
+  runs it (`apply.py`, `push.py`, `walk/demo.sh`), so by decision 10 and
+  the placement rule in the README it is not under `gitops/`.
+- No password is in git. The shop's catalog password was the literal
+  `music_password`, in `catalog-init` and in `app/music-store`, and the
+  Secrets `store-db` and `metal-oracle-model` were made by hand, so a
+  rebuild in a new org had the storefront and chat pods waiting on
+  Secrets nobody made. Decision 38 has how they are made now.
+- The snapshot `app/backup/music-store-2026-10-22.json` is removed. It
+  held live addresses (decision 21) in a synced directory. Git history
+  has it.
+- `app/music-store/` is the earlier shape and the Antrea policy test. It
+  is not deployed.
+
+Why: one owner and one Application per directory means no Application
+can adopt or prune another owner's files. With the developer's files
+inside the platform engineer's directory, only a recurse flag kept the
+platform Application, which prunes, away from them.
+
+Cost: the platform engineer Terraform must apply after the merge so the
+two developer Applications point at the new paths. Until then they show
+a comparison error for a missing path and change nothing in the lab.
+`incident/` at the root is the earlier incident design (cluster
+`goad-store`) and still overlaps `incident-demo/`; `push.py` reads its
+`agents/sidecar` from a checkout of it.
+
+Look again if: the incident demo becomes something Argo CD syncs. Then
+its manifests move under `gitops/` and its scripts stay out.
+
+## 38. Secrets go from GitHub to Secret Store, and ESO and the vault injector read them
+
+No password or key is in git (decision 37). The shop's two secrets go:
+
+1. **GitHub to Terraform.** The repository secrets `MUSIC_STORE_DB_PASSWORD`
+   and `MUSIC_STORE_CHAT_API_KEY` reach the platform engineer workflow as
+   `TF_VAR_*`; on a machine they are in `terraform.tfvars`. The chat's URL
+   and model name are not secret and are lab values in `lab.auto.tfvars`.
+2. **Terraform to Secret Store.** `terraform/platform-engineer/secrets.tf`
+   writes the `KeyValueSecret`s `music-store-catalog` (password) and
+   `music-store-chat` (base-url, api-key, model) into the `music-store`
+   Supervisor Namespace. Secret Store keeps the values in OpenBao, not in
+   etcd, and never returns them on read, so Terraform ignores
+   `spec.data` when it compares the live object.
+3. **Supervisor Namespace: the vault injector.** `catalog-init` has the
+   annotations of the Supervisor's own injector. The agent logs in with
+   the namespace's role (the namespace name) and writes the password to
+   `/vault/secrets/catalog`, which psql reads and sets on `music_user` on
+   every sync.
+4. **VKS cluster: ESO.** The `external-secrets` addon is installed by an
+   `AddonInstall` in `gitops/music-store/`, selected by a label on the
+   cluster. The `ClusterSecretStore` `secret-store` in
+   `gitops/music-store-platform/` reads Secret Store, and the
+   `ExternalSecret`s in `gitops/music-store-dev/app/` make `store-db` and
+   `metal-oracle-model`.
+
+Who owns what: the platform engineer owns the values, the KVs, ESO and
+the store. The developer only names the secrets the app needs. Terraform
+does the two things git cannot: the values, and the generated namespace
+name.
+
+**The namespace name.** The injector's role and path, the store's auth
+mount and role, and the `ExternalSecret` keys all contain the Supervisor
+Namespace name. The manifests carry the placeholder
+`SUPERVISOR_NAMESPACE`, and Terraform's Applications replace it with
+`kustomize.patches`. So `gitops/music-store/` is now a kustomization, and
+the Application `music-store` is the only one of the per-namespace
+Applications with patches.
+
+**What the cluster already has.** The vault-injector addon, which VKS
+installs on every cluster, makes `vks-vault-injector/secret-store-service`
+(its Endpoints are the Secret Store load balancer, and its name is in the
+server certificate), `vks-vault-injector/server-cert`, and the token
+reviewer `kube-system/openbao-auth`. So the store has no address or
+certificate in git, and its ServiceAccount `secret-store-reader` needs no
+`system:auth-delegator` binding. Checked in the lab on 2026-10-26: a token
+of `default/default`, which has no such binding, logged in to
+`auth/kubernetes-<namespace>-music-store` with role
+`<namespace>-music-store`, with TLS verified against that certificate. The
+certificate is the self-signed server certificate, not a CA: curl refuses
+it, OpenSSL and Go accept it.
+
+**What the injector needs on a vSphere Pod.** Also checked on 2026-10-26,
+with a throwaway KV and pod. Without `agent-requests-cpu` and
+`agent-requests-mem` set to `0`, the pod is not scheduled: a vSphere Pod's
+requests are reservations, and the namespace has none. The injector's
+default agent image is on `vsphere-docker-virtual.packages.vcfd.broadcom.net`,
+which does not resolve in the lab, so the agent is
+`quay.io/openbao/openbao:2.4.4` (quay has no 2.4.5). `agent-pre-populate-only`
+leaves no sidecar, so the Job can finish.
+
+Why not a Job that makes the password, which this branch first did: the
+value then exists only in the lab, a rebuild makes a new one, and a Job
+that writes Secrets is the custom glue that ESO replaces. Why not
+`hostAliases` to the Secret Store address, as in the earlier ESO setup on
+warroyo's blog: the cluster already has a Service with that address.
+
+Cost:
+- A changed value reaches pods only when they restart. The database gets it
+  at the next sync of `music-store`.
+- One more public image, from quay.
+- Argo CD must never own a `KeyValueSecret`: the API ignores label
+  selectors, so a pruning tool deletes every KV in the namespace. Only
+  Terraform writes them.
+- Secret Store's aggregator does not renew its OpenBao token, so KV writes
+  can fail with 403 until it is restarted. That is a known bug, filed with
+  Broadcom.
+- Not yet checked: that Argo CD's identity may create an `AddonInstall`,
+  and that the manager's labels on it do not make Argo CD report a
+  difference.
+
+Look again if: the injector's default image resolves in the lab, or VKS
+gives clusters a ClusterSecretStore of its own.

@@ -11,7 +11,7 @@ that cost a wrong turn. No secrets in this file. Fill blanks from
   guest namespace `metal-music-app-agentic-system` was the wrong runtime.
   Do not delete those pods until a second approval, and do not add new
   ones.
-- The shop is `gitops/music-store/app`, namespace `music-store` on
+- The shop is `gitops/music-store-dev/app`, namespace `music-store` on
   the VKS cluster `music-store`. Argo CD syncs it. This tree has no
   store. Do not deploy `app/music-store`.
 - Users are the VM Service VM `music-users` and `users-service`. The
@@ -118,7 +118,7 @@ Avi.
 
 | Piece | Where |
 |---|---|
-| Storefront | VKS `music-store`, namespace `music-store`, path `gitops/music-store/app` |
+| Storefront | VKS `music-store`, namespace `music-store`, path `gitops/music-store-dev/app` |
 | Users VM, DSM catalog | supervisor namespace for `music-store` |
 | Zammad, Grafana | VKS `music-store`, namespace `incident-tools` |
 | Qwen 14B | Goad Private AI `ModelEndpoint` `qwen` |
@@ -151,7 +151,7 @@ Manifests: `tanzu-agents/manifest.yml`, `tanzu-agents/mcp.yml`,
    view (`relkind` `v`) over `albums_data` (`relkind` `r`).
 4. Confirm Private AI `ModelEndpoint` `qwen` is the 14B endpoint on
    `best-effort-xlarge` and Ready. A one-word completion returns.
-5. The shop is already `gitops/music-store/app`. Confirm
+5. The shop is already `gitops/music-store-dev/app`. Confirm
    `GET /` on `STORE_HOST` is HTTP 200. This tree does not apply a store.
 6. Apply Zammad from `zammad/` and Grafana from `observability/` into
    namespace `incident-tools`. `ZAMMAD_HTTP_TYPE` is `http` because the published

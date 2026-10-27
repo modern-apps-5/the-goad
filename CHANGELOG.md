@@ -3,6 +3,57 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-26 (gitops layout)
+
+### Changed
+
+- The developer's directories are `gitops/music-store-dev/app` and
+  `gitops/music-store-dev/users-vm` again (decision 37). The Applications
+  `music-store-dev-app` and `music-store-dev-vm` point there, and the
+  Application `music-store` no longer sets `directory.recurse`. Run the
+  platform engineer Terraform after the merge.
+- The incident demo moved from `gitops/incident-demo` to `incident-demo`
+  at the repository root. Argo CD does not sync it.
+- `app/music-store` is described as the earlier shape. It is not deployed.
+- `catalog-init` reads the `music_user` password from Secret Store through
+  the Supervisor's vault injector, and sets it on every sync.
+- `gitops/music-store` is a kustomization, so that its Application can
+  patch in the namespace name.
+
+### Added
+
+- Secrets from GitHub to Secret Store to ESO (decision 38):
+  `terraform/platform-engineer/secrets.tf` writes the KVs
+  `music-store-catalog` and `music-store-chat` from the new GitHub secrets
+  `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY`, and
+  `music_store_chat` (URL and model) in `lab.auto.tfvars`.
+- The ESO addon on the cluster `music-store`: `AddonInstall`
+  `external-secrets` in `gitops/music-store` and the cluster label
+  `addons.kubernetes.vmware.com/external-secrets: enabled`.
+- `gitops/music-store-platform`, with the `ClusterSecretStore`
+  `secret-store`, and its Application `music-store-platform`.
+- `ExternalSecret`s `store-db` and `metal-oracle-model` in
+  `gitops/music-store-dev/app`.
+
+To roll out: add the two GitHub secrets, with a new database password
+(the old one is in git history) and the current chat API key, then apply
+the platform engineer Terraform. The next sync of `music-store` sets the
+new password on the database, and the shop cannot reach the catalog
+until ESO has written `store-db`. When ESO is running, delete the
+hand-made Secrets `store-db` and `metal-oracle-model` in namespace
+`music-store` of the cluster so that ESO can create its own, then restart
+the storefront and chat Deployments.
+
+### Removed
+
+- The plain text password `music_password` from `catalog.yaml` and
+  `app/music-store`.
+- `gitops/music-store/app/backup/music-store-2026-10-22.json`, a live
+  namespace snapshot with addresses.
+- `store_password()` in `incident-demo/apply.py`, which nothing called,
+  and the `store-db` and `metal-oracle-model` shapes from
+  `incident-demo/secrets/templates.yaml`.
+
 ## 2026-10-26 (platform observability labels)
 
 ### Added

@@ -7,8 +7,17 @@
 #
 # The Service has no selector. The first Job writes the address DSM
 # assigned into the Service's Endpoints. The second Job creates the
-# shop user and loads the six albums from app/music-store's init SQL
-# when the table is empty.
+# shop user and loads the six albums when the table is empty.
+#
+# The shop user's password is not in git. Terraform writes it from a
+# GitHub secret into the KeyValueSecret music-store-catalog, in Secret
+# Store. catalog-init reads it through the Supervisor's vault injector and
+# sets it on the role on every sync. In the VKS cluster, ESO reads the same
+# KV as the Secret store-db (decision 38).
+#
+# SUPERVISOR_NAMESPACE below is a placeholder. The namespace name is
+# generated, so the Application music-store patches it in from Terraform
+# (terraform/platform-engineer/gitops.tf).
 apiVersion: databases.dataservices.vmware.com/v1alpha1
 kind: PostgresCluster
 metadata:
@@ -124,13 +133,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 data:
   init.sql: |
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'music_user') THEN
-        CREATE ROLE music_user LOGIN PASSWORD 'music_password';
-      END IF;
-    END
-    $$;
+    \set music_user_password `cat /vault/secrets/catalog`
+    SELECT 'CREATE ROLE music_user LOGIN'
+    WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'music_user') \gexec
+    ALTER ROLE music_user PASSWORD :'music_user_password';
     GRANT ALL ON DATABASE music_store TO music_user;
     GRANT USAGE, CREATE ON SCHEMA public TO music_user;
     CREATE TABLE IF NOT EXISTS albums (
@@ -194,6 +200,21 @@ metadata:
 spec:
   backoffLimit: 6
   template:
+    metadata:
+      # The Supervisor's vault injector writes the password to
+      # /vault/secrets/catalog before psql starts. Pre-populate only: no
+      # sidecar, so the Job can finish. Requests 0: a vSphere Pod's
+      # requests are reservations, and this namespace has none. The
+      # default agent image's registry does not resolve in the lab.
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-pre-populate-only: "true"
+        vault.hashicorp.com/agent-requests-cpu: "0"
+        vault.hashicorp.com/agent-requests-mem: "0"
+        vault.hashicorp.com/agent-image: quay.io/openbao/openbao:2.4.4
+        vault.hashicorp.com/role: SUPERVISOR_NAMESPACE
+        vault.hashicorp.com/agent-inject-secret-catalog: secret/data/SUPERVISOR_NAMESPACE/music-store-catalog
+        vault.hashicorp.com/agent-inject-template-catalog: '{{ with secret "secret/data/SUPERVISOR_NAMESPACE/music-store-catalog" }}{{ .Data.data.password }}{{ end }}'
     spec:
       restartPolicy: OnFailure
       containers:
