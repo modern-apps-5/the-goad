@@ -1,0 +1,30 @@
+# metal-store-waf-l7rule.yaml
+#
+# Attaches an Avi WAF policy to the metal-store virtual service built by the
+# AKO *Gateway API* controller (ako-gateway-api).
+#
+# NOTE: For Gateway API, the HostRule CRD is NOT used - that is only consumed
+# by the legacy Ingress/Route controller. The Gateway API data model customizes
+# the VS with an L7Rule, referenced from the HTTPRoute via an ExtensionRef filter.
+#
+# Requirements:
+#   - The WAF policy named below must ALREADY EXIST in the Avi Controller
+#     ("System-WAF-Policy" is the Avi built-in OWASP CRS template).
+#   - To BLOCK (HTTP 403), the WAF policy mode must be ENFORCEMENT, not
+#     detection-only (set on the policy in the Avi UI).
+#   - The L7Rule must live in the same namespace as the HTTPRoute (music-store)
+#     and be referenced by an ExtensionRef filter on the route (see the
+#     HTTPRoute patch applied alongside this file).
+#
+# Apply:
+#   kubectl apply -f k8s/metal-store-waf-l7rule.yaml
+#   kubectl -n music-store get l7rule metal-store-waf -o wide
+apiVersion: ako.vmware.com/v1alpha2
+kind: L7Rule
+metadata:
+  name: metal-store-waf
+  namespace: music-store
+spec:
+  wafPolicy:
+    kind: AviRef
+    name: System-WAF-Policy

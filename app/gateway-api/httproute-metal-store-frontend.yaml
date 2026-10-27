@@ -12,13 +12,21 @@ spec:
     name: metal-store
     namespace: default
   rules:
-  - backendRefs:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    # Attach the Avi WAF policy to this VS (Gateway API path). The L7Rule
+    # metal-store-waf (same namespace) references Avi's System-WAF-Policy.
+    filters:
+    - type: ExtensionRef
+      extensionRef:
+        group: ako.vmware.com
+        kind: L7Rule
+        name: metal-store-waf
+    backendRefs:
     - group: ""
       kind: Service
       name: music-store-1-service
       port: 5000
       weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
