@@ -1,8 +1,0 @@
-# Sidecar process imports these. The agentminder package is copied from
-# the official SDK image at push time and is not published here.
-uvicorn>=0.30.0
-httpx>=0.27.0
-anyio>=4.0.0
-cryptography>=42.0.0
-PyJWT[crypto]>=2.8.0
-PyYAML>=6.0

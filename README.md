@@ -480,7 +480,6 @@ gitops/<namespace key>/        What Argo CD syncs into that namespace
 gitops/music-store-dev/        The developer's part: users-vm/ into the Supervisor Namespace, app/ into the VKS cluster
 scripts/                       What a person runs by hand, once
 incident-demo/                 The incident demo, run by hand after the shop answers
-incident/                      The earlier incident demo design, on its own cluster goad-store
 app/music-store/               The earlier container manifests and the Antrea policy tests; not deployed
 .github/workflows/             One Terraform workflow for each persona
 docs/                          Design, script, plan, decisions

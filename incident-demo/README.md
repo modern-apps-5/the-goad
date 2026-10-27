@@ -9,7 +9,7 @@ a secret. The shop is not in this tree. Argo CD syncs it from
 | `observability/` | Prometheus, Grafana, the architecture board, the topology panel, and the probe |
 | `zammad/` | Zammad |
 | `agents/` | The four agents, their skills, and `agents/orchestrator/` |
-| `tanzu-agents/` | Cloud Foundry manifests and `push.py` |
+| `tanzu-agents/` | Cloud Foundry manifests, `push.py`, and the AgentMinder sidecar that `push.py` stages into the diagnostic agents |
 | `mcp/` | Kubernetes, Avi, and VCF doors |
 | `pii/` | `scrub.py` |
 | `clm/` | Decision gate. Empty `CLM_IMAGE` means apply skips it |

@@ -7,9 +7,9 @@ import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "agents" / "sidecar" / "site-packages"))
-sys.path.insert(0, str(ROOT / "agents" / "sidecar"))
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE / "site-packages"))
+sys.path.insert(0, str(HERE))
 
 import mcp_bridge  # noqa: E402
 

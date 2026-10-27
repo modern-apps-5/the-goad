@@ -3,6 +3,20 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-27 (incident demo)
+
+### Removed
+
+- `incident/`, the earlier incident design on cluster `goad-store`. It was
+  never applied, and `incident-demo/` replaced it (decision 39). Git
+  history has it.
+
+### Changed
+
+- The AgentMinder sidecar (`mcp_bridge.py`, `run-sidecar.sh`) and its test
+  moved to `incident-demo/tanzu-agents/sidecar/`. `push.py` reads them from
+  there instead of from a checkout under `/tmp`.
+
 ## 2026-10-26 (gitops layout)
 
 ### Changed

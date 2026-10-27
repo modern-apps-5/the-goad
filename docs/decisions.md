@@ -829,9 +829,8 @@ platform Application, which prunes, away from them.
 Cost: the platform engineer Terraform must apply after the merge so the
 two developer Applications point at the new paths. Until then they show
 a comparison error for a missing path and change nothing in the lab.
-`incident/` at the root is the earlier incident design (cluster
-`goad-store`) and still overlaps `incident-demo/`; `push.py` reads its
-`agents/sidecar` from a checkout of it.
+`incident/` at the root was the earlier incident design. Decision 39
+removes it.
 
 Look again if: the incident demo becomes something Argo CD syncs. Then
 its manifests move under `gitops/` and its scripts stay out.
@@ -913,9 +912,44 @@ Cost:
 - Secret Store's aggregator does not renew its OpenBao token, so KV writes
   can fail with 403 until it is restarted. That is a known bug, filed with
   Broadcom.
-- Not yet checked: that Argo CD's identity may create an `AddonInstall`,
-  and that the manager's labels on it do not make Argo CD report a
-  difference.
+- On the first sync, the Applications with ESO resources fail with
+  `no matches for kind`, until the addon has installed ESO's CRDs. Argo
+  CD's retry syncs them about two minutes later.
+
+Checked at the rollout on 2026-10-27: Argo CD's identity may create the
+`AddonInstall`, and the manager's labels on it don't make Argo CD report a
+difference. ESO took over the hand-made `store-db` and
+`metal-oracle-model` in place, so they did not have to be deleted first.
 
 Look again if: the injector's default image resolves in the lab, or VKS
 gives clusters a ClusterSecretStore of its own.
+
+## 39. One incident demo tree: `incident-demo/`
+
+`incident/` is removed. It was the first incident design, from
+2026-10-14: agents on the VKS cluster `goad-store`, with placeholder
+images and a placeholder namespace, and it was never applied.
+`incident-demo/` replaced it on 2026-10-22. That design runs the agents
+in the Tanzu Platform org `Goad` and Zammad and Grafana beside the shop.
+Most of `incident/` had a newer copy in `incident-demo/`.
+
+The one part still in use was the AgentMinder sidecar. `push.py` copied
+`mcp_bridge.py` and `run-sidecar.sh` from a checkout of `incident/` at a
+fixed path under `/tmp`. They and their test now live in
+`incident-demo/tanzu-agents/sidecar/`, next to `push.py`, which reads them
+from the repository.
+
+`incident-demo/` stays at the root (decision 37): a person runs it, and it
+is a whole demo, not a helper script for `scripts/`.
+
+Why: two trees for one demo, with one silently feeding the other through
+`/tmp`, means an edit can land in the copy that isn't used.
+
+Cost: the earlier design's code is no longer in the tree. Git history has
+it, up to the commit before this decision: the orchestrator, the
+fault-injection scripts, the Grafana boards, and the `goad-store` cluster.
+The sidecar test needs the AgentMinder SDK, which isn't on public PyPI, so
+it only runs where the SDK is unpacked.
+
+Look again if: part of the earlier design, such as fault injection, comes
+back. Bring it into `incident-demo/`, not a second tree.

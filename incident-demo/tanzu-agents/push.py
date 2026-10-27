@@ -30,7 +30,7 @@ DOMAIN = os.environ.get("TANZU_APPS_DOMAIN", "apps.tp.gpu.set.lab")
 CF_HOME = Path(os.environ.get("CF_HOME", "/tmp/redlab-cf-goad"))
 HOSTS = Path.home() / ".cache" / "redlab-tpcf" / "hosts"
 SDK = Path.home() / ".cache" / "redlab-tpcf" / "agentminder-sdk" / "4.1.0.1578" / "site-packages"
-SIDECAR_SRC = Path("/tmp/the-goad-work/incident/agents/sidecar")
+SIDECAR_SRC = ROOT / "tanzu-agents" / "sidecar"
 
 AGENTS = {
     "incident-response-agent": ("chat.py", "incident-response"),

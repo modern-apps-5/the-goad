@@ -1,7 +1,0 @@
-.env
-*.pem
-hosts.json
-__pycache__/
-.venv/
-*.pyc
-*.tfvars
