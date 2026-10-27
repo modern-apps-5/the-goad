@@ -2,7 +2,7 @@
 
 Values to fill at apply time. Do not commit real addresses, tokens, or
 passwords. Examples are shapes. The users and catalog addresses are
-written by the Job in `gitops/music-store/users-vm/shop-endpoints.yaml`.
+written by the Job in `gitops/music-store-dev/users-vm/shop-endpoints.yaml`.
 No address is in git.
 
 | Blank | What it is | Example |
@@ -10,7 +10,7 @@ No address is in git.
 | `STORE_HOST` | Avi DNS name for the shop ingress | `store.example.lab` |
 | `ZAMMAD_HOST` | Avi DNS name for Zammad | `zammad.example.lab` |
 | `GRAFANA_HOST` | Avi DNS name for Grafana | `grafana.example.lab` |
-| `POSTGRES_HOST` | DSM catalog address. The Job in `gitops/music-store/users-vm` writes it | `203.0.113.10` |
+| `POSTGRES_HOST` | DSM catalog address. The Job in `gitops/music-store-dev/users-vm` writes it | `203.0.113.10` |
 | `USERS_HOST` | VM Service `users-service` address | `203.0.113.11` |
 | `QWEN_BASE_URL` | Private AI OpenAI base, model id `qwen` | `https://203.0.113.12/api/v1/compatibility/openai/v1` |
 | `QWEN_API_KEY` | Private AI API token. Not committed | (secret store) |
@@ -35,9 +35,10 @@ No address is in git.
 | `VCF_MCP_AUDIENCES` | Comma-separated JWT audiences for the VCF door | (set by `agentminder/register.py`) |
 | `KUBECONFIG` | Guest cluster kubeconfig. Not committed | (operator file) |
 
-The shop database secret `store-db` and the chat secret
-`metal-oracle-model` already live in namespace `music-store`. This
-apply does not write them. The shop is `gitops/music-store/app`.
+The shop's secrets `store-db` and `metal-oracle-model` in namespace
+`music-store` come from Secret Store through ESO
+(`gitops/music-store-dev/app/external-secrets.yaml`). This apply writes
+neither.
 Agent apply creates
 `agent-doors`, `qwen-model`, `zammad-api`, `walk-targets`, and
 `grafana-annotator` in `metal-music-app-agentic-system`. The key names

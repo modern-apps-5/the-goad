@@ -13,7 +13,8 @@ account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
 | `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM, catalog, and VKS cluster. |
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
-| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application. |
+| `secrets.tf` | The music store's `KeyValueSecret`s in Secret Store, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY` (decision 38). Empty values skip them. |
+| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform`, `music-store-dev-vm` and `music-store-dev-app`; and the patches that put the generated namespace name into the music store's manifests. |
 
 It uses the org's default project and default VPC. It does not create the
 Avi Service Engine Group: the namespaces only name it
@@ -78,7 +79,8 @@ Argo CD reads the repository with a read-only deploy key. The private
 half stays in `.secrets/`, which git ignores.
 
 The key is shared by the team, and so is `terraform.tfvars`. Terraform
-writes the key and the Private AI Services password hash into Secrets.
+writes the key and the Private AI Services password hash into Secrets,
+and the music store's password and chat key into Secret Store.
 If you apply with a key or a hash of your own, Terraform replaces the
 team's, and Argo CD can no longer read git. Copy both files from a
 teammate. `docs/terraform-state.md` has the list.

@@ -146,7 +146,7 @@ variable "ubuntu_image" {
     name = optional(string, "ubuntu-24.04-cloud")
     url  = optional(string, "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.ova")
   })
-  description = "The Ubuntu image in the org's content library. name is the imageName of the users VM in gitops/music-store/users-vm.yaml."
+  description = "The Ubuntu image in the org's content library. name is the imageName of the users VM in gitops/music-store-dev/users-vm/users-vm.yaml."
   default     = {}
 }
 
@@ -157,4 +157,28 @@ variable "pais_admin_password_hash" {
   description = "SHA-512 crypt hash of the password for the Private AI Services user admin. Make one with: openssl passwd -6. Null skips the Secret."
   sensitive   = true
   default     = null
+}
+
+# --- Music store secrets (decision 38) ---
+
+variable "music_store_db_password" {
+  type        = string
+  description = "Password of the catalog user music_user. GitHub secret MUSIC_STORE_DB_PASSWORD. Terraform writes it to Secret Store; catalog-init and ESO read it from there. Null or empty skips the KV."
+  sensitive   = true
+  default     = null
+}
+
+variable "music_store_chat_api_key" {
+  type        = string
+  description = "API key the shop's chat uses for the Private AI model. GitHub secret MUSIC_STORE_CHAT_API_KEY. Null or empty skips the KV."
+  sensitive   = true
+  default     = null
+}
+
+variable "music_store_chat" {
+  type = object({
+    base_url = string
+    model    = string
+  })
+  description = "The model the shop's chat calls: the Private AI Services OpenAI-compatible URL and the model name. Not secret; stored in the same KV as the API key."
 }

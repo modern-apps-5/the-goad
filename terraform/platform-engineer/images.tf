@@ -1,4 +1,4 @@
-# The VM image for the shop's users VM in gitops/music-store/users-vm.yaml.
+# The VM image for the shop's users VM in gitops/music-store-dev/users-vm/users-vm.yaml.
 #
 # A VM Service VM names its image by display name, and the org has no image
 # until it has a content library. This creates one for the org, attached to
