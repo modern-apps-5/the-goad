@@ -6,7 +6,7 @@
 # The org exists already and is not this root's: it is only read.
 #
 # The provider logs in with an access token, CF_ACCESS_TOKEN, that the
-# cf-login action gets as goad-deployer. The foundation takes only that
+# cf-token action gets as goad-deployer. The foundation takes only that
 # app's client assertion secret, and the provider cannot sign one. On a
 # machine: CF_ACCESS_TOKEN=$(~/.claude/skills/lab-creds/cf-token.py).
 provider "cloudfoundry" {

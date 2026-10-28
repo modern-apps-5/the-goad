@@ -484,6 +484,7 @@ incident-demo/                 The incident demo, run by hand after the shop ans
 app/music-store/               The earlier container manifests and the Antrea policy tests; not deployed
 .github/workflows/             One Terraform workflow for each persona, and tanzu-apps.yml
 .github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer
+.github/actions/cf-token/      Gets a Tanzu Platform token for goad-deployer, for Terraform
 docs/                          Design, script, plan, decisions
 ```
 

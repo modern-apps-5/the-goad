@@ -974,11 +974,15 @@ Now the work is split by who owns it:
 
 Every login is `goad-deployer`, a Tanzu Hub OAuth app with admin roles,
 for now. The foundation takes only its client assertion secret. The
-Tanzu cf CLI signs that itself, and the `cloudfoundry` provider cannot,
-so the `cf-login` action logs in with the CLI and gives Terraform the
-CLI's access token. The CLI comes from the foundation at run time
+Tanzu cf CLI signs that itself, so `tanzu-apps.yml` logs in with the CLI
+(the `cf-login` action). The CLI comes from the foundation at run time
 (`links.tanzu_cf_cli` on the CF API root), so it always matches the
-foundation.
+foundation. The `cloudfoundry` provider cannot sign the assertion, so the
+`cf-token` action signs it with `openssl` and gives Terraform the token.
+Using the CLI for that was tried first: on a fresh `HOME` the CLI installs
+about 140 MB of plugins before it logs in, which took four minutes on the
+runner, and a runner pod was evicted for memory pressure during it. The
+CLI's `HOME` is on the runner's work disk for the same reason.
 
 The apps' secrets are GitHub secrets `INCIDENT_*`, passed to `cf push`
 in a vars file that is deleted after the push. Three of them are also in

@@ -74,11 +74,9 @@ jobs:
           printf '%s\n' "$GITOPS_DEPLOY_KEY" > .secrets/gitops-deploy-key
       # tanzu.tf: the cloudfoundry provider reads CF_ACCESS_TOKEN and
       # CF_API_URL, which this sets. The token lasts 30 minutes.
-      - uses: ./.github/actions/cf-login
+      - uses: ./.github/actions/cf-token
         with:
-          client-id: ${{ secrets.TANZU_HUB_CLIENT_ID }}
           client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
-          export-token: "true"
       - run: terraform init
       - name: Plan
         run: |
