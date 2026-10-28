@@ -80,3 +80,15 @@ variable "runner_replicas" {
   description = "How many runners. One runner takes one job at a time."
   default     = 2
 }
+
+variable "runner_resources" {
+  type = object({
+    requests = map(string)
+    limits   = map(string)
+  })
+  description = "CPU and memory of the runner container, merged over upstream's. Leave ephemeral-storage to upstream: it must match the work volume's sizeLimit."
+  default = {
+    requests = {}
+    limits   = {}
+  }
+}

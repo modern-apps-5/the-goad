@@ -59,10 +59,25 @@ locals {
 
   upstream_deployment = yamldecode(data.http.runner_deployment.response_body)
 
-  # The upstream Deployment, with two things changed: the number of
-  # replicas, and an annotation on the pod. A pod reads the script and the
-  # settings only when it starts. The annotation changes when they do, and
-  # that restarts the pods.
+  # The upstream Deployment, with three things changed: the number of
+  # replicas, the runner container's CPU and memory, and an annotation on
+  # the pod. A pod reads the script and the settings only when it starts.
+  # The annotation changes when they do, and that restarts the pods.
+  #
+  # A vSphere Pod's VM is sized from the limits. Upstream gives 2 CPU and
+  # 2Gi. The Tanzu cf CLI's first run starts dozens of copies of its plugin
+  # at once to build a command cache, which does not fit in 2Gi. Ephemeral
+  # storage stays upstream's: it must match the work volume's sizeLimit.
+  upstream_pod = local.upstream_deployment.spec.template.spec
+  runner_containers = [
+    for i, c in local.upstream_pod.containers : i != 0 ? c : merge(c, {
+      resources = {
+        requests = merge(c.resources.requests, var.runner_resources.requests)
+        limits   = merge(c.resources.limits, var.runner_resources.limits)
+      }
+    })
+  ]
+
   runner_deployment = merge(local.upstream_deployment, {
     spec = merge(local.upstream_deployment.spec, {
       replicas = var.runner_replicas
@@ -73,6 +88,7 @@ locals {
             "goad/settings-sha256"   = sha256(jsonencode(local.runner_settings))
           }
         })
+        spec = merge(local.upstream_pod, { containers = local.runner_containers })
       })
     })
   })

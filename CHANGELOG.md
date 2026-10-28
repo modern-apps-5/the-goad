@@ -3,6 +3,23 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Tanzu apps, one CLI install)
+
+### Changed
+
+- `tanzu-apps.yml` installs the cf CLI and its plugins once, in a new `cli`
+  job, and gives them to the push jobs as an artifact. Each push job's cf
+  login took from 26 seconds to almost 7 minutes when it installed the
+  plugins itself. `cf-login` skips the download when the CLI is already in
+  place, and has a `login: "false"` mode for the `cli` job.
+- The runners have 4 CPU and 8Gi (`runner_resources` in `terraform/runner`;
+  upstream gives 2 CPU and 2Gi). The cf CLI's first run builds a command
+  cache by starting its plugin once per command, dozens at a time, which
+  ran out of memory and got pods evicted. Applied by hand on 2026-10-28.
+  With both changes, the CLI install takes 18 seconds once per run and a
+  push job's login about 1 second. Whether the CLI can skip that cache is
+  issue #42.
+
 ## 2026-10-27 (Tanzu apps, one job per app)
 
 ### Changed

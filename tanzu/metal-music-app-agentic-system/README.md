@@ -6,8 +6,10 @@ directory is one app, pushed as it is. `manifest.yml` lists them all.
 
 [.github/workflows/tanzu-apps.yml](../../.github/workflows/tanzu-apps.yml)
 pushes them on every change to this directory on `main`, and from the
-Actions page. Nobody pushes by hand. The workflow runs one job per app,
-so each push has its own log. Each job:
+Actions page. Nobody pushes by hand. A first job installs the cf CLI and
+its plugins once and passes them on, because that install takes minutes on
+the runner. Then the workflow runs one job per app, so each push has its
+own log. Each job:
 
 1. installs the cf CLI from the foundation and logs in as `goad-deployer`
    ([.github/actions/cf-login](../../.github/actions/cf-login/action.yml));
