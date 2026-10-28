@@ -14,6 +14,7 @@ keeps every version.
 | `terraform/cloud-admin/org` | `the-goad` | `goad-cloud-admin` |
 | `terraform/cloud-admin/org-config` | `the-goad` | `goad-cloud-admin-org-config` |
 | `terraform/cloud-admin/agentminder` | `the-goad` | `goad-cloud-admin-agentminder` |
+| `terraform/cloud-admin/agentminder-registration` | `the-goad` | `goad-cloud-admin-agentminder-registration` |
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
 | `terraform/runner` | `the-goad` | `goad-runner` |
 
@@ -40,6 +41,12 @@ what is secret has to be passed around.
 with `terraform_remote_state`. A data source cannot read `backend.hcl`,
 so on a machine also `export TF_HTTP_PASSWORD=<the same token>` before
 `plan` and `apply`. The workflow sets it.
+
+`terraform/cloud-admin/agentminder-registration` reads the state of
+`org-config` the same way, for the cluster names. It reads no secret from
+another root's state. Nothing reads its state: the agents get their client
+secrets from Cloud Foundry services that root makes. Anyone with the token
+can read the client secrets in its state: see [decision 41](decisions.md).
 
 The token cannot go in `terraform.tfvars`. Terraform reads the backend
 settings before it reads any variable, so a `backend` block cannot use

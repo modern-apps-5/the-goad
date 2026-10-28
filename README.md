@@ -13,6 +13,7 @@ the platform engineer, and the developer.
 | Cloud admin | Terraform | Stage 1: the org, VCF SSO, quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin/org](terraform/cloud-admin/org) |
 | Cloud admin | Terraform | Stage 2: inside the org, the users and their roles, the Service Engine Group, and a project with a VKS cluster for AgentMinder | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
 | Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](terraform/cloud-admin/agentminder) |
+| Cloud admin | Terraform | Stage 4: the incident demo's agents and MCP servers registered in AgentMinder, and their clients handed to the apps as Cloud Foundry services | [terraform/cloud-admin/agentminder-registration](terraform/cloud-admin/agentminder-registration) |
 | Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 | Platform engineer | Argo CD | The shop's DSM catalog database and its VKS cluster | [gitops/music-store](gitops/music-store) |
@@ -188,7 +189,7 @@ lab. There is one workflow for each persona:
 
 | Workflow | Root |
 |---|---|
-| `cloud-admin` | Three jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder` |
+| `cloud-admin` | Four jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder`, then `agentminder-registration` runs `terraform/cloud-admin/agentminder-registration` |
 | `platform-engineer` | `terraform/platform-engineer` |
 
 A workflow runs only when a person starts it. Nothing runs on a pull
@@ -423,13 +424,14 @@ the catalog, so they retry until those exist.
 
 Reverse order. The platform engineer first, because its namespaces use
 the Service Engine Group, and the org cannot be deleted while it has
-namespaces and a Service Engine Group. Then `agentminder`, because its
+namespaces and a Service Engine Group. Then `agentminder-registration`, which needs the running AgentMinder to delete its objects, then `agentminder`, because its
 cluster must exist for Helm to remove what it installed. Then
 `org-config`, then `org`.
 
 ```sh
 cd terraform/platform-engineer && terraform destroy
-cd ../cloud-admin/agentminder && terraform destroy
+cd ../cloud-admin/agentminder-registration && terraform destroy
+cd ../agentminder && terraform destroy
 cd ../org-config && terraform destroy
 cd ../org && terraform destroy
 ```
@@ -473,6 +475,7 @@ what to do when it goes wrong, and how to go back to an earlier state.
 terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
 terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, AgentMinder's cluster
 terraform/cloud-admin/agentminder/ Stage 3, AgentMinder on that cluster, with Helm
+terraform/cloud-admin/agentminder-registration/ Stage 4, the incident demo's agents registered in AgentMinder
 terraform/platform-engineer/   Inside the org; stops at the handoff to Argo CD
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
   manifests/                   Manifests that Terraform applies
@@ -537,4 +540,5 @@ Manifests under `gitops/` do not set a namespace.
 | [terraform/cloud-admin/org/README.md](terraform/cloud-admin/org/README.md) | The cloud admin Terraform, stage 1 (the org), in detail |
 | [terraform/cloud-admin/org-config/README.md](terraform/cloud-admin/org-config/README.md) | The cloud admin Terraform, stage 2 (inside the org), in detail |
 | [terraform/cloud-admin/agentminder/README.md](terraform/cloud-admin/agentminder/README.md) | The cloud admin Terraform, stage 3 (AgentMinder), in detail |
+| [terraform/cloud-admin/agentminder-registration/README.md](terraform/cloud-admin/agentminder-registration/README.md) | The cloud admin Terraform, stage 4 (AgentMinder registration), in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |

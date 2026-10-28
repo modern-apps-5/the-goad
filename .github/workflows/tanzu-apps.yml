@@ -20,6 +20,8 @@
 #
 # The apps' secrets are GitHub secrets INCIDENT_*. They go into a vars file
 # for cf push, under the job's temp directory, deleted when the push ends.
+# The AgentMinder clients are not here: the cloud admin's Terraform puts
+# them in user-provided services that the manifest binds (decision 41).
 name: tanzu-apps
 
 on:
@@ -140,9 +142,6 @@ jobs:
           AVI_PASSWORD: ${{ secrets.INCIDENT_AVI_PASSWORD }}
           MCP_READ_TOKEN: ${{ secrets.INCIDENT_MCP_READ_TOKEN }}
           MCP_WRITE_TOKEN: ${{ secrets.INCIDENT_MCP_WRITE_TOKEN }}
-          AM_LB_CLIENT_SECRET: ${{ secrets.INCIDENT_AM_LB_CLIENT_SECRET }}
-          AM_K8S_CLIENT_SECRET: ${{ secrets.INCIDENT_AM_K8S_CLIENT_SECRET }}
-          AM_VCF_CLIENT_SECRET: ${{ secrets.INCIDENT_AM_VCF_CLIENT_SECRET }}
         run: |
           set -euo pipefail
           vars=$RUNNER_TEMP/vars.yml
@@ -154,10 +153,7 @@ jobs:
             sidecar_token: env.SIDECAR_TOKEN, zammad_token: env.ZAMMAD_TOKEN,
             grafana_admin_password: env.GRAFANA_ADMIN_PASSWORD,
             avi_username: env.AVI_USERNAME, avi_password: env.AVI_PASSWORD,
-            mcp_read_token: env.MCP_READ_TOKEN, mcp_write_token: env.MCP_WRITE_TOKEN,
-            am_lb_client_secret: env.AM_LB_CLIENT_SECRET,
-            am_k8s_client_secret: env.AM_K8S_CLIENT_SECRET,
-            am_vcf_client_secret: env.AM_VCF_CLIENT_SECRET
+            mcp_read_token: env.MCP_READ_TOKEN, mcp_write_token: env.MCP_WRITE_TOKEN
           }' > "$vars"
           if jq -e 'any(.[]; . == null or . == "")' "$vars" >/dev/null; then
             echo "missing secrets: $(jq -r 'to_entries[] | select(.value == null or .value == "") | .key' "$vars" | xargs)" >&2

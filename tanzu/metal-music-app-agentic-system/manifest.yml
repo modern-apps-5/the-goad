@@ -1,9 +1,12 @@
 # The Metal Music incident apps. Org Goad, space metal-music-app-agentic-system.
 #
 # .github/workflows/tanzu-apps.yml pushes this on every change under tanzu/,
-# after stage.sh. The space and the user-provided services are the platform
-# engineer's Terraform (terraform/platform-engineer/tanzu.tf); this file
-# only binds them.
+# after stage.sh. The space and most user-provided services are the platform
+# engineer's Terraform (terraform/platform-engineer/tanzu.tf). The am-*
+# services, one AgentMinder client for each diagnostic agent, are the
+# cloud admin's (terraform/cloud-admin/agentminder-registration): the sidecar's
+# agentminder-env.sh turns the bound one into the AM_* and AGENTMINDER_*
+# variables. This file only binds them.
 #
 # ((name)) is a secret. The workflow writes the values from GitHub secrets to
 # a vars file for the push and deletes it after. Never put a value here.
@@ -172,7 +175,7 @@ applications:
     routes:
       - route: lb-diagnostic-agent.apps.goad.gpu.set.lab
       - route: lb-diagnostic-agent.apps.internal
-    services: [goad-qwen, sc-lb-diagnostic-agent-avi]
+    services: [goad-qwen, sc-lb-diagnostic-agent-avi, am-lb-diagnostic-agent]
     sidecars:
       - name: agentminder-sdk
         process_types: [web]
@@ -190,16 +193,7 @@ applications:
       AGENTMINDER_VERIFY_SSL: "false"
       AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
       AM_TOKEN_URL: https://agentminder.goad.gpu.set.lab/default/oauth2/v1/token
-      AM_CLIENT_ID: ceb9c864-a1b4-498c-992b-352498103fdb
-      AM_CLIENT_SECRET: ((am_lb_client_secret))
-      AM_GATEWAY: &lb_gateway https://agentminder.goad.gpu.set.lab/default/aigateway/v1/mcp/MDc2MmFhNzEtMTdkMC00NTY5LWIzMGUtZjNjNTllYzQ5YTIw
-      AGENTMINDER_SIDECAR_AGENT_CLIENT_ID: ceb9c864-a1b4-498c-992b-352498103fdb
-      AGENTMINDER_SIDECAR_AGENT_CLIENT_SECRET: ((am_lb_client_secret))
-      AGENTMINDER_ORCHESTRATOR_CLIENT_ID: ceb9c864-a1b4-498c-992b-352498103fdb
-      AGENTMINDER_ORCHESTRATOR_CLIENT_SECRET: ((am_lb_client_secret))
       AGENTMINDER_SIDECAR_RESOURCE_0_NAME: avi
-      AGENTMINDER_SIDECAR_RESOURCE_0_URL: *lb_gateway
-      AGENTMINDER_SIDECAR_RESOURCE_0_AUDIENCE: *lb_gateway
 
   - name: k8s-diagnostic-agent
     path: k8s-diagnostic-agent
@@ -214,7 +208,7 @@ applications:
     routes:
       - route: k8s-diagnostic-agent.apps.goad.gpu.set.lab
       - route: k8s-diagnostic-agent.apps.internal
-    services: [goad-qwen, sc-k8s-diagnostic-agent-k8s]
+    services: [goad-qwen, sc-k8s-diagnostic-agent-k8s, am-k8s-diagnostic-agent]
     sidecars:
       - name: agentminder-sdk
         process_types: [web]
@@ -232,16 +226,7 @@ applications:
       AGENTMINDER_VERIFY_SSL: "false"
       AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
       AM_TOKEN_URL: https://agentminder.goad.gpu.set.lab/default/oauth2/v1/token
-      AM_CLIENT_ID: 89d3b67d-7098-44eb-a9a9-5a8226b9647a
-      AM_CLIENT_SECRET: ((am_k8s_client_secret))
-      AM_GATEWAY: &k8s_gateway https://agentminder.goad.gpu.set.lab/default/aigateway/v1/mcp/ODY3NzdlMGMtZTEyYS00YzVkLWEwNTQtNjkxZGM4NTEzMWEw
-      AGENTMINDER_SIDECAR_AGENT_CLIENT_ID: 89d3b67d-7098-44eb-a9a9-5a8226b9647a
-      AGENTMINDER_SIDECAR_AGENT_CLIENT_SECRET: ((am_k8s_client_secret))
-      AGENTMINDER_ORCHESTRATOR_CLIENT_ID: 89d3b67d-7098-44eb-a9a9-5a8226b9647a
-      AGENTMINDER_ORCHESTRATOR_CLIENT_SECRET: ((am_k8s_client_secret))
       AGENTMINDER_SIDECAR_RESOURCE_0_NAME: k8s
-      AGENTMINDER_SIDECAR_RESOURCE_0_URL: *k8s_gateway
-      AGENTMINDER_SIDECAR_RESOURCE_0_AUDIENCE: *k8s_gateway
 
   - name: vcf-diagnostic-agent
     path: vcf-diagnostic-agent
@@ -256,7 +241,7 @@ applications:
     routes:
       - route: vcf-diagnostic-agent.apps.goad.gpu.set.lab
       - route: vcf-diagnostic-agent.apps.internal
-    services: [goad-qwen, sc-vcf-diagnostic-agent-vcf]
+    services: [goad-qwen, sc-vcf-diagnostic-agent-vcf, am-vcf-diagnostic-agent]
     sidecars:
       - name: agentminder-sdk
         process_types: [web]
@@ -274,13 +259,4 @@ applications:
       AGENTMINDER_VERIFY_SSL: "false"
       AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
       AM_TOKEN_URL: https://agentminder.goad.gpu.set.lab/default/oauth2/v1/token
-      AM_CLIENT_ID: 3664c5d9-7083-4b61-abcf-8f9a92275c0b
-      AM_CLIENT_SECRET: ((am_vcf_client_secret))
-      AM_GATEWAY: &vcf_gateway https://agentminder.goad.gpu.set.lab/default/aigateway/v1/mcp/NTYzZWYxY2MtMWMxZi00OTBkLWE2MjUtNzUyODQ4ODJhZDMw
-      AGENTMINDER_SIDECAR_AGENT_CLIENT_ID: 3664c5d9-7083-4b61-abcf-8f9a92275c0b
-      AGENTMINDER_SIDECAR_AGENT_CLIENT_SECRET: ((am_vcf_client_secret))
-      AGENTMINDER_ORCHESTRATOR_CLIENT_ID: 3664c5d9-7083-4b61-abcf-8f9a92275c0b
-      AGENTMINDER_ORCHESTRATOR_CLIENT_SECRET: ((am_vcf_client_secret))
       AGENTMINDER_SIDECAR_RESOURCE_0_NAME: vcf
-      AGENTMINDER_SIDECAR_RESOURCE_0_URL: *vcf_gateway
-      AGENTMINDER_SIDECAR_RESOURCE_0_AUDIENCE: *vcf_gateway

@@ -14,6 +14,11 @@ if [[ -z "${AGENTMINDER_SIDECAR_TOKEN:-}" ]]; then
   exit 2
 fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# The client ID, secret and gateway, from the bound am-* service.
+if ! source "${HERE}/agentminder-env.sh"; then
+  echo "agentminder sidecar: no AgentMinder client; bind the app's am-* service" >&2
+  exit 2
+fi
 # Lab AgentMinder uses a private CA. Export TLS paths here, not as CF
 # app env: python_buildpack reads SSL_CERT_FILE during pip staging and
 # the droplet path does not exist yet.

@@ -29,10 +29,10 @@ No address is in git.
 | `K8S_MCP_HOST` | Avi DNS name for the Kubernetes MCP | `k8s-mcp.example.lab` |
 | `AVI_MCP_HOST` | Avi DNS name for the Avi MCP | `avi-mcp.example.lab` |
 | `VCF_MCP_HOST` | Avi DNS name for the VCF MCP | `vcf-mcp.example.lab` |
-| `IDSP_GATEWAY_K8S` | AgentMinder gateway route for the Kubernetes door. Empty until the client exists | (set by `agentminder/register.py`) |
-| `IDSP_GATEWAY_AVI` | AgentMinder gateway route for the Avi door | (set by `agentminder/register.py`) |
-| `IDSP_GATEWAY_VCF` | AgentMinder gateway route for the VCF door | (set by `agentminder/register.py`) |
-| `VCF_MCP_AUDIENCES` | Comma-separated JWT audiences for the VCF door | (set by `agentminder/register.py`) |
+| `IDSP_GATEWAY_K8S` | AgentMinder gateway route for the Kubernetes door. Empty until the client exists | (set by `terraform/cloud-admin/agentminder-registration`) |
+| `IDSP_GATEWAY_AVI` | AgentMinder gateway route for the Avi door | (set by `terraform/cloud-admin/agentminder-registration`) |
+| `IDSP_GATEWAY_VCF` | AgentMinder gateway route for the VCF door | (set by `terraform/cloud-admin/agentminder-registration`) |
+| `VCF_MCP_AUDIENCES` | Comma-separated JWT audiences for the VCF door | (set by `terraform/cloud-admin/agentminder-registration`) |
 | `KUBECONFIG` | Guest cluster kubeconfig. Not committed | (operator file) |
 
 The shop's secrets `store-db` and `metal-oracle-model` in namespace
