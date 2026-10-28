@@ -17,7 +17,6 @@ fresh build.
 | `agentminder.tf` | The MCP resource servers, the clients, one role policy for each diagnostic client, and each client's entry in `AuthClientPolicy`. |
 | `cloudfoundry.tf` | One user-provided service for each diagnostic agent, in org `Goad`, space `metal-music-app-agentic-system`. |
 | `outputs.tf` | `agent_clients` and `mcp_servers`, for people. |
-| `imports.tf` | One time only: adopts the objects `register.py` made. |
 
 ## What it creates
 
@@ -123,23 +122,7 @@ there. Secret Store is a later step.
 
 ## The one-time import
 
-`incident-demo/agentminder/register.py` made these objects first, and
-the running agents use their IDs and secrets. `imports.tf` finds each
-object by name and adopts it, so the first apply changes nothing for the
-agents. The grants in `AuthClientPolicy` are not imported: the first apply
-adds each client again.
-
-Delete `imports.tf` after the first apply. On a new AgentMinder its
-lookups find nothing and fail the plan.
-
-## Rollout order
-
-1. Merge the branch. The `tanzu-apps` run on merge fails until the `am-*`
-   services exist. Running apps are not affected.
-2. Run `cloud-admin.yml` with `apply`. The earlier jobs should show no
-   changes. The new job imports the `register.py` objects and makes the
-   `am-*` services.
-3. Run `tanzu-apps.yml` again.
-4. Delete `imports.tf` in a follow-up pull request.
-5. Delete the GitHub secrets `INCIDENT_AM_LB_CLIENT_SECRET`,
-   `INCIDENT_AM_K8S_CLIENT_SECRET`, and `INCIDENT_AM_VCF_CLIENT_SECRET`.
+`incident-demo/agentminder/register.py` made these objects first. The
+first apply, on 2026-10-28, adopted them with `import` blocks, so the agents
+kept their client IDs and secrets. Those blocks are gone: on a new
+AgentMinder the first apply creates every object.
