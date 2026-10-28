@@ -1101,3 +1101,85 @@ Cost:
 
 Look again if: AgentMinder gets service accounts, or the runner pods get a
 way to log in to Secret Store. Move the login there.
+
+## 42. The incident demo's tools run on a platform tools cluster, from gitops
+
+Zammad, Grafana and Prometheus were applied by hand with
+`incident-demo/apply.py` into namespace `incident-tools` of the music store
+cluster, with hand-made Secrets. Now:
+
+- **Their own cluster.** The platform engineer's Supervisor Namespace
+  `platform-tools` holds the VKS cluster `platform-tools`
+  (`gitops/platform-tools/`, the generic Application). The tools run in it,
+  in namespace `incident-tools`, from `gitops/platform-tools-apps/`, which
+  the Application `platform-tools-apps` syncs. The demo diagnoses a sick
+  music store cluster, so the tools that record the incident must not go
+  down with it, and other clusters can use them later.
+- **Secrets from Secret Store.** Terraform writes the KVs
+  `platform-tools-grafana`, `platform-tools-zammad` and `platform-tools-qwen`
+  from GitHub secrets (`INCIDENT_GRAFANA_ADMIN_PASSWORD`,
+  `INCIDENT_ZAMMAD_DB_PASSWORD`, `INCIDENT_ZAMMAD_ADMIN_PASSWORD`,
+  `INCIDENT_QWEN_API_KEY`), and ESO makes `grafana-admin`, `zammad-env` and
+  `qwen-probe`, as in decision 38. `zammad-env` is an ESO template: the two
+  passwords come from the KV, the rest is in git.
+- **Zammad keeps its data.** One Deployment per piece, with PVCs for
+  Postgres and Zammad's storage. The bare Pods on `emptyDir` lost every
+  ticket and the API token on a restart. Elasticsearch is gone: Zammad ran
+  with `ELASTICSEARCH_ENABLED=false`, so it was never read.
+- **Checks by the blackbox exporter.** The custom `probe.py` is replaced by
+  `prom/blackbox-exporter`. Prometheus recording rules (`rules.yml`) turn its
+  `probe_success` into the series the boards already read, `demo_up` and
+  `arch_up`, so the boards did not change. Each probe target carries the
+  board box (`id`) or tile (`check`) it feeds.
+- **The music store's side.** The tools cluster cannot resolve the shop's
+  in-cluster names. `gitops/music-store-platform/` adds a namespace
+  `platform-tools` on the music store cluster with its own blackbox exporter
+  and a Prometheus in agent mode, which probes those names, keeps the
+  kube-state-metrics series the boards use, and remote-writes both to
+  `prometheus.goad.gpu.set.lab`. The service account `goad-k8s-mcp`, which
+  the Cloud Foundry app `metal-k8s-mcp` reads the cluster with, moves there
+  too, with a token Secret that does not expire.
+- **The architecture board is ported.** The topology panel lists what runs
+  now: the MCP servers and pii-scrub as Cloud Foundry apps, Zammad in its
+  own cluster, the music store's nodes as one box, and no addresses
+  (decision 21). It still draws a fixed layout from `topology/module.js`.
+- **Removed.** The earlier Kubernetes agents and MCP servers
+  (`agents/`, `mcp/`, and their namespace `metal-music-app-agentic-system`
+  on the music store cluster), CLM's manifest (no CLM image exists; the
+  orchestrator falls back without it), `apply.py`, `BLANKS.md`,
+  `RUNBOOK.md` and `secrets/templates.yaml`. The walk is
+  `scripts/incident-walk.sh`. The second AgentMinder host name's Service is
+  in `terraform/cloud-admin/agentminder`, imported. The runbook's lessons
+  are in the tanzu README and the host name rules in `gitops/README.md`.
+  `incident-demo/` is gone.
+- **No address pins for Grafana and Zammad.** The incident apps resolve
+  `*.goad.gpu.set.lab` through DNS (checked on 2026-10-28 with a task on
+  `metal-incident-live`), so `manifest.yml` no longer pins their addresses,
+  which change with the cluster.
+
+Why gitops and not a script: the tools are long-lived services, not a step
+a person takes. Decision 37 kept the incident demo out of `gitops/` because
+a person ran it; that is now only the walk.
+
+Why a Prometheus agent and remote write, not a scrape across clusters:
+the shop's names resolve only inside its cluster, and the agent is the same
+for any cluster added later. Why the blackbox exporter, not the custom
+probe: it is maintained, it has nothing to keep in step with the lab, and
+its targets are data.
+
+Cost:
+- One more VKS cluster: a best-effort-medium control plane and a
+  best-effort-large worker.
+- A new build starts Zammad empty. Someone makes its API token by hand and
+  stores it as `INCIDENT_ZAMMAD_TOKEN` before `tanzu-apps` runs. Moving to
+  this cluster was such a build.
+- Prometheus's remote-write receiver and UI have no authentication. Anything
+  on the lab network can write series to it.
+- `INCIDENT_K8S_TOKEN` changed: it is the token from
+  `platform-tools/goad-k8s-mcp-token`. The platform engineer workflow and
+  `tanzu-apps` must run after it changes.
+- The topology panel's layout is still hand-placed, and its node list must
+  follow what runs.
+
+Look again if: VCF gives the tools a shared observability stack, or a second
+tenant cluster needs Zammad and Grafana.

@@ -58,6 +58,9 @@ jobs:
       TF_VAR_incident_qwen_api_key: ${{ secrets.INCIDENT_QWEN_API_KEY }}
       TF_VAR_incident_k8s_token: ${{ secrets.INCIDENT_K8S_TOKEN }}
       TF_VAR_incident_sidecar_token: ${{ secrets.INCIDENT_SIDECAR_TOKEN }}
+      TF_VAR_incident_grafana_admin_password: ${{ secrets.INCIDENT_GRAFANA_ADMIN_PASSWORD }}
+      TF_VAR_incident_zammad_db_password: ${{ secrets.INCIDENT_ZAMMAD_DB_PASSWORD }}
+      TF_VAR_incident_zammad_admin_password: ${{ secrets.INCIDENT_ZAMMAD_ADMIN_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4

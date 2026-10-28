@@ -31,24 +31,24 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     vm: { legend: "VM", color: "#ffb15a" }
   };
   var PLATFORM_OF = {
-    "vks-api": "vks", "cp-pwtc2": "vks", "worker-8n8n5": "vks", "worker-gjwhn": "vks",
+    "vks-api": "vks", "music-nodes": "vks",
     "users-vm": "vm",
-    "am-api": "vks", "am-cp": "vks", "am-w-7dsds": "vks", "am-w-gpn6h": "vks", "am-ui": "vks",
-    music: "vks", chat: "vks", cart: "vks", order: "vks", zammad: "vks",
-    "zammad-db": "vks", "zammad-redis": "vks", "zammad-cache": "vks", orch: "vks",
-    pii: "vks", "k8s-mcp": "vks", "vcf-mcp": "vks", "avi-mcp": "vks",
-    dsm: "dsm", qwen: "private-ai", clm: "private-ai",
+    "am-ui": "vks",
+    music: "vks", chat: "vks", cart: "vks", order: "vks",
+    zammad: "vks", "zammad-db": "vks", "zammad-redis": "vks", "zammad-cache": "vks",
+    dsm: "dsm", qwen: "private-ai",
     incident: "tanzu", "cf-orch": "tanzu", "lb-agent": "tanzu", "k8s-agent": "tanzu", "vcf-agent": "tanzu",
+    pii: "tanzu", "avi-mcp": "tanzu", "k8s-mcp": "tanzu", "vcf-mcp": "tanzu",
     "vcf-ops": "vcf", vcfa: "vcf", vcenter: "vcf", nsx: "vcf"
   };
   var KIND_OF = {
-    "vks-api": "platform", "cp-pwtc2": "platform", "worker-8n8n5": "platform", "worker-gjwhn": "platform",
+    "vks-api": "platform", "music-nodes": "platform",
     "users-vm": "vm",
-    "am-api": "platform", "am-cp": "platform", "am-w-7dsds": "platform", "am-w-gpn6h": "platform", "am-ui": "platform",
+    "am-ui": "platform",
     music: "app", chat: "app", cart: "app", order: "app", pii: "app", zammad: "app",
-    "zammad-db": "data", "zammad-redis": "data", "zammad-cache": "data", orch: "agent",
+    "zammad-db": "data", "zammad-redis": "data", "zammad-cache": "data",
     "k8s-mcp": "mcp", "vcf-mcp": "mcp", "avi-mcp": "mcp",
-    dsm: "data", qwen: "model", clm: "model",
+    dsm: "data", qwen: "model",
     incident: "agent", "cf-orch": "agent", "lb-agent": "agent", "k8s-agent": "agent", "vcf-agent": "agent",
     "vcf-ops": "platform", vcfa: "platform", vcenter: "platform", nsx: "platform"
   };
@@ -56,12 +56,13 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   // Groups follow where the workload runs. The sky lanes are spaced so the
   // long wires do not pile up on the top edge.
   var GEO = {
-    tz: { x: 16, y: 148, w: 360, h: 608 },
-    vm: { x: 388, y: 148, w: 132, h: 608 },
-    vks: { x: 532, y: 148, w: 944, h: 608 },
-    dsm: { x: 1488, y: 148, w: 132, h: 608 },
-    pai: { x: 1632, y: 148, w: 272, h: 320 },
-    am: { x: 1632, y: 480, w: 272, h: 276 },
+    tz: { x: 16, y: 148, w: 600, h: 608 },
+    vm: { x: 628, y: 148, w: 124, h: 608 },
+    vks: { x: 764, y: 148, w: 520, h: 608 },
+    tools: { x: 1296, y: 148, w: 300, h: 608 },
+    dsm: { x: 1608, y: 148, w: 130, h: 608 },
+    pai: { x: 1750, y: 148, w: 154, h: 320 },
+    am: { x: 1750, y: 480, w: 154, h: 276 },
     vcf: { x: 16, y: 768, w: 1888, h: 296 }
   };
   var SKY = [52, 70, 88, 106, 124];
@@ -74,47 +75,40 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     };
   }
 
+  // No addresses: the blackbox exporter checks names, and the boxes show
+  // the name each check uses (decision 21).
   var KUBE = "v1.36.2+vmware.2";
-  var N8 = "music-store-workers-6xtl4-wnr4j-8n8n5";
-  var NG = "music-store-workers-6xtl4-wnr4j-gjwhn";
+  var SPACE = "metal-music-app-agentic-system";
+  function cf(app) { return "https://" + app + ".apps.goad.gpu.set.lab/health"; }
   var CATALOG = [
-    meta("vks-api", "VKS API", "Cluster", "cluster", "wide", "music-store", "music-store-8q8l6", "—", "10.47.7.81", "10.47.7.81:6443", KUBE),
-    meta("cp-pwtc2", "Control plane", "Node", "server", "wide", "music-store", "music-store-8q8l6", "music-store-k4sgg-pwtc2", "172.30.0.66", "172.30.0.66:10250", KUBE + " best-effort-medium"),
-    meta("worker-8n8n5", "Worker 8n8n5", "Node", "server", "wide", "music-store", "music-store-8q8l6", N8, "172.30.0.70", "172.30.0.70:10250", KUBE + " best-effort-large"),
-    meta("worker-gjwhn", "Worker gjwhn", "Node", "server", "wide", "music-store", "music-store-8q8l6", NG, "172.30.0.69", "172.30.0.69:10250", KUBE + " best-effort-large"),
-    meta("users-vm", "Users VM", "VM Service", "vm", "vmhost", "music-store", "music-store-8q8l6", "music-users", "10.47.7.52", "http://10.47.7.52:5003/health", "ubuntu-24.04-cloud"),
-    meta("am-api", "API", "Cluster", "cluster", "stack", "agentminder", "agentminder-z7v8k", "—", "10.47.7.77", "10.47.7.77:6443", KUBE),
-    meta("am-cp", "Control", "Node", "server", "stack", "agentminder", "agentminder-z7v8k", "agentminder-5nprd-9btlg", "172.30.0.34", "172.30.0.34:10250", KUBE),
-    meta("am-w-7dsds", "7dsds", "Node", "server", "stack", "agentminder", "agentminder-z7v8k", "agentminder-workers-h746j-6mwj7-7dsds", "172.30.0.36", "172.30.0.36:10250", KUBE),
-    meta("am-w-gpn6h", "gpn6h", "Node", "server", "stack", "agentminder", "agentminder-z7v8k", "agentminder-workers-h746j-6mwj7-gpn6h", "172.30.0.35", "172.30.0.35:10250", KUBE),
-    meta("am-ui", "Console", "AgentMinder", "window", "stack", "agentminder", "ssp", "—", "10.47.7.82", "https://agentminder.goad.gpu.set.lab/default/ui/v1/adminconsole/", "console"),
-    meta("music", "Music shop", "store", "shop", "wide", "music-store", "music-store", N8, "10.101.76.254", "http://music-store-1-service.music-store.svc:5000/", "python:3.12-slim"),
-    meta("chat", "Chat", "assistant", "chat", "wide", "music-store", "music-store", N8, "10.111.73.154", "http://chat-service.music-store.svc:5005/health", "python:3.12-slim"),
-    meta("cart", "Cart", "store", "cart", "wide", "music-store", "music-store", N8, "10.97.251.112", "http://cart-service.music-store.svc:5002/health", "python:3.12-slim"),
-    meta("order", "Order", "store", "order", "wide", "music-store", "music-store", N8, "10.111.74.18", "http://order-service.music-store.svc:5001/health", "python:3.12-slim"),
-    meta("pii", "PII scrub", "filter", "shield", "wide", "music-store", "metal-music-app-agentic-system", NG, "10.105.6.138", "http://pii-scrub.metal-music-app-agentic-system.svc:8080/health", "python:3.12-slim"),
-    meta("orch", "Orchestrator", "In cluster", "nodes", "wide", "music-store", "metal-music-app-agentic-system", NG, "10.100.115.123", "http://orchestrator.metal-music-app-agentic-system.svc:8080/health", "python:3.12-slim"),
-    meta("zammad", "Zammad", "Tickets", "ticket", "wide", "music-store", "incident-tools", "—", "10.47.7.83", "http://zammad-nginx.incident-tools.svc:8080/", "—"),
-    meta("zammad-db", "Postgres", "Database", "db", "wide", "music-store", "incident-tools", "—", "10.106.205.2", "zammad-postgresql.incident-tools.svc:5432", "—"),
-    meta("zammad-redis", "Redis", "Cache", "layers", "wide", "music-store", "incident-tools", "—", "10.97.122.51", "zammad-redis.incident-tools.svc:6379", "—"),
-    meta("zammad-cache", "Memcached", "Cache", "box", "wide", "music-store", "incident-tools", "—", "10.109.25.157", "zammad-memcached.incident-tools.svc:11211", "—"),
-    meta("dsm", "Catalog", "Postgres 16.14", "db", "feature", "music-store", "music-store-8q8l6", "—", "10.47.7.78", "10.47.7.78:5432", "16.14+vmware.v9.1.1.0"),
-    meta("qwen", "Qwen", "qwen-14b-xlarge", "chip", "feature", "private-ai", "private-ai-hphfz", "—", "10.47.7.73", "https://10.47.7.73", "qwen-14b-xlarge"),
-    meta("clm", "CLM", "Not installed", "chip", "feature", "private-ai", "—", "—", "—", "not-installed", "not-installed"),
-    meta("incident", "Incident", "Agent", "bot", "wide", "tanzu-cf", "metal-music-app-agentic-system", "—", "—", "https://incident-response-agent.apps.tp.gpu.set.lab/health", "tanzu-agent 0.6.0"),
-    meta("cf-orch", "Orchestrator", "Agent", "nodes", "wide", "tanzu-cf", "metal-music-app-agentic-system", "—", "—", "https://metal-incident-live.apps.tp.gpu.set.lab/health", "harness.py"),
-    meta("lb-agent", "Load balancer", "Agent", "bot", "wide", "tanzu-cf", "metal-music-app-agentic-system", "—", "—", "https://lb-diagnostic-agent.apps.tp.gpu.set.lab/health", "tanzu-agent 0.6.0"),
-    meta("k8s-agent", "Kubernetes", "Agent", "bot", "wide", "tanzu-cf", "metal-music-app-agentic-system", "—", "—", "https://k8s-diagnostic-agent.apps.tp.gpu.set.lab/health", "tanzu-agent 0.6.0"),
-    meta("vcf-agent", "VCF", "Agent", "bot", "wide", "tanzu-cf", "metal-music-app-agentic-system", "—", "—", "https://vcf-diagnostic-agent.apps.tp.gpu.set.lab/health", "tanzu-agent 0.6.0"),
-    meta("avi-mcp", "Avi", "MCP server", "plug", "wide", "music-store", "metal-music-app-agentic-system", NG, "10.47.7.68", "http://avi-mcp.goad.gpu.set.lab/mcp", "python:3.12-slim"),
-    meta("k8s-mcp", "Kubernetes", "MCP server", "plug", "wide", "music-store", "metal-music-app-agentic-system", N8, "10.47.7.85", "http://k8s-mcp.goad.gpu.set.lab/mcp", "python:3.12-slim"),
-    meta("vcf-mcp", "VCF", "MCP server", "plug", "wide", "music-store", "metal-music-app-agentic-system", NG, "10.47.7.86", "http://vcf-mcp.goad.gpu.set.lab/mcp", "python:3.12-slim"),
-    meta("vcf-ops", "VCF Ops", "ops01", "pulse", "wide", "vcf", "ops01", "—", "10.47.0.221", "10.47.0.221:443", "ops01.gpu.set.lab"),
-    meta("vcfa", "VCFA", "Automation", "window", "wide", "vcf", "auto", "—", "10.47.0.224", "10.47.0.224:443", "auto.gpu.set.lab"),
-    meta("vcenter", "vCenter", "vc01", "server", "wide", "vcf", "vc01", "—", "10.47.0.200", "10.47.0.200:443", "vc01.gpu.set.lab"),
-    meta("nsx", "NSX", "nsx01", "layers", "wide", "vcf", "nsx01", "—", "10.47.0.230", "10.47.0.230:443", "nsx01.gpu.set.lab")
+    meta("vks-api", "VKS API", "Cluster", "cluster", "wide", "music-store", "default", "—", "—", "kubernetes.default.svc:443", KUBE),
+    meta("music-nodes", "Nodes", "Node", "server", "wide", "music-store", "—", "all nodes", "—", "kube_node_status_condition Ready", KUBE),
+    meta("users-vm", "Users VM", "VM Service", "vm", "vmhost", "music-store", "music-store", "music-users", "—", "http://users-service.music-store.svc:5003/health", "ubuntu-24.04-cloud"),
+    meta("am-ui", "Console", "AgentMinder", "window", "stack", "agentminder", "ssp", "—", "—", "https://agentminder.goad.gpu.set.lab/default/ui/v1/adminconsole/", "console"),
+    meta("music", "Music shop", "store", "shop", "wide", "music-store", "music-store", "—", "—", "http://music-store-1-service.music-store.svc:5000/", "python:3.12-slim"),
+    meta("chat", "Chat", "assistant", "chat", "wide", "music-store", "music-store", "—", "—", "http://chat-service.music-store.svc:5005/health", "python:3.12-slim"),
+    meta("cart", "Cart", "store", "cart", "wide", "music-store", "music-store", "—", "—", "http://cart-service.music-store.svc:5002/health", "python:3.12-slim"),
+    meta("order", "Order", "store", "order", "wide", "music-store", "music-store", "—", "—", "http://order-service.music-store.svc:5001/health", "python:3.12-slim"),
+    meta("zammad", "Zammad", "Tickets", "ticket", "wide", "platform-tools", "incident-tools", "—", "—", "http://zammad-nginx.incident-tools.svc:8080/", "7.2.2"),
+    meta("zammad-db", "Postgres", "Database", "db", "wide", "platform-tools", "incident-tools", "—", "—", "zammad-postgresql.incident-tools.svc:5432", "17.11"),
+    meta("zammad-redis", "Redis", "Cache", "layers", "wide", "platform-tools", "incident-tools", "—", "—", "zammad-redis.incident-tools.svc:6379", "7.4"),
+    meta("zammad-cache", "Memcached", "Cache", "box", "wide", "platform-tools", "incident-tools", "—", "—", "zammad-memcached.incident-tools.svc:11211", "1.6.45"),
+    meta("dsm", "Catalog", "Postgres", "db", "feature", "music-store", "music-store", "—", "—", "postgres-service.music-store.svc:5432", "DSM PostgresCluster catalog"),
+    meta("qwen", "Qwen", "qwen-14b-xlarge", "chip", "feature", "private-ai", "private-ai", "—", "—", "Private AI Services /models", "qwen-14b-xlarge"),
+    meta("incident", "Incident", "Agent", "bot", "wide", "tanzu-cf", SPACE, "—", "—", cf("incident-response-agent"), "tanzu-agent"),
+    meta("cf-orch", "Orchestrator", "Agent", "nodes", "wide", "tanzu-cf", SPACE, "—", "—", cf("metal-incident-live"), "harness.py"),
+    meta("lb-agent", "Load balancer", "Agent", "bot", "wide", "tanzu-cf", SPACE, "—", "—", cf("lb-diagnostic-agent"), "tanzu-agent"),
+    meta("k8s-agent", "Kubernetes", "Agent", "bot", "wide", "tanzu-cf", SPACE, "—", "—", cf("k8s-diagnostic-agent"), "tanzu-agent"),
+    meta("vcf-agent", "VCF", "Agent", "bot", "wide", "tanzu-cf", SPACE, "—", "—", cf("vcf-diagnostic-agent"), "tanzu-agent"),
+    meta("pii", "PII scrub", "filter", "shield", "wide", "tanzu-cf", SPACE, "—", "—", cf("pii-scrub"), "python"),
+    meta("avi-mcp", "Avi", "MCP server", "plug", "wide", "tanzu-cf", SPACE, "—", "—", cf("metal-avi-mcp"), "python"),
+    meta("k8s-mcp", "Kubernetes", "MCP server", "plug", "wide", "tanzu-cf", SPACE, "—", "—", cf("metal-k8s-mcp"), "python"),
+    meta("vcf-mcp", "VCF", "MCP server", "plug", "wide", "tanzu-cf", SPACE, "—", "—", cf("metal-vcf-mcp"), "python"),
+    meta("vcf-ops", "VCF Ops", "ops01", "pulse", "wide", "vcf", "ops01", "—", "—", "ops01.gpu.set.lab:443", "ops01.gpu.set.lab"),
+    meta("vcfa", "VCFA", "Automation", "window", "wide", "vcf", "auto", "—", "—", "auto.gpu.set.lab:443", "auto.gpu.set.lab"),
+    meta("vcenter", "vCenter", "vc01", "server", "wide", "vcf", "vc01", "—", "—", "vc01.gpu.set.lab:443", "vc01.gpu.set.lab"),
+    meta("nsx", "NSX", "nsx01", "layers", "wide", "vcf", "nsx01", "—", "—", "nsx01.gpu.set.lab:443", "nsx01.gpu.set.lab")
   ];
-
   var EDGES = [
     ["e-music-vm", "music", "users-vm", "HTTP"],
     ["e-music-chat", "music", "chat", "HTTP"],
@@ -129,19 +123,20 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     ["e-cforch-lb", "cf-orch", "lb-agent", "HTTP"],
     ["e-cforch-k8s", "cf-orch", "k8s-agent", "HTTP"],
     ["e-cforch-vcf", "cf-orch", "vcf-agent", "HTTP"],
+    ["e-cforch-pii", "cf-orch", "pii", "HTTP"],
     ["e-cforch-zammad", "cf-orch", "zammad", "HTTPS"],
     ["e-cforch-qwen", "cf-orch", "qwen", "HTTPS"],
     ["e-lb-avi", "lb-agent", "avi-mcp", "MCP"],
     ["e-k8s-mcp", "k8s-agent", "k8s-mcp", "MCP"],
     ["e-vcf-mcp", "vcf-agent", "vcf-mcp", "MCP"],
+    ["e-k8smcp-api", "k8s-mcp", "vks-api", "HTTPS"],
+    ["e-vcfmcp-vcenter", "vcf-mcp", "vcenter", "HTTPS"],
     ["e-lb-am", "lb-agent", "am-ui", "OAuth"],
     ["e-k8s-am", "k8s-agent", "am-ui", "OAuth"],
     ["e-vcf-am", "vcf-agent", "am-ui", "OAuth"],
     ["e-lb-qwen", "lb-agent", "qwen", "HTTPS"],
     ["e-k8s-qwen", "k8s-agent", "qwen", "HTTPS"],
     ["e-vcf-qwen", "vcf-agent", "qwen", "HTTPS"],
-    ["e-orch-qwen", "orch", "qwen", "HTTPS"],
-    ["e-orch-music", "orch", "music", "HTTP"],
     ["e-zammad-db", "zammad", "zammad-db", "TCP 5432"],
     ["e-zammad-redis", "zammad", "zammad-redis", "TCP 6379"],
     ["e-zammad-cache", "zammad", "zammad-cache", "TCP 11211"]
@@ -184,7 +179,7 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
 
   function zoneOf(key, mark, title) {
     var g = GEO[key];
-    var platKey = key === "pai" ? "private-ai" : key === "tz" ? "tanzu" : key === "am" ? "vks" : key;
+    var platKey = key === "pai" ? "private-ai" : key === "tz" ? "tanzu" : (key === "am" || key === "tools") ? "vks" : key;
     var plat = PLATFORMS[platKey];
     return {
       id: key, title: title || plat.header, mark: mark, accent: plat.accent, ink: plat.ink,
@@ -194,25 +189,29 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
 
   function layout() {
     var nodes = {};
+    // Tanzu: the agents on the left, and on the right what each one calls,
+    // on the same row so the wire is straight.
     ["incident", "cf-orch", "lb-agent", "k8s-agent", "vcf-agent"].forEach(function (id, i) {
-      place(nodes, id, 32, 192 + i * 98, 312, 88);
+      place(nodes, id, 32, 192 + i * 98, 272, 88);
     });
-    place(nodes, "users-vm", 400, 192, 108, 118);
-    row(nodes, ["music", "chat", "cart", "order"], 548, 192, 220, 96, 12);
-    row(nodes, ["zammad", "zammad-db", "zammad-redis", "zammad-cache"], 548, 302, 220, 96, 12);
-    row(nodes, ["pii", "orch", "avi-mcp", "k8s-mcp", "vcf-mcp"], 548, 412, 174, 86, 10);
+    ["pii", "avi-mcp", "k8s-mcp", "vcf-mcp"].forEach(function (id, i) {
+      place(nodes, id, 340, 192 + (i + 1) * 98, 260, 88);
+    });
+    place(nodes, "users-vm", 640, 192, 100, 118);
+    row(nodes, ["music", "chat"], 784, 192, 234, 96, 12);
+    row(nodes, ["cart", "order"], 784, 302, 234, 96, 12);
     var infra = {
-      x: 548, y: 512, w: 916, h: 188,
+      x: 776, y: 512, w: 496, h: 188,
       title: "VKS cluster infrastructure",
       accent: PLATFORMS.vks.accent, ink: PLATFORMS.vks.ink
     };
-    row(nodes, ["vks-api", "cp-pwtc2", "worker-8n8n5", "worker-gjwhn"], 566, 546, 210, 140, 12);
-    place(nodes, "dsm", 1500, 192, 108, 176);
-    place(nodes, "qwen", 1648, 192, 240, 118);
-    place(nodes, "clm", 1648, 328, 240, 118);
-    row(nodes, ["am-api", "am-cp"], 1648, 522, 116, 60, 8);
-    row(nodes, ["am-w-7dsds", "am-w-gpn6h"], 1648, 590, 116, 60, 8);
-    place(nodes, "am-ui", 1648, 658, 240, 60);
+    row(nodes, ["vks-api", "music-nodes"], 794, 546, 224, 140, 12);
+    ["zammad", "zammad-db", "zammad-redis", "zammad-cache"].forEach(function (id, i) {
+      place(nodes, id, 1312, 192 + i * 110, 244, 96);
+    });
+    place(nodes, "dsm", 1620, 192, 106, 176);
+    place(nodes, "qwen", 1762, 192, 130, 118);
+    place(nodes, "am-ui", 1762, 530, 130, 96);
     var fw = 430;
     var fg = 20;
     var f0 = 16 + Math.round((1888 - (4 * fw + 3 * fg)) / 2);
@@ -222,9 +221,10 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       zoneOf("tz", "tanzu"),
       zoneOf("vm", "vm"),
       zoneOf("vks", "vks"),
+      zoneOf("tools", "vks", "VKS · platform-tools"),
       zoneOf("dsm", "dsm"),
       zoneOf("pai", "pai"),
-      zoneOf("am", "vks", "VKS · AgentMinder cluster"),
+      zoneOf("am", "vks", "AgentMinder"),
       zoneOf("vcf", "vcf")
     ];
     return { zones: zones, nodes: nodes, infra: infra };
@@ -256,10 +256,8 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     function Rt(n) { return n.x + n.w; }
     function T(n) { return n.y; }
     function B(n) { return n.y + n.h; }
-    var qRail = { orch: 348, lb: 356, k8s: 364, vcf: 372 };
-    var aRail = { lb: 352, k8s: 360, vcf: 368 };
-    var under = 503;
 
+    // Inside Tanzu.
     add("e-incident-orch", [
       [cx(N.incident), B(N.incident)],
       [cx(N.incident), T(N["cf-orch"])]
@@ -280,150 +278,113 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       [28, cy(N["vcf-agent"])],
       [L(N["vcf-agent"]), cy(N["vcf-agent"])]
     ]);
+    add("e-cforch-pii", hlink(N["cf-orch"], N.pii));
+    add("e-lb-avi", hlink(N["lb-agent"], N["avi-mcp"]));
+    add("e-k8s-mcp", hlink(N["k8s-agent"], N["k8s-mcp"]));
+    add("e-vcf-mcp", hlink(N["vcf-agent"], N["vcf-mcp"]));
 
+    // Inside the music store cluster.
     add("e-music-chat", hlink(N.music, N.chat));
     add("e-music-vm", [
       [Rt(N["users-vm"]), cy(N.music)],
       [L(N.music), cy(N.music)]
     ]);
     add("e-music-cart", [
-      [cx(N.music), T(N.music)],
-      [cx(N.music), 180],
-      [cx(N.cart), 180],
-      [cx(N.cart), T(N.cart)]
+      [cx(N.music) - 16, B(N.music)],
+      [cx(N.music) - 16, T(N.cart)]
     ]);
     add("e-music-order", [
-      [cx(N.music) + 16, T(N.music)],
-      [cx(N.music) + 16, 186],
-      [cx(N.order) - 18, 186],
+      [cx(N.music) + 16, B(N.music)],
+      [cx(N.music) + 16, 297],
+      [cx(N.order) - 18, 297],
       [cx(N.order) - 18, T(N.order)]
     ]);
     add("e-chat-order", [
-      [cx(N.chat), B(N.chat)],
-      [cx(N.chat), 295],
-      [cx(N.order), 295],
-      [cx(N.order), T(N.order)]
+      [cx(N.chat) + 16, B(N.chat)],
+      [cx(N.chat) + 16, T(N.order)]
     ]);
 
-    add("e-zammad-db", hlink(N.zammad, N["zammad-db"]));
-    add("e-zammad-redis", [
-      [cx(N.zammad), T(N.zammad)],
-      [cx(N.zammad), 293],
-      [cx(N["zammad-redis"]), 293],
-      [cx(N["zammad-redis"]), T(N["zammad-redis"])]
-    ]);
-    add("e-zammad-cache", [
-      [cx(N.zammad) + 16, T(N.zammad)],
-      [cx(N.zammad) + 16, 297],
-      [cx(N["zammad-cache"]), 297],
-      [cx(N["zammad-cache"]), T(N["zammad-cache"])]
-    ]);
+    // Zammad's column: rails on its right edge.
+    [["e-zammad-db", "zammad-db", 10], ["e-zammad-redis", "zammad-redis", 18], ["e-zammad-cache", "zammad-cache", 26]].forEach(function (e) {
+      var x = Rt(N.zammad) + e[2];
+      add(e[0], [
+        [Rt(N.zammad), cy(N.zammad) + e[2] - 18],
+        [x, cy(N.zammad) + e[2] - 18],
+        [x, cy(N[e[1]])],
+        [Rt(N[e[1]]), cy(N[e[1]])]
+      ]);
+    });
 
+    // Long wires. Each leaves through the gap under the Tanzu rows or over
+    // the top of the zones, on its own lane.
+    var under = 760;
     add("e-incident-zammad", [
-      [Rt(N.incident), cy(N.incident)],
-      [382, cy(N.incident)],
-      [382, 322],
-      [L(N.zammad), 322]
+      [cx(N.incident), T(N.incident)],
+      [cx(N.incident), SKY[4] + 8],
+      [1300, SKY[4] + 8],
+      [1300, cy(N.zammad) - 12],
+      [L(N.zammad), cy(N.zammad) - 12]
     ]);
     add("e-cforch-zammad", [
-      [Rt(N["cf-orch"]), 346],
-      [L(N.zammad), 346]
-    ]);
-
-    add("e-lb-avi", [
-      [Rt(N["lb-agent"]), cy(N["lb-agent"])],
-      [384, cy(N["lb-agent"])],
-      [384, 403],
-      [cx(N["avi-mcp"]), 403],
-      [cx(N["avi-mcp"]), T(N["avi-mcp"])]
-    ]);
-    add("e-k8s-mcp", [
-      [Rt(N["k8s-agent"]), cy(N["k8s-agent"])],
-      [392, cy(N["k8s-agent"])],
-      [392, 406],
-      [cx(N["k8s-mcp"]), 406],
-      [cx(N["k8s-mcp"]), T(N["k8s-mcp"])]
-    ]);
-    add("e-vcf-mcp", [
-      [Rt(N["vcf-agent"]), cy(N["vcf-agent"])],
-      [400, cy(N["vcf-agent"])],
-      [400, 409],
-      [cx(N["vcf-mcp"]), 409],
-      [cx(N["vcf-mcp"]), T(N["vcf-mcp"])]
-    ]);
-
-    add("e-orch-music", [
-      [cx(N.orch) - 20, B(N.orch)],
-      [cx(N.orch) - 20, under + 4],
-      [536, under + 4],
-      [536, cy(N.music) + 16],
-      [L(N.music), cy(N.music) + 16]
+      [Rt(N["cf-orch"]), cy(N["cf-orch"]) - 22],
+      [320, cy(N["cf-orch"]) - 22],
+      [320, 180],
+      [1304, 180],
+      [1304, cy(N.zammad) + 12],
+      [L(N.zammad), cy(N.zammad) + 12]
     ]);
     add("e-music-dsm", [
-      [L(N.music), cy(N.music) + 16],
-      [526, cy(N.music) + 16],
-      [526, under],
-      [1479, under],
-      [1479, cy(N.dsm) - 16],
+      [cx(N.music) - 40, T(N.music)],
+      [cx(N.music) - 40, 172],
+      [1612, 172],
+      [1612, cy(N.dsm) - 16],
       [L(N.dsm), cy(N.dsm) - 16]
     ]);
     add("e-chat-dsm", [
       [cx(N.chat), T(N.chat)],
-      [cx(N.chat), 183],
-      [1484, 183],
-      [1484, cy(N.dsm) + 28],
+      [cx(N.chat), 164],
+      [1616, 164],
+      [1616, cy(N.dsm) + 28],
       [L(N.dsm), cy(N.dsm) + 28]
     ]);
-    add("e-orch-qwen", [
-      [cx(N.orch) + 24, B(N.orch)],
-      [cx(N.orch) + 24, under + 8],
-      [1480, under + 8],
-      [1480, 190],
-      [1772, 190],
-      [1772, T(N.qwen)]
-    ]);
-
-    function toSky(node, lane, railX) {
-      return [
-        [Rt(node), cy(node)],
-        [railX, cy(node)],
-        [railX, lane]
-      ];
-    }
-    function across(id, node, lane, railX, dropX, entryX, entryY) {
-      var pts = toSky(node, lane, railX);
-      pts.push([dropX, lane], [dropX, entryY], [entryX, entryY]);
-      add(id, pts);
-    }
-    across("e-cforch-qwen", N["cf-orch"], SKY[0], qRail.orch, 1800, 1800, T(N.qwen));
-    across("e-lb-qwen", N["lb-agent"], SKY[1], qRail.lb, 1824, 1824, T(N.qwen));
-    across("e-k8s-qwen", N["k8s-agent"], SKY[2], qRail.k8s, 1848, 1848, T(N.qwen));
-    across("e-vcf-qwen", N["vcf-agent"], SKY[3], qRail.vcf, 1872, 1872, T(N.qwen));
     add("e-chat-qwen", [
-      [cx(N.chat), T(N.chat)],
-      [cx(N.chat), SKY[4]],
-      [1768, SKY[4]],
-      [1768, T(N.qwen)]
+      [cx(N.chat) + 30, T(N.chat)],
+      [cx(N.chat) + 30, SKY[4]],
+      [1770, SKY[4]],
+      [1770, T(N.qwen)]
     ]);
-    add("e-lb-am", [
-      [Rt(N["lb-agent"]), cy(N["lb-agent"])],
-      [aRail.lb, cy(N["lb-agent"])],
-      [aRail.lb, 716],
-      [L(N["am-ui"]), 716]
+    function sky(id, node, lane, dropX) {
+      add(id, [
+        [cx(node) + 60, T(node)],
+        [cx(node) + 60, lane],
+        [dropX, lane],
+        [dropX, T(N.qwen)]
+      ]);
+    }
+    sky("e-cforch-qwen", N["cf-orch"], SKY[0], 1800);
+    sky("e-lb-qwen", N["lb-agent"], SKY[1], 1824);
+    sky("e-k8s-qwen", N["k8s-agent"], SKY[2], 1848);
+    sky("e-vcf-qwen", N["vcf-agent"], SKY[3], 1872);
+    [["e-lb-am", "lb-agent", 0], ["e-k8s-am", "k8s-agent", 8], ["e-vcf-am", "vcf-agent", 16]].forEach(function (e) {
+      add(e[0], [
+        [cx(N[e[1]]) - 60 + e[2], B(N[e[1]])],
+        [cx(N[e[1]]) - 60 + e[2], under - 4 + e[2] / 2],
+        [1756 + e[2] / 2, under - 4 + e[2] / 2],
+        [1756 + e[2] / 2, cy(N["am-ui"]) + e[2] - 8],
+        [L(N["am-ui"]), cy(N["am-ui"]) + e[2] - 8]
+      ]);
+    });
+    add("e-k8smcp-api", [
+      [Rt(N["k8s-mcp"]), cy(N["k8s-mcp"])],
+      [758, cy(N["k8s-mcp"])],
+      [758, cy(N["vks-api"])],
+      [L(N["vks-api"]), cy(N["vks-api"])]
     ]);
-    add("e-k8s-am", [
-      [Rt(N["k8s-agent"]), cy(N["k8s-agent"])],
-      [aRail.k8s, cy(N["k8s-agent"])],
-      [aRail.k8s, 732],
-      [cx(N["am-ui"]) - 28, 732],
-      [cx(N["am-ui"]) - 28, B(N["am-ui"])]
-    ]);
-    add("e-vcf-am", [
-      [Rt(N["vcf-agent"]), cy(N["vcf-agent"])],
-      [aRail.vcf, cy(N["vcf-agent"])],
-      [aRail.vcf, 748],
-      [cx(N["am-ui"]) + 36, 748],
-      [cx(N["am-ui"]) + 36, B(N["am-ui"])]
+    add("e-vcfmcp-vcenter", [
+      [cx(N["vcf-mcp"]), B(N["vcf-mcp"])],
+      [cx(N["vcf-mcp"]), under + 2],
+      [cx(N.vcenter), under + 2],
+      [cx(N.vcenter), T(N.vcenter)]
     ]);
     return R;
   }
@@ -648,12 +609,12 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   function demo() {
     var nodes = {}, edges = {}, lats = {};
     CATALOG.forEach(function (n) {
-      var down = n.id === "shop-users" || n.id === "clm";
+      var down = n.id === "zammad-cache";
       nodes[n.id] = { value: down ? 0 : 1, title: n.label };
       lats[n.id] = { value: n.id === "qwen" ? 42 : 16 };
     });
     EDGES.forEach(function (e) {
-      edges[e[0]] = { value: e[0] === "e-music-users" ? 0 : 1, protocol: e[3], source: e[1], target: e[2] };
+      edges[e[0]] = { value: e[0] === "e-zammad-cache" ? 0 : 1, protocol: e[3], source: e[1], target: e[2] };
     });
     return compose({ nodes: nodes, edges: edges, lats: lats });
   }

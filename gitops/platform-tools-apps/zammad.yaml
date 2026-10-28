@@ -1,0 +1,346 @@
+# Zammad, the incident demo's ticket system, in namespace incident-tools
+# of the platform tools cluster. Official images from the Zammad compose
+# stack, one Deployment each. The namespace enforces restricted pod
+# security.
+#
+# Postgres and Zammad's storage are on PVCs, so a pod restart keeps the
+# tickets and the API token the incident apps use. The Deployments with a
+# disk use Recreate: a ReadWriteOnce volume cannot be on two pods.
+#
+# zammad-env comes from Secret Store through ESO (external-secrets.yaml):
+# the database password and the first admin user are not in git. Zammad
+# runs without Elasticsearch (ELASTICSEARCH_ENABLED is false); search
+# falls back to the database.
+apiVersion: v1
+kind: Service
+metadata:
+  name: zammad-postgresql
+spec:
+  selector:
+    app: zammad-postgresql
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zammad-redis
+spec:
+  selector:
+    app: zammad-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zammad-memcached
+spec:
+  selector:
+    app: zammad-memcached
+  ports:
+    - name: memcached
+      port: 11211
+      targetPort: 11211
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zammad-nginx
+spec:
+  selector:
+    app: zammad-app
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zammad-postgresql
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zammad-storage
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zammad-postgresql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: zammad-postgresql
+  template:
+    metadata:
+      labels:
+        app: zammad-postgresql
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgresql
+          image: postgres:17.11-alpine
+          env:
+            - name: POSTGRES_USER
+              value: zammad
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zammad-env
+                  key: POSTGRESQL_PASS
+            - name: POSTGRES_DB
+              value: zammad_production
+            # A subdirectory: the volume's root has lost+found.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 70
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "zammad", "-d", "zammad_production"]
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: zammad-postgresql
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zammad-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zammad-redis
+  template:
+    metadata:
+      labels:
+        app: zammad-redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 999
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - containerPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zammad-memcached
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zammad-memcached
+  template:
+    metadata:
+      labels:
+        app: zammad-memcached
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 11211
+        runAsGroup: 11211
+        fsGroup: 11211
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: memcached
+          image: memcached:1.6.45-alpine
+          args: ["-m", "256"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 11211
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - containerPort: 11211
+---
+# zammad-init creates the database schema on the first start, and the
+# admin user from AUTOWIZARD_JSON. On later starts it only migrates.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zammad-app
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: zammad-app
+  template:
+    metadata:
+      labels:
+        app: zammad-app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: zammad-init
+          image: ghcr.io/zammad/zammad:7.2.2-0000
+          command: ["/opt/zammad/bin/docker-entrypoint", "zammad-init"]
+          envFrom:
+            - secretRef:
+                name: zammad-env
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: zammad-storage
+              mountPath: /opt/zammad/storage
+      containers:
+        - name: railsserver
+          image: ghcr.io/zammad/zammad:7.2.2-0000
+          command: ["/opt/zammad/bin/docker-entrypoint", "zammad-railsserver"]
+          envFrom:
+            - secretRef:
+                name: zammad-env
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: zammad-storage
+              mountPath: /opt/zammad/storage
+        - name: websocket
+          image: ghcr.io/zammad/zammad:7.2.2-0000
+          command: ["/opt/zammad/bin/docker-entrypoint", "zammad-websocket"]
+          envFrom:
+            - secretRef:
+                name: zammad-env
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: zammad-storage
+              mountPath: /opt/zammad/storage
+        - name: scheduler
+          image: ghcr.io/zammad/zammad:7.2.2-0000
+          command: ["/opt/zammad/bin/docker-entrypoint", "zammad-scheduler"]
+          envFrom:
+            - secretRef:
+                name: zammad-env
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: zammad-storage
+              mountPath: /opt/zammad/storage
+        - name: nginx
+          image: ghcr.io/zammad/zammad:7.2.2-0000
+          command: ["/opt/zammad/bin/docker-entrypoint", "zammad-nginx"]
+          envFrom:
+            - secretRef:
+                name: zammad-env
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: zammad-storage
+              mountPath: /opt/zammad/storage
+      volumes:
+        - name: zammad-storage
+          persistentVolumeClaim:
+            claimName: zammad-storage
+---
+# Avi publishes the host name through AKO: the host and the
+# external-dns annotation must match.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zammad
+  annotations:
+    ako.vmware.com/service-engine-group: goad-se-group
+    external-dns.alpha.kubernetes.io/hostname: zammad.goad.gpu.set.lab
+spec:
+  ingressClassName: avi-lb
+  rules:
+    - host: zammad.goad.gpu.set.lab
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zammad-nginx
+                port:
+                  number: 8080

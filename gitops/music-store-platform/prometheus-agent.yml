@@ -1,0 +1,59 @@
+# Prometheus in agent mode on the music store cluster (decision 42). It
+# keeps nothing itself: it writes everything to the Prometheus on the
+# platform tools cluster, which serves the boards. It sends two things:
+# - probes of the shop's in-cluster names, which only this cluster can
+#   resolve, through the blackbox exporter beside it;
+# - the kube-state-metrics series the boards use.
+global:
+  scrape_interval: 30s
+  scrape_timeout: 28s
+  external_labels:
+    cluster: music-store
+scrape_configs:
+  - job_name: kube-state-metrics
+    static_configs:
+      - targets: ["prometheus-kube-state-metrics.tanzu-system-monitoring.svc:8080"]
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: kube_node_status_condition|kube_deployment_status_replicas.*
+        action: keep
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["http://music-store-1-service.music-store.svc:5000/"]
+        labels: {id: music, check: store}
+      - targets: ["http://chat-service.music-store.svc:5005/health"]
+        labels: {id: chat}
+      - targets: ["http://cart-service.music-store.svc:5002/health"]
+        labels: {id: cart}
+      - targets: ["http://order-service.music-store.svc:5001/health"]
+        labels: {id: order}
+      - targets: ["http://users-service.music-store.svc:5003/health"]
+        labels: {id: users-vm, check: users}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox.platform-tools.svc:9115
+  - job_name: blackbox-tcp
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets: ["postgres-service.music-store.svc:5432"]
+        labels: {id: dsm, check: catalog}
+      - targets: ["kubernetes.default.svc:443"]
+        labels: {id: vks-api}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox.platform-tools.svc:9115
+remote_write:
+  - url: http://prometheus.goad.gpu.set.lab/api/v1/write

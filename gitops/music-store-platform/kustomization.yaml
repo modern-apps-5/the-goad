@@ -1,9 +1,26 @@
 # The platform engineer's part inside the VKS cluster music-store. Argo CD
-# syncs it with the Application music-store-platform into the namespace
-# secret-store of the cluster. The Application patches in the generated
-# Supervisor Namespace name.
+# syncs it with the Application music-store-platform. The Application
+# patches in the generated Supervisor Namespace name.
+#
+# secret-store.yaml goes into the Application's namespace, secret-store.
+# platform-tools.yaml names its own namespace, platform-tools: what the
+# platform tools cluster needs in this one (decision 42).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
   - secret-store.yaml
+  - platform-tools.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: prometheus-agent-config
+    namespace: platform-tools
+    files:
+      - prometheus-agent.yml
+  - name: blackbox-config
+    namespace: platform-tools
+    files:
+      - blackbox.yml

@@ -1,0 +1,31 @@
+# Probe modules of the blackbox exporter. The lab's certificates are
+# signed by lab CAs the image does not trust, so TLS is not verified: the
+# checks ask whether a thing answers, not who it is.
+modules:
+  # Store pages are slowed by 10 seconds during the walk; the timeout
+  # leaves room to measure that.
+  http_2xx:
+    prober: http
+    timeout: 25s
+    http:
+      preferred_ip_protocol: ip4
+      tls_config:
+        insecure_skip_verify: true
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: ip4
+  # The Qwen models list, with the API key from the Secret qwen-probe. Up
+  # only when the list names qwen.
+  http_qwen:
+    prober: http
+    timeout: 20s
+    http:
+      preferred_ip_protocol: ip4
+      authorization:
+        type: Bearer
+        credentials_file: /etc/blackbox/qwen/api-key
+      fail_if_body_not_matches_regexp: ["qwen"]
+      tls_config:
+        insecure_skip_verify: true

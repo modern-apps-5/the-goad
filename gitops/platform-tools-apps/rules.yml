@@ -1,0 +1,18 @@
+# The series the boards read, from the blackbox probes here and the ones
+# the music store agent writes. A target's id is its box on the
+# architecture board; its check is its tile on "Can I demo right now?".
+groups:
+  - name: goad
+    rules:
+      - record: demo_up
+        expr: max by (check) (probe_success{check!=""})
+      - record: demo_latency_ms
+        expr: max by (check) (probe_duration_seconds{check!=""}) * 1000
+      - record: arch_latency_ms
+        expr: max by (id) (probe_duration_seconds{id!=""}) * 1000
+      # music-nodes is up only when every node of the music store cluster
+      # is Ready.
+      - record: arch_up
+        expr: >-
+          max by (id) (probe_success{id!=""})
+          or label_replace(min(kube_node_status_condition{cluster="music-store", condition="Ready", status="true"}), "id", "music-nodes", "", "")
