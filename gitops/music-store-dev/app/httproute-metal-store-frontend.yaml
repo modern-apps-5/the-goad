@@ -5,7 +5,7 @@ metadata:
   namespace: music-store
 spec:
   hostnames:
-  - metal-store.acme.gpu.set.lab
+  - music.goad.gpu.set.lab
   parentRefs:
   - group: gateway.networking.k8s.io
     kind: Gateway
