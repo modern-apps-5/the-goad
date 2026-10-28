@@ -504,7 +504,6 @@ gitops/music-store-dev/        The developer's part: users-vm/ into the Supervis
 tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
 gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
 scripts/                       What a person runs by hand: setup once, and the incident walk
-app/music-store/               The earlier container manifests and the Antrea policy tests; not deployed
 .github/workflows/             One Terraform workflow for each persona, and tanzu-apps.yml
 .github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer
 .github/actions/cf-token/      Gets a Tanzu Platform token for goad-deployer, for Terraform

@@ -1219,3 +1219,24 @@ Avi's default certificate. The shop's address changed, so the incident
 apps no longer pin it (`STORE_CONNECT_IP`); they resolve it.
 
 Look again if: the lab gets a CA that cert-manager can issue from.
+
+## 44. `app/music-store` is removed
+
+`app/music-store/` held the shop's earlier shape: seven Deployments from the
+published `ghcr.io/niranec77/metal-music-store-*` images, with a container
+database and a container users service. Nothing deployed it. The shop that
+runs is `gitops/music-store-dev/app` (its own manifests and source, because
+Argo CD's kustomize does not load files from outside the directory it syncs),
+with the users VM and the DSM catalog (decisions 21 and 34). The Antrea
+policy test and `gateway-api/` that the README named had already moved out:
+the Gateway API objects are in `gitops/music-store-dev/app` (decision 43).
+
+Why: a second, unused copy of the shop invites edits that change nothing in
+the lab, and its README described files that were no longer there.
+
+Cost: the earlier manifests are only in git history, up to the commit before
+this decision. That includes the traffic generator Deployment, which the
+gitops shop does not have.
+
+Look again if: the demo needs generated load on the shop. Bring the traffic
+generator into `gitops/music-store-dev/app`.
