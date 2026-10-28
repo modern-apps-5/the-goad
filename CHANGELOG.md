@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (README names where Argo CD reads from)
+
+### Fixed
+
+- `README.md`: the introduction said a lab git server pulls a replica of
+  this repository. Argo CD reads GitHub directly, and the lab's Gitea
+  server holds only the Terraform state.
+
 ## 2026-10-28 (The platform engineer deploys the music store)
 
 ### Changed
