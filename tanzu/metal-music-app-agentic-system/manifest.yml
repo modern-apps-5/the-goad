@@ -14,10 +14,9 @@
 # The four agents run on Tanzu Agent Builder: python_buildpack, then
 # agent_buildpack, which starts tanzu-agent. The three diagnostic agents run
 # the AgentMinder sidecar on 127.0.0.1:8181. Their MCP tools go through it.
-# *_CONNECT_IP pins a lab name to its address inside the app. The store,
-# Grafana and Zammad have none: the apps resolve *.goad.gpu.set.lab through
-# DNS, and their addresses change when the Gateway or the platform tools
-# cluster is rebuilt.
+# No lab name is pinned to an address: the apps resolve *.goad.gpu.set.lab
+# through DNS (checked from inside them on 2026-10-28). The code still reads
+# *_CONNECT_IP if one is set.
 ---
 applications:
   - name: metal-k8s-mcp
@@ -37,7 +36,6 @@ applications:
     env:
       IDSP_ISSUER: https://agentminder.goad.gpu.set.lab/default
       IDSP_TLS_VERIFY: "0"
-      AGENTMINDER_CONNECT_IP: 10.47.7.82
       MCP_RESOURCE_URL: https://metal-k8s-mcp.apps.goad.gpu.set.lab/mcp
       MCP_READ_TOKEN: ((mcp_read_token))
       MCP_WRITE_TOKEN: ((mcp_write_token))
@@ -62,7 +60,6 @@ applications:
     env:
       IDSP_ISSUER: https://agentminder.goad.gpu.set.lab/default
       IDSP_TLS_VERIFY: "0"
-      AGENTMINDER_CONNECT_IP: 10.47.7.82
       MCP_RESOURCE_URL: https://metal-avi-mcp.apps.goad.gpu.set.lab/mcp
       MCP_READ_TOKEN: ((mcp_read_token))
       MCP_WRITE_TOKEN: ((mcp_write_token))
@@ -86,7 +83,6 @@ applications:
       - route: metal-vcf-mcp.apps.goad.gpu.set.lab
     env:
       IDSP_ISSUER: https://agentminder.goad.gpu.set.lab/default
-      AGENTMINDER_CONNECT_IP: 10.47.7.82
       VCF_MCP_HOSTS_FILE: /home/vcap/app/hosts.json
       VCF_MCP_SPEC_DIR: /home/vcap/app/specs
       VCF_ALLOWED_HOSTS: metal-vcf-mcp.apps.goad.gpu.set.lab
@@ -137,7 +133,6 @@ applications:
       GRAFANA_ADMIN_PASSWORD: ((grafana_admin_password))
       ZAMMAD_URL: https://zammad.goad.gpu.set.lab
       ZAMMAD_TOKEN: ((zammad_token))
-      AGENTMINDER_CONNECT_IP: 10.47.7.82
       LB_AGENT_URL: http://lb-diagnostic-agent.apps.internal:8080/api/chat
       K8S_AGENT_URL: http://k8s-diagnostic-agent.apps.internal:8080/api/chat
       VCF_AGENT_URL: http://vcf-diagnostic-agent.apps.internal:8080/api/chat
@@ -187,7 +182,6 @@ applications:
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
-      AGENTMINDER_CONNECT_IP: 10.47.7.82
       AGENTMINDER_IDSP_URL: https://agentminder.goad.gpu.set.lab/default
       AGENTMINDER_VERIFY_SSL: "false"
       AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
@@ -220,7 +214,6 @@ applications:
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
-      AGENTMINDER_CONNECT_IP: 10.47.7.82
       AGENTMINDER_IDSP_URL: https://agentminder.goad.gpu.set.lab/default
       AGENTMINDER_VERIFY_SSL: "false"
       AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
@@ -253,7 +246,6 @@ applications:
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
-      AGENTMINDER_CONNECT_IP: 10.47.7.82
       AGENTMINDER_IDSP_URL: https://agentminder.goad.gpu.set.lab/default
       AGENTMINDER_VERIFY_SSL: "false"
       AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
