@@ -1,5 +1,5 @@
 # The addresses behind users-service and postgres-service in the VKS
-# cluster music-store, where gitops/music-store-dev/app runs the shop's
+# cluster music-store, where gitops/music-store-apps runs the shop's
 # containers.
 #
 # The users VM and the catalog run in this Supervisor Namespace, and the
@@ -9,11 +9,11 @@
 # the cluster. It reaches the cluster with the kubeconfig Secret that VKS
 # creates next to the Cluster. No address is in git.
 #
-# Wave 1, after the users VM. The catalog and the cluster belong to the
-# platform engineer's Application, which this one cannot wait for. On a
-# first build the cluster takes about 15 minutes, so the Job retries for
-# longer than that: backoffLimit 12. It creates the namespace music-store
-# in the cluster if music-store-dev-app has not yet.
+# Wave 3, after the users VM and the cluster in wave 0, and the catalog's
+# Endpoints in wave 1. Argo CD holds this wave until the Cluster is
+# healthy, so backoffLimit 12 only covers the VM's load balancer address
+# coming late. It creates the namespace music-store in the cluster if
+# music-store-apps has not yet.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -62,7 +62,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   backoffLimit: 12
   template:

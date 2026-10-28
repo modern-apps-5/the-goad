@@ -663,6 +663,9 @@ shared with orgs.
 
 ## 34. The music store is split between the platform engineer and the developer
 
+Decision 45 gives this deploy to the platform engineer, moves the users
+VM back into `music-store`, and renames `app/` to `gitops/music-store-apps/`.
+
 The platform engineer keeps the Application `music-store`, which syncs
 `gitops/music-store/`: the VKS cluster `music-store` and the DSM catalog
 database. The users VM moved out of it. The developer owns
@@ -1240,3 +1243,64 @@ gitops shop does not have.
 
 Look again if: the demo needs generated load on the shop. Bring the traffic
 generator into `gitops/music-store-dev/app`.
+
+## 45. The platform engineer deploys the music store; the developer writes its code
+
+The developer's job is the shop's code, in `gitops/music-store-apps/src/`.
+The developer does not deploy it. The platform engineer owns all of the
+music store's deploy through Argo CD. With one owner, the split by owner
+in decision 34 has no reason left, so the Applications are split by
+destination:
+
+- `music-store` syncs `gitops/music-store/` into the `music-store`
+  Supervisor Namespace: the VKS cluster, the catalog, and now the users
+  VM and the Job `shop-endpoints`. The files moved there from
+  `gitops/music-store-dev/users-vm/`. The Application
+  `music-store-dev-vm` is removed.
+- `music-store-platform` syncs `gitops/music-store-platform/` into the
+  VKS cluster, as before: the ESO store, the Gateway certificate, and
+  what the platform tools cluster watches the shop with.
+- `music-store-apps` syncs `gitops/music-store-apps/` into the namespace
+  `music-store` of the VKS cluster: the shop's containers, its
+  `ExternalSecret`s and its Gateway. The directory was
+  `gitops/music-store-dev/app/`, and the Application was
+  `music-store-dev-app`. The name matches `platform-tools-apps`.
+
+`shop-endpoints` moves from wave 1 to wave 3. In one Application it runs
+after the cluster (wave 0, which Argo CD holds until the Cluster is
+healthy), the catalog's Endpoints (wave 1) and `catalog-init` (wave 2).
+Waves replace the retry that the separate Application needed.
+
+This changes three earlier decisions:
+
+- Decision 34: the users VM and `shop-endpoints` are back in the
+  Application `music-store`, and are the platform engineer's.
+- Decision 37: still one owner and one Application for each directory.
+  The developer owns `src/` inside `gitops/music-store-apps/`. That
+  directory holds code, not deploy, and it stays there because Argo CD's
+  kustomize does not load files from outside the directory it syncs.
+- Decision 38: the platform engineer writes the `ExternalSecret`s
+  `store-db` and `metal-oracle-model`. The developer tells the platform
+  engineer which values the code reads.
+
+Why: in the demo the developer builds the application and the platform
+engineer runs it. Deploy, secrets and wiring are platform work.
+
+Why the moves are safe in the lab: the Applications have no
+`resources-finalizer.argocd.argoproj.io`, and Argo CD tracks resources by
+annotation (`argocd-cm` `application.resourceTrackingMethod`, checked on
+2026-10-28). Removing an Application leaves its resources running. The
+Application that now holds the files applies them and writes its own
+tracking annotation over the old one. Between the merge and the platform
+engineer apply, the two old Applications show a comparison error for a
+missing path and change nothing.
+
+Cost: the developer still edits files inside a directory that Argo CD
+syncs, so a code change is a deploy. The pods install their
+requirements from PyPI and run the code on `python:3.12-slim` from Docker
+Hub at every start.
+
+Look again if: the lab gets a registry. Then the code moves out of
+`gitops/`, CI builds images, and the platform engineer bumps the image
+tag. Look again too if the developer gets a deploy of their own, for
+example a `cf push` of the shop to Tanzu Platform.

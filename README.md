@@ -16,39 +16,36 @@ the platform engineer, and the developer.
 | Cloud admin | Terraform | Stage 4: the incident demo's agents and MCP servers registered in AgentMinder, and their clients handed to the apps as Cloud Foundry services | [terraform/cloud-admin/agentminder-registration](terraform/cloud-admin/agentminder-registration) |
 | Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, the secrets in Secret Store, Argo CD and the handoff to it, and the incident apps' Tanzu Platform space and services | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
-| Platform engineer | Argo CD | The shop's DSM catalog database and its VKS cluster | [gitops/music-store](gitops/music-store) |
+| Platform engineer | Argo CD | The shop's DSM catalog database, its VKS cluster, its users VM, and the endpoints that point the VKS cluster at the VM and at the catalog | [gitops/music-store](gitops/music-store) |
 | Platform engineer | Argo CD | Inside the shop's VKS cluster: the ESO store, the Gateway certificate, and what the platform tools cluster watches it with | [gitops/music-store-platform](gitops/music-store-platform) |
 | Platform engineer | Argo CD | The platform tools VKS cluster, and in it the incident demo's Zammad, Grafana and Prometheus | [gitops/platform-tools](gitops/platform-tools), [gitops/platform-tools-apps](gitops/platform-tools-apps) |
-| Developer | Argo CD | The shop's users VM, and the endpoints that point the VKS cluster at it and at the catalog | [gitops/music-store-dev/users-vm](gitops/music-store-dev/users-vm) |
-| Developer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
+| Platform engineer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-apps](gitops/music-store-apps) |
+| Developer | Code | The shop's source: store, cart, orders, and chat | [gitops/music-store-apps/src](gitops/music-store-apps/src) |
 | (incident demo) | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system) |
 
 The music-store application, manifests and source, is in
-[gitops/music-store-dev/app](gitops/music-store-dev/app). The platform
-engineer builds the VKS cluster `music-store` and the catalog database.
-The developer deploys the containers onto that cluster, and the users VM
-next to it.
+[gitops/music-store-apps](gitops/music-store-apps). The developer
+writes the application code in `src/`. The developer does not deploy
+it. The platform engineer deploys all of the music store with Argo CD:
+the VKS cluster `music-store`, the catalog database, the users VM, and
+the containers on that cluster (decision 45).
 
-[gitops/music-store](gitops/music-store) is the DSM catalog and the VKS
-cluster `music-store`. No file sets a namespace or an address. Terraform
-creates the `music-store` namespace with the others, and Argo CD syncs
-that directory into it. The shop login is `admin` / `admin`. The catalog
-Service is `postgres-service`, which is the `DB_HOST` the containers
-already use.
+[gitops/music-store](gitops/music-store) is the DSM catalog, the VKS
+cluster `music-store`, and the users VM. A Job writes the VM's address
+and the catalog's address into Endpoints in the VKS cluster. No file
+sets a namespace or an address. Terraform creates the `music-store`
+namespace with the others, and Argo CD syncs that directory into it. The
+shop login is `admin` / `admin`. The catalog Service is
+`postgres-service`, which is the `DB_HOST` the containers already use.
 
-[gitops/music-store-dev](gitops/music-store-dev) is the developer's
-part. It has two directories, and Argo CD syncs each one to a different
-place:
-
-- `users-vm/` goes into the `music-store` Supervisor Namespace. It is the
-  users VM, and a Job that writes the VM's address and the catalog's
-  address into Endpoints in the VKS cluster.
-- `app/` goes into the namespace `music-store` of the VKS cluster. It is
-  the store, cart, orders, and chat, run from the source in `app/src/`.
-  The catalog password and the chat's model key are not in git. They are
-  GitHub secrets, which the platform engineer Terraform writes into Secret
-  Store; ESO in the cluster makes the Secrets `store-db` and
-  `metal-oracle-model` from them (decision 38).
+[gitops/music-store-apps](gitops/music-store-apps) is the application
+and its deploy. It goes into the namespace `music-store` of the VKS
+cluster. It is the store, cart, orders, and chat, run from the source in
+`src/`. The platform engineer owns the deploy, and the developer owns
+`src/`. The catalog password and the chat's model key are not in git.
+They are GitHub secrets, which the platform engineer Terraform writes
+into Secret Store; ESO in the cluster makes the Secrets `store-db` and
+`metal-oracle-model` from them (decision 38).
 
 [gitops/music-store-platform](gitops/music-store-platform) is the platform
 engineer's part inside the VKS cluster: the `ClusterSecretStore` that ESO
@@ -108,7 +105,7 @@ flowchart TD
         pais_secret["Secret pais-static-credentials, in private-ai"]
         kv_secrets["KeyValueSecrets in Secret Store, in music-store and platform-tools"]
         handoff["Per namespace: ManagedEntity, then Application"]
-        dev_handoff["For the shop cluster: ManagedEntity music-store-cluster, then Applications music-store-platform, music-store-dev-vm and music-store-dev-app"]
+        dev_handoff["For the shop cluster: ManagedEntity music-store-cluster, then Applications music-store-platform and music-store-apps"]
         tools_handoff["For the tools: ManagedEntity platform-tools-cluster, then Application platform-tools-apps"]
         images["Content library goad-images, with the Ubuntu image"]
         cf_space["Tanzu Platform: space metal-music-app-agentic-system and its services"]
@@ -141,24 +138,19 @@ flowchart TD
     end
 
     subgraph music_store["Argo CD: gitops/music-store"]
-        shop_wave0["Wave 0: PostgresCluster catalog, its Service, the VKS cluster music-store, and its ESO and cert-manager addons"]
+        shop_wave0["Wave 0: PostgresCluster catalog, its Service, the VKS cluster music-store, its ESO and cert-manager addons, and the users VM and its Service"]
         shop_wave1["Wave 1: Job writes the database address into the Service"]
         shop_wave2["Wave 2: Job catalog-init fills the catalog, with the password from Secret Store"]
-        shop_wave0 --> shop_wave1 --> shop_wave2
+        shop_wave3["Wave 3: Job shop-endpoints writes users-service and postgres-service Endpoints into the VKS cluster"]
+        shop_wave0 --> shop_wave1 --> shop_wave2 --> shop_wave3
     end
 
     subgraph music_store_platform["Argo CD: gitops/music-store-platform"]
         shop_platform["In the VKS cluster: ClusterSecretStore, Gateway certificate, Prometheus agent, blackbox exporter, service account goad-k8s-mcp"]
     end
 
-    subgraph music_store_dev_vm["Argo CD: gitops/music-store-dev/users-vm"]
-        dev_vm_wave0["Wave 0: the users VM and its Service"]
-        dev_vm_wave1["Wave 1: Job writes users-service and postgres-service Endpoints into the VKS cluster"]
-        dev_vm_wave0 --> dev_vm_wave1
-    end
-
-    subgraph music_store_dev_app["Argo CD: gitops/music-store-dev/app"]
-        dev_app["The shop's containers, ExternalSecrets, and Gateway, HTTPRoute and WAF L7Rule, in the VKS cluster"]
+    subgraph music_store_apps["Argo CD: gitops/music-store-apps"]
+        shop_apps["The shop's containers, ExternalSecrets, and Gateway, HTTPRoute and WAF L7Rule, in the VKS cluster"]
     end
 
     subgraph platform_tools["Argo CD: gitops/platform-tools"]
@@ -177,19 +169,17 @@ flowchart TD
     handoff -->|"Application private-ai"| private_ai
     handoff -->|"Application music-store"| music_store
     dev_handoff -->|"Application music-store-platform"| music_store_platform
-    dev_handoff -->|"Application music-store-dev-vm"| music_store_dev_vm
-    dev_handoff -->|"Application music-store-dev-app"| music_store_dev_app
-    music_store -.->|"the cluster and the catalog"| music_store_dev_app
-    music_store -.->|"the cluster and the catalog"| dev_vm_wave1
+    dev_handoff -->|"Application music-store-apps"| music_store_apps
+    music_store -.->|"the cluster and the catalog"| music_store_apps
     music_store -.->|"the cluster and its addons"| music_store_platform
-    music_store_platform -.->|"ClusterSecretStore and certificate"| music_store_dev_app
+    music_store_platform -.->|"ClusterSecretStore and certificate"| music_store_apps
     handoff -->|"Application platform-tools"| platform_tools
     tools_handoff -->|"Application platform-tools-apps"| platform_tools_apps
     platform_tools -.->|"the cluster"| platform_tools_apps
     pais_secret -.->|"login for admin"| pais_wave2
     kv_secrets -.->|"passwords and keys"| shop_wave2
     kv_secrets -.->|"passwords and keys, through ESO"| platform_tools_apps
-    images -.->|"image for the users VM"| dev_vm_wave0
+    images -.->|"image for the users VM"| shop_wave0
     agentminder -->|"AgentMinder running"| registration
     cf_space -->|"the space"| registration
     cf_space -->|"space, goad-qwen and sc-* services"| tanzu_apps
@@ -491,12 +481,14 @@ of the database. The cluster takes about 15 minutes to build. Then
 `music-store-platform` puts the `ClusterSecretStore` and the Gateway's
 certificate in the cluster.
 
-Argo CD then syncs `gitops/music-store-dev/` as the developer. The
-Application `music-store-dev-vm` creates the users VM in the same
-namespace, and a Job writes the VM's address and the catalog's address
-into Endpoints in the VKS cluster. The Application `music-store-dev-app`
-deploys the containers onto the cluster. Both depend on the cluster and
-the catalog, so they retry until those exist.
+The same Application creates the users VM in that namespace, in wave 0.
+In wave 3, after the catalog is filled and the cluster is healthy, a Job
+writes the VM's address and the catalog's address into Endpoints in the
+VKS cluster. Argo CD then syncs `gitops/music-store-apps/` as the
+platform engineer. The Application `music-store-apps` deploys the
+containers onto the cluster. It depends on the cluster and the catalog,
+so it retries until those exist. The developer writes only the code in
+`gitops/music-store-apps/src/`.
 
 Argo CD syncs `gitops/platform-tools/` into the `platform-tools`
 namespace: the VKS cluster `platform-tools` and its ESO addon. Then
@@ -624,7 +616,7 @@ terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
 gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
 gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster
-gitops/music-store-dev/        The developer's part: users-vm/ into the Supervisor Namespace, app/ into the VKS cluster
+gitops/music-store-apps/       The shop's containers, deployed into the VKS cluster by the platform engineer; the developer owns src/
 gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
 tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
 scripts/                       What a person runs by hand: setup once, the SDK mirror, and the incident walk

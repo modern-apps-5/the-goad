@@ -1,6 +1,6 @@
-# The developer's deploy: the shop's containers on the VKS cluster
+# The platform engineer's deploy: the shop's containers on the VKS cluster
 # music-store. Argo CD syncs this directory with the Application
-# music-store-dev-app into the namespace music-store.
+# music-store-apps into the namespace music-store.
 #
 # The storefront source lives in this directory: store, cart, order, and
 # chat, run from source on python:3.12-slim, with /health on cart, order,
@@ -13,7 +13,7 @@
 #
 # The users service and the catalog are not containers. services.yaml
 # gives the containers the names they already call, postgres-service and
-# users-service. The Job shop-endpoints in gitops/music-store-dev/users-vm
+# users-service. The Job shop-endpoints in gitops/music-store
 # writes the addresses. This directory does not contain Endpoints.
 #
 # store-db (the catalog password) and metal-oracle-model (the chat model's

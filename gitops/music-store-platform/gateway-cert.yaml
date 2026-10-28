@@ -1,5 +1,5 @@
 # The certificate the shop's Gateway serves HTTPS with
-# (gitops/music-store-dev/app/gateway-metal-store.yaml): a wildcard for
+# (gitops/music-store-apps/gateway-metal-store.yaml): a wildcard for
 # *.goad.gpu.set.lab in the Secret default/https-goad.gpu.set.lab-cert.
 #
 # Self-signed, made by cert-manager in the cluster (gitops/music-store

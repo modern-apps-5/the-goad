@@ -3,6 +3,22 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (The platform engineer deploys the music store)
+
+### Changed
+
+- The developer writes the shop's code and does not deploy it. The
+  platform engineer owns every music store Application (decision 45).
+- `gitops/music-store-dev/users-vm/` moved into `gitops/music-store/`. The
+  Application `music-store` syncs the users VM and the Job
+  `shop-endpoints`, which runs in wave 3, after the cluster and the
+  catalog. The Application `music-store-dev-vm` is removed.
+- `gitops/music-store-dev/app/` is now `gitops/music-store-apps/`, and the
+  Application `music-store-dev-app` is now `music-store-apps`.
+- After the merge, apply the platform engineer root. Until then the two old
+  Applications show a missing path and change nothing. The apply removes
+  them and creates `music-store-apps`, which adopts the running shop.
+
 ## 2026-10-28 (Docs match the current layout)
 
 ### Changed

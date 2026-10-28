@@ -156,7 +156,7 @@ variable "ubuntu_image" {
     name = optional(string, "ubuntu-24.04-cloud")
     url  = optional(string, "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.ova")
   })
-  description = "The Ubuntu image in the org's content library. name is the imageName of the users VM in gitops/music-store-dev/users-vm/users-vm.yaml."
+  description = "The Ubuntu image in the org's content library. name is the imageName of the users VM in gitops/music-store/users-vm.yaml."
   default     = {}
 }
 

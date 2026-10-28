@@ -11,8 +11,8 @@
 # check for Cluster: Healthy only when the cluster is ready, not at phase
 # Provisioned as in upstream Argo CD. No check of our own is needed.
 #
-# The platform engineer owns the cluster. The developer deploys the
-# shop's containers onto it from gitops/music-store-dev/app.
+# The platform engineer owns the cluster, and deploys the shop's
+# containers onto it from gitops/music-store-apps.
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
