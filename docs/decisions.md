@@ -1052,7 +1052,7 @@ service tagged `agentminder-client` in `VCAP_SERVICES` and exports the
 variables the SDK reads. The CF sidecar (`run-sidecar.sh`) and the web
 process (`shared/trust/profile`) both source it. `tanzu-apps.yml` has no
 AgentMinder values and reads no state. The three `INCIDENT_AM_*_CLIENT_SECRET`
-GitHub secrets are unused. A changed client secret reaches an app on
+GitHub secrets were deleted on 2026-10-28. A changed client secret reaches an app on
 `cf restart <app>`.
 
 Why Cloud Foundry services and not GitHub secrets written by Terraform:

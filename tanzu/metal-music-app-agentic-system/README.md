@@ -78,8 +78,8 @@ makes one user-provided service for each diagnostic agent: `am-lb-diagnostic-age
 `agentminder-client`, and the manifest binds it to its agent. Run the
 `cloud-admin` workflow with apply before this one, so the services exist: the push
 fails without them. A changed client secret reaches an app on
-`cf restart <app>`. The GitHub secrets `INCIDENT_AM_*_CLIENT_SECRET` are
-unused.
+`cf restart <app>`. The GitHub secrets `INCIDENT_AM_*_CLIENT_SECRET` that
+held the clients before were deleted on 2026-10-28.
 
 ## Upgrading AgentMinder
 
