@@ -1,0 +1,56 @@
+# Install the Tanzu cf CLI and log in to the GOAD foundation as goad-deployer.
+#
+# The foundation serves its own CLI with no login, at the URL that the CF API
+# root lists as links.tanzu_cf_cli. It is always the foundation's version.
+# There is no checksum file, so the step logs the sha256 and the version.
+#
+# goad-deployer is a Tanzu Hub OAuth app. The foundation takes only its
+# client assertion secret (a private key), not the classic secret; the
+# Tanzu cf CLI signs the assertion itself. The Terraform cloudfoundry
+# provider cannot, so with export-token it gets the CLI's access token as
+# CF_ACCESS_TOKEN. The token lasts 30 minutes.
+#
+# CF_HOME is under the job's temp directory, so the login never lands in the
+# self-hosted runner's home.
+name: cf-login
+description: Install the Tanzu cf CLI and log in as goad-deployer.
+inputs:
+  client-id:
+    description: goad-deployer's client ID (secret TANZU_HUB_CLIENT_ID).
+    required: true
+  client-assertion:
+    description: goad-deployer's client assertion secret (secret TANZU_HUB_CLIENT_ASSERTION).
+    required: true
+  export-token:
+    description: Also set CF_ACCESS_TOKEN and CF_API_URL for later steps, for Terraform.
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        CF_API: https://api.sys.goad.gpu.set.lab
+        TANZUCF_CLIENT_ID: ${{ inputs.client-id }}
+        TANZUCF_CLIENT_SECRET: ${{ inputs.client-assertion }}
+        EXPORT_TOKEN: ${{ inputs.export-token }}
+      run: |
+        set -euo pipefail
+        bin=$RUNNER_TEMP/cf-cli
+        export CF_HOME=$RUNNER_TEMP/cf-home
+        mkdir -p "$bin" "$CF_HOME"
+        base=$(curl -skf "$CF_API/" | jq -r .links.tanzu_cf_cli.href)
+        curl -skfL -o "$bin/cf.tgz" "$base/cf10-cli-linux-amd64.tar.gz"
+        sha256sum "$bin/cf.tgz"
+        tar xzf "$bin/cf.tgz" -C "$bin" && rm "$bin/cf.tgz"
+        echo "$bin" >> "$GITHUB_PATH"
+        echo "CF_HOME=$CF_HOME" >> "$GITHUB_ENV"
+        "$bin/cf" version
+        # Lab certificates are self-signed.
+        "$bin/cf" api "$CF_API" --skip-ssl-validation
+        "$bin/cf" auth --client-credentials
+        if [ "$EXPORT_TOKEN" = "true" ]; then
+          token=$("$bin/cf" oauth-token | sed 's/^bearer //')
+          echo "::add-mask::$token"
+          echo "CF_ACCESS_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "CF_API_URL=$CF_API" >> "$GITHUB_ENV"
+        fi

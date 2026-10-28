@@ -182,3 +182,47 @@ variable "music_store_chat" {
   })
   description = "The model the shop's chat calls: the Private AI Services OpenAI-compatible URL and the model name. Not secret; stored in the same KV as the API key."
 }
+
+# --- Tanzu Platform: the incident apps' space and services (tanzu.tf) ---
+
+variable "cf_api_url" {
+  type        = string
+  description = "CF API of the GOAD foundation."
+  default     = "https://api.sys.goad.gpu.set.lab"
+}
+
+variable "cf_org_name" {
+  type        = string
+  description = "The org the incident apps' space is in. It exists already; this root only reads it."
+  default     = "Goad"
+}
+
+variable "cf_apps_domain" {
+  type        = string
+  description = "The foundation's shared apps domain."
+  default     = "apps.goad.gpu.set.lab"
+}
+
+variable "incident_qwen_api_key" {
+  type        = string
+  description = "Private AI Services API key of the incident agents, in the goad-qwen binding. GitHub secret INCIDENT_QWEN_API_KEY; tanzu-apps.yml sets the same value in the apps' env."
+  sensitive   = true
+}
+
+variable "incident_k8s_api_server" {
+  type        = string
+  description = "Kubernetes API of the music store cluster, for metal-k8s-mcp. Not secret."
+  default     = "https://10.47.7.81"
+}
+
+variable "incident_k8s_token" {
+  type        = string
+  description = "Service account token metal-k8s-mcp reads the music store cluster with. GitHub secret INCIDENT_K8S_TOKEN."
+  sensitive   = true
+}
+
+variable "incident_sidecar_token" {
+  type        = string
+  description = "Bearer token between each diagnostic agent and its AgentMinder sidecar. GitHub secret INCIDENT_SIDECAR_TOKEN; tanzu-apps.yml sets the same value as AGENTMINDER_SIDECAR_TOKEN."
+  sensitive   = true
+}

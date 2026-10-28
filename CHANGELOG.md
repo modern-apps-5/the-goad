@@ -3,6 +3,40 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-27 (Tanzu apps workflow)
+
+### Added
+
+- `tanzu/metal-music-app-agentic-system/`: the incident demo's nine Cloud
+  Foundry apps, one directory each, with `manifest.yml` and `stage.sh`
+  (decision 40). The sources came from `incident-demo/mcp`, `pii`,
+  `agents/orchestrator`, `agents/roles`, the agents' skills, and
+  `tanzu-agents/sidecar` and `trust`.
+- `.github/workflows/tanzu-apps.yml`: pushes them on every change on
+  `main`. Needs the `INCIDENT_*` GitHub secrets.
+- `.github/actions/cf-login`: installs the cf CLI from the foundation and
+  logs in as `goad-deployer`.
+- `terraform/platform-engineer/tanzu.tf`: the space and its six
+  user-provided services, imported. New variables `incident_qwen_api_key`,
+  `incident_k8s_token`, `incident_sidecar_token`, and provider
+  `cloudfoundry/cloudfoundry`.
+
+### Removed
+
+- `incident-demo/tanzu-agents/` (`push.py` and the four manifests).
+
+## 2026-10-27 (AgentMinder SDK mirror)
+
+### Added
+
+- `scripts/mirror-agentminder-sdk.sh`: puts Broadcom's AgentMinder Python
+  SDK wheel in the private package `ghcr.io/modern-apps-5/agentminder-sdk`,
+  tagged with the build (`4.1.1.1673`) and the release (`4.1.1`). The SDK
+  is not on public PyPI, and the workflow runner has no Docker and no
+  lasting Broadcom registry token, so workflows pull the wheel from GitHub
+  with `GITHUB_TOKEN`. Run it again with the new SDK when AgentMinder is
+  upgraded. 4.1.1.1673 is pushed.
+
 ## 2026-10-27 (incident demo)
 
 ### Removed

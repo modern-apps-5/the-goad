@@ -55,6 +55,9 @@ jobs:
       TF_VAR_pais_admin_password_hash: ${{ secrets.PAIS_ADMIN_PASSWORD_HASH }}
       TF_VAR_music_store_db_password: ${{ secrets.MUSIC_STORE_DB_PASSWORD }}
       TF_VAR_music_store_chat_api_key: ${{ secrets.MUSIC_STORE_CHAT_API_KEY }}
+      TF_VAR_incident_qwen_api_key: ${{ secrets.INCIDENT_QWEN_API_KEY }}
+      TF_VAR_incident_k8s_token: ${{ secrets.INCIDENT_K8S_TOKEN }}
+      TF_VAR_incident_sidecar_token: ${{ secrets.INCIDENT_SIDECAR_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4
@@ -69,6 +72,13 @@ jobs:
           umask 077
           mkdir -p .secrets
           printf '%s\n' "$GITOPS_DEPLOY_KEY" > .secrets/gitops-deploy-key
+      # tanzu.tf: the cloudfoundry provider reads CF_ACCESS_TOKEN and
+      # CF_API_URL, which this sets. The token lasts 30 minutes.
+      - uses: ./.github/actions/cf-login
+        with:
+          client-id: ${{ secrets.TANZU_HUB_CLIENT_ID }}
+          client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
+          export-token: "true"
       - run: terraform init
       - name: Plan
         run: |

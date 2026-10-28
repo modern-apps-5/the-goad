@@ -1,0 +1,7 @@
+PyJWT[crypto]>=2.8
+# The AgentMinder sidecar imports these from the staged SDK.
+uvicorn>=0.30
+httpx>=0.27
+anyio>=4
+cryptography>=42
+PyYAML>=6

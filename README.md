@@ -478,16 +478,19 @@ terraform/runner/              The self-hosted runner for the workflows. Not a p
   manifests/                   Manifests that Terraform applies
 gitops/<namespace key>/        What Argo CD syncs into that namespace
 gitops/music-store-dev/        The developer's part: users-vm/ into the Supervisor Namespace, app/ into the VKS cluster
+tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
 scripts/                       What a person runs by hand, once
 incident-demo/                 The incident demo, run by hand after the shop answers
 app/music-store/               The earlier container manifests and the Antrea policy tests; not deployed
-.github/workflows/             One Terraform workflow for each persona
+.github/workflows/             One Terraform workflow for each persona, and tanzu-apps.yml
+.github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer
 docs/                          Design, script, plan, decisions
 ```
 
 One rule decides where a file goes: if Terraform applies it, it is under
-`terraform/`. If Argo CD syncs it, it is under `gitops/`. If a person
-runs it, it is under `scripts/`.
+`terraform/`. If Argo CD syncs it, it is under `gitops/`. If `cf push`
+pushes it, it is under `tanzu/`. If a person runs it, it is under
+`scripts/`.
 
 To give Argo CD another namespace, add it to `namespaces` in
 `terraform/platform-engineer` and add the directory `gitops/<key>/`.

@@ -8,18 +8,18 @@ a secret. The shop is not in this tree. Argo CD syncs it from
 |---|---|
 | `observability/` | Prometheus, Grafana, the architecture board, the topology panel, and the probe |
 | `zammad/` | Zammad |
-| `agents/` | The four agents, their skills, and `agents/orchestrator/` |
-| `tanzu-agents/` | Cloud Foundry manifests, `push.py`, and the AgentMinder sidecar that `push.py` stages into the diagnostic agents |
-| `mcp/` | Kubernetes, Avi, and VCF doors |
-| `pii/` | `scrub.py` |
+| `agents/`, `mcp/` | The earlier Kubernetes placement of the agents and doors. Not the runtime |
 | `clm/` | Decision gate. Empty `CLM_IMAGE` means apply skips it |
 | `agentminder/` | Client registration |
 | `walk/` | `walk/demo.sh start` slows the catalog and opens one ticket. It does not start the agents |
 | `secrets/templates.yaml` | Secret shapes. Not applied as a manifest |
 
-`apply.py` fills observability, Zammad, the agents, and the MCP servers.
-`tanzu-agents/push.py` fills the Cloud Foundry apps. Neither file is
-applied by Argo CD. Fill `BLANKS.md` first. Lessons and the rebuild
+`apply.py` fills observability, Zammad, and the earlier Kubernetes
+workloads in `agents/` and `mcp/`. Argo CD does not apply it. The Cloud
+Foundry apps (the agents, the orchestrator, the MCP servers and
+pii-scrub) are in
+[tanzu/metal-music-app-agentic-system](../tanzu/metal-music-app-agentic-system/README.md),
+which a workflow pushes. Fill `BLANKS.md` first. Lessons and the rebuild
 order are in `RUNBOOK.md`. The shop, and the order it is deployed in,
 are in [gitops/README.md](../gitops/README.md). This tree is at the
 repository root because a person runs it; `gitops/` holds only what
