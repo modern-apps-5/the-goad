@@ -14,7 +14,7 @@ account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
 | `secrets.tf` | `KeyValueSecret`s in Secret Store (decision 38). In `music-store`: the catalog password and the chat's model key, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY`. In `platform-tools`: Grafana's and Zammad's passwords, from `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD` and `INCIDENT_ZAMMAD_ADMIN_PASSWORD`, and the blackbox exporter's Qwen check, from `INCIDENT_QWEN_API_KEY`. Empty values skip them. |
-| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform`, `music-store-dev-vm` and `music-store-dev-app`; the platform tools cluster's registration and the Application `platform-tools-apps`; and the patches that put the generated namespace and cluster names into the manifests. |
+| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform` and `music-store-apps`; the platform tools cluster's registration and the Application `platform-tools-apps`; and the patches that put the generated namespace and cluster names into the manifests. |
 | `tanzu.tf` | On Tanzu Platform, org `Goad`: the space `metal-music-app-agentic-system` and the user-provided services the incident apps bind, `goad-qwen`, `k8s-mcp-cluster`, `sc-incident-response-agent-orch` and one `sc-*` per sidecar tool (decision 40). The provider logs in with `CF_ACCESS_TOKEN`, a token for `goad-deployer` that the `cf-token` action gets. |
 
 It uses the org's default project and default VPC. It does not create the
@@ -74,15 +74,12 @@ Terraform creates:
 - a `ManagedEntity` named `music-store-cluster`, which registers the VKS
   cluster with Argo CD. The cluster name comes from
   `gitops/music-store/cluster.yaml`;
-- an `Application` named `music-store-dev-vm`, which syncs
-  `gitops/music-store-dev/users-vm/` into the `music-store` namespace;
-- an `Application` named `music-store-dev-app`, which syncs
-  `gitops/music-store-dev/app/` into the namespace `music-store` of the
-  VKS cluster.
-
 - an `Application` named `music-store-platform`, which syncs
   `gitops/music-store-platform/` into the VKS cluster: the platform
-  engineer's part inside it.
+  engineer's part inside it;
+- an `Application` named `music-store-apps`, which syncs
+  `gitops/music-store-apps/` into the namespace `music-store` of the
+  VKS cluster.
 
 These Applications retry, because they depend on the cluster and the
 catalog that the Application `music-store` builds.

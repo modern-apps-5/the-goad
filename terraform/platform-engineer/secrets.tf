@@ -7,7 +7,7 @@
 # - catalog-init (gitops/music-store) reads music-store-catalog through the
 #   Supervisor's vault injector, and sets it on the database role;
 # - ESO in the VKS cluster reads both into Secrets for the shop
-#   (gitops/music-store-platform, gitops/music-store-dev/app).
+#   (gitops/music-store-platform, gitops/music-store-apps).
 #
 # The names start with the cluster name: the role Secret Store makes for
 # the cluster reads only those. Argo CD must never own a KeyValueSecret:

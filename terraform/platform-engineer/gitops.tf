@@ -82,19 +82,20 @@ resource "kubectl_manifest" "gitops_repository" {
 # --- The music store's handoff ---
 #
 # The platform engineer deploys the music store; the developer only
-# writes its code in gitops/music-store-dev/app/src (decision 45). Past
-# the cluster and the catalog there are two more Applications:
+# writes its code in gitops/music-store-apps/src (decision 45). The
+# Application music-store syncs the Supervisor Namespace's part: the
+# cluster, the catalog and the users VM. Two more Applications go into
+# the VKS cluster:
 #
-#   music-store-dev-vm   gitops/music-store-dev/users-vm, into the
-#                        music-store Supervisor Namespace: the users VM.
-#   music-store-dev-app  gitops/music-store-dev/app, into the namespace
-#                        music-store of the VKS cluster: the containers.
+#   music-store-platform  gitops/music-store-platform: the ESO store, the
+#                         Gateway certificate, the platform tools' agent.
+#   music-store-apps      gitops/music-store-apps, into the namespace
+#                         music-store: the shop's containers.
 #
-# The platform engineer's Application music-store keeps the cluster and
-# the catalog. The cluster name comes from its file, and Terraform
-# registers that cluster with Argo CD. On a first build the cluster does
-# not exist yet when this applies: the ManagedEntity waits for it, and
-# both Applications retry until what they need is there.
+# The cluster name comes from its file, and Terraform registers that
+# cluster with Argo CD. On a first build the cluster does not exist yet
+# when this applies: the ManagedEntity waits for it, and both
+# Applications retry until what they need is there.
 
 locals {
   music_store_cluster_name = yamldecode(file("${path.module}/../../gitops/music-store/cluster.yaml")).metadata.name
@@ -130,7 +131,7 @@ locals {
         } } } } }
       })
     }]
-    "music-store-dev-app" = [for name, kv in { "store-db" = "catalog", "metal-oracle-model" = "chat" } : {
+    "music-store-apps" = [for name, kv in { "store-db" = "catalog", "metal-oracle-model" = "chat" } : {
       target = { kind = "ExternalSecret", name = name }
       patch = yamlencode({
         apiVersion = "external-secrets.io/v1"
@@ -170,44 +171,21 @@ resource "kubectl_manifest" "music_store_cluster_entity" {
   depends_on = [terracurl_request.argocd_service_account_role]
 }
 
-resource "kubectl_manifest" "music_store_dev_vm_application" {
+resource "kubectl_manifest" "music_store_apps_application" {
   provider = kubectl.platform
 
   validate_schema = false
   yaml_body = yamlencode({
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "Application"
-    metadata   = { name = "music-store-dev-vm", namespace = local.platform_namespace }
+    metadata   = { name = "music-store-apps", namespace = local.platform_namespace }
     spec = {
       project = "default"
       source = {
         repoURL        = var.gitops_repo.url
         targetRevision = var.gitops_repo.revision
-        path           = "gitops/music-store-dev/users-vm"
-      }
-      destination = { name = "music-store", namespace = local.namespace_names["music-store"] }
-      syncPolicy  = local.retry_sync_policy
-    }
-  })
-
-  depends_on = [kubectl_manifest.managed_entity]
-}
-
-resource "kubectl_manifest" "music_store_dev_app_application" {
-  provider = kubectl.platform
-
-  validate_schema = false
-  yaml_body = yamlencode({
-    apiVersion = "argoproj.io/v1alpha1"
-    kind       = "Application"
-    metadata   = { name = "music-store-dev-app", namespace = local.platform_namespace }
-    spec = {
-      project = "default"
-      source = {
-        repoURL        = var.gitops_repo.url
-        targetRevision = var.gitops_repo.revision
-        path           = "gitops/music-store-dev/app"
-        kustomize      = { patches = local.gitops_patches["music-store-dev-app"] }
+        path           = "gitops/music-store-apps"
+        kustomize      = { patches = local.gitops_patches["music-store-apps"] }
       }
       destination = { name = "music-store-cluster", namespace = "music-store" }
       # The namespace inside the VKS cluster is not a Supervisor Namespace,
@@ -217,6 +195,14 @@ resource "kubectl_manifest" "music_store_dev_app_application" {
   })
 
   depends_on = [kubectl_manifest.music_store_cluster_entity]
+}
+
+# Renamed from music-store-dev-app (decision 45). The Application has no
+# finalizer, so replacing it leaves the shop running, and the new
+# Application takes the resources over by their tracking annotation.
+moved {
+  from = kubectl_manifest.music_store_dev_app_application
+  to   = kubectl_manifest.music_store_apps_application
 }
 
 # The platform engineer's part inside the VKS cluster: the ClusterSecretStore
