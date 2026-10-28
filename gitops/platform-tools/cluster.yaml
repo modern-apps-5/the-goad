@@ -18,7 +18,12 @@ metadata:
     addons.kubernetes.vmware.com/platform-observability: enabled
     addons.kubernetes.vmware.com/external-secrets: enabled
 spec:
+  # serviceDomain must be set: the helm-controller addon release new
+  # clusters get (1.5.5) reads it in its template and fails without it, and
+  # ESO waits on helm-controller. clusterNetwork cannot be changed after
+  # the cluster is created.
   clusterNetwork:
+    serviceDomain: cluster.local
     pods:
       cidrBlocks:
         - 192.168.0.0/16
