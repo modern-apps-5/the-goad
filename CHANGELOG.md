@@ -3,6 +3,24 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Docs match the current layout)
+
+### Changed
+
+- `README.md`: the flow diagram, quickstart, joining steps, workflow table,
+  state table, and layout now include `agentminder-registration`, the
+  `platform-tools` namespace and cluster, `music-store-platform`, Secret
+  Store, the Gateway API shop, and the `tanzu-apps` workflow. The tear
+  down destroys `agentminder-registration` before the platform engineer,
+  whose space holds its services.
+- `docs/terraform-state.md` and `terraform/runner/README.md` list every
+  shared secret and repository secret the roots and workflows read.
+- `terraform/platform-engineer/terraform.tfvars.example` names
+  `vcfa_api_token` instead of the old `vcfa_password`, and the platform
+  tools' and incident apps' secrets.
+- `gitops/README.md`, the root READMEs, `docs/execution-plan.md`, and
+  `docs/walkthrough-script.md` describe what is built on 2026-10-28.
+
 ## 2026-10-28 (Remove app/music-store)
 
 ### Removed

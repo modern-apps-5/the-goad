@@ -21,8 +21,8 @@ own log. Each job:
 A last job adds the network policies the agents need on `apps.internal`,
 once every push has succeeded.
 
-The space and the user-provided services `goad-qwen` and `sc-*` are the
-platform engineer's: [terraform/platform-engineer/tanzu.tf](../../terraform/platform-engineer/tanzu.tf).
+The space and the user-provided services `goad-qwen`, `k8s-mcp-cluster`
+and `sc-*` are the platform engineer's: [terraform/platform-engineer/tanzu.tf](../../terraform/platform-engineer/tanzu.tf).
 The `am-*` services are the cloud admin's, below.
 
 | App | What it is |

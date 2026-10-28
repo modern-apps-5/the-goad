@@ -1,8 +1,11 @@
 # Cloud admin foundation, stage 1: the org
 
-The cloud admin's Day 0 Terraform, first of two roots. It runs against the VCF Automation
+The cloud admin's Day 0 Terraform, first of four roots. It runs against the VCF Automation
 provider (System) org and stops at the tenant boundary. Stage 2, [../org-config](../org-config),
-configures things inside the org and runs after this one. The state is
+configures things inside the org and runs after this one. Stages 3 and 4,
+[../agentminder](../agentminder) and
+[../agentminder-registration](../agentminder-registration), install
+AgentMinder and register the incident demo's agents in it. The state is
 `goad-cloud-admin`.
 
 The region, its Distributed VLAN Connection, and the IP space already
@@ -104,5 +107,5 @@ If it does, `oidc.tf` fails and needs a fix.
 - GPU. No GPU VM class is in the example quota. Add the class name to
   `vm_class_names` when a GPU is allocated.
 - OIDC group to role mapping. The provider has no resource to import
-  an OIDC group and give it a role. Stage 2 imports users one by one
-  instead.
+  an OIDC group and give it a role. Stage 2 imports the platform engineer
+  group with the VCF Automation API instead (decision 36).

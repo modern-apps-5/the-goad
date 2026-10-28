@@ -6,9 +6,10 @@
 #
 # Everything that is not secret is in lab.auto.tfvars, in git.
 
-# Password of platform-admin: the org_admin_password of
-# terraform/cloud-admin.
-vcfa_password = "CHANGE-ME"
+# API token of the AD service account svc.platform_engineer@set.lab, made
+# by hand once: log in to the org with VCF SSO as that user, then User
+# Preferences, API Tokens. GitHub secret PLATFORM_ENGINEER_VCFA_TOKEN.
+vcfa_api_token = "CHANGE-ME"
 
 # Password hash for the Private AI Services user "admin". Make one with:
 #   openssl passwd -6
@@ -23,6 +24,24 @@ pais_admin_password_hash = "$6$CHANGE-ME"
 # need a restart to pick it up.
 music_store_db_password  = "CHANGE-ME"
 music_store_chat_api_key = "CHANGE-ME"
+
+# The platform tools cluster's secrets, written to Secret Store (decision
+# 42). GitHub secrets INCIDENT_GRAFANA_ADMIN_PASSWORD,
+# INCIDENT_ZAMMAD_DB_PASSWORD and INCIDENT_ZAMMAD_ADMIN_PASSWORD.
+incident_grafana_admin_password = "CHANGE-ME"
+incident_zammad_db_password     = "CHANGE-ME"
+incident_zammad_admin_password  = "CHANGE-ME"
+
+# The incident apps' keys, written to their Cloud Foundry user-provided
+# services (tanzu.tf). GitHub secrets INCIDENT_QWEN_API_KEY,
+# INCIDENT_K8S_TOKEN and INCIDENT_SIDECAR_TOKEN. tanzu-apps.yml reads the
+# same three, so change them in both places at once.
+incident_qwen_api_key  = "CHANGE-ME"
+incident_k8s_token     = "CHANGE-ME"
+incident_sidecar_token = "CHANGE-ME"
+
+# tanzu.tf also needs CF_ACCESS_TOKEN in the environment: a Tanzu Platform
+# token for goad-deployer. It is not a variable.
 
 # The other secret this root needs is a file, not a variable:
 #   .secrets/gitops-deploy-key

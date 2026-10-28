@@ -9,28 +9,36 @@ not a finished shoot script.
 
 ## Where this script differs from what is built
 
-As of 2026-10-08. The lines below are the script as written. They have
+As of 2026-10-28. The lines below are the script as written. They have
 not been changed to match. Fix these when Video 1 is rewritten.
 
 - **Scene 2, Cloud Admin.** The script has the cloud admin deploy the
   namespace, bootstrap Argo CD, and create the VKS cluster. As built,
   Argo CD creates the music-store VKS cluster from `gitops/music-store`,
   which is the platform engineer's work. The cloud admin creates the org,
-  its quota, its networking, the Avi setting, and the DSM policy. The platform engineer creates the
-  namespaces and Argo CD. The region is not created by anyone on camera;
-  it exists already.
+  its quota, its networking, the Avi setting, the DSM policy, the users
+  and groups, the Service Engine Group, and AgentMinder on its own VKS
+  cluster. The platform engineer creates the namespaces and Argo CD. The
+  region is not created by anyone on camera; it exists already.
 - **Scene 2, Platform Engineer.** Argo CD does deploy the DSM database.
   It also deploys Private AI Services and the model, which the script
-  does not mention. AKO is part of VCF and is not deployed by Argo CD.
-- **Scene 2, Developer.** The chatbot on Tanzu is not built. The model
-  that exists is Qwen in Private AI Services.
+  does not mention, and a second VKS cluster, `platform-tools`, for
+  Zammad, Grafana and Prometheus. AKO is part of VCF and is not deployed
+  by Argo CD.
+- **Scene 2, Developer.** The shop's chat is a container on VKS, not a
+  chatbot on Tanzu. What runs on Tanzu Platform is the incident demo's
+  agents and MCP servers, behind AgentMinder. The model is Qwen in
+  Private AI Services.
 - **Scene 3, Cloud Admin.** The namespace shown is the platform
   engineer's work, not the cloud admin's. No GPU is allocated, so "GPU
   tenancy" cannot be said.
-- **Scene 4.** Nothing of the security admin is built.
+- **Scene 4.** Of the security admin's part, only Avi's WAF on the shop's
+  route is built (decision 43), and AgentMinder's policies on the
+  incident agents' tools.
 
-The commands that exist today are `terraform apply` twice (cloud admin,
-then platform engineer) and `git push`. There is no `cf push` yet.
+The commands that exist today are the Terraform roots (cloud admin, then
+platform engineer, from a machine or the GitHub workflows), `git push`
+for what Argo CD syncs, and `cf push` from the `tanzu-apps` workflow.
 
 ## Video 1 — Day 0, instantiation and architecture
 

@@ -1,6 +1,6 @@
 # The self-hosted runner
 
-The two workflows in [.github/workflows](../../.github/workflows) run on
+The workflows in [.github/workflows](../../.github/workflows) run on
 this runner. GitHub's own runners cannot reach VCF Automation or the lab's
 Gitea server. The root [README](../../README.md) says how to start a
 workflow.
@@ -121,25 +121,31 @@ means that the App does not have the permission.
 
 ### 4. The workflows' secrets
 
-The workflows read eight repository secrets. They are the team's shared
+The workflows read these repository secrets. Most are the team's shared
 values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.md).
 
-| Secret | Where the value is |
-|---|---|
-| `GITEA_STATE_TOKEN` | `password` in any `backend.hcl` |
-| `VCFA_ADMIN_PASSWORD` | `vcfa_password` in `terraform/cloud-admin/org/terraform.tfvars` |
-| `CLOUD_ADMIN_PASSWORD` | `cloud_admin_password` in `terraform/cloud-admin/org/terraform.tfvars` |
-| `OPS_ADMIN_PASSWORD` | `ops_password` in `terraform/cloud-admin/org/terraform.tfvars` |
-| `PLATFORM_ENGINEER_VCFA_TOKEN` | `vcfa_api_token` in `terraform/platform-engineer/terraform.tfvars` |
-| `PAIS_ADMIN_PASSWORD_HASH` | `pais_admin_password_hash` in `terraform/platform-engineer/terraform.tfvars` |
-| `GITOPS_DEPLOY_KEY` | The file `terraform/platform-engineer/.secrets/gitops-deploy-key` |
+| Secret | Where the value is | Read by |
+|---|---|---|
+| `GITEA_STATE_TOKEN` | `password` in any `backend.hcl` | `cloud-admin`, `platform-engineer` |
+| `VCFA_ADMIN_PASSWORD` | `vcfa_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
+| `CLOUD_ADMIN_PASSWORD` | `cloud_admin_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
+| `OPS_ADMIN_PASSWORD` | `ops_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
+| `SSP_REGISTRY_USERNAME`, `SSP_REGISTRY_PASSWORD` | `ssp_registry_username` and `ssp_registry_password` in `terraform/cloud-admin/agentminder/terraform.tfvars` | `cloud-admin` |
+| `PLATFORM_ENGINEER_VCFA_TOKEN` | `vcfa_api_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
+| `PAIS_ADMIN_PASSWORD_HASH` | `pais_admin_password_hash` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
+| `GITOPS_DEPLOY_KEY` | The file `terraform/platform-engineer/.secrets/gitops-deploy-key` | `platform-engineer` |
+| `MUSIC_STORE_DB_PASSWORD`, `MUSIC_STORE_CHAT_API_KEY` | `music_store_db_password` and `music_store_chat_api_key` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
+| `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD`, `INCIDENT_ZAMMAD_ADMIN_PASSWORD` | The `incident_*` passwords in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`; `tanzu-apps` reads the Grafana one too |
+| `INCIDENT_QWEN_API_KEY`, `INCIDENT_K8S_TOKEN`, `INCIDENT_SIDECAR_TOKEN` | `incident_qwen_api_key`, `incident_k8s_token` and `incident_sidecar_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`, `tanzu-apps` |
+| `INCIDENT_ZAMMAD_TOKEN`, `INCIDENT_AVI_USERNAME`, `INCIDENT_AVI_PASSWORD`, `INCIDENT_MCP_READ_TOKEN`, `INCIDENT_MCP_WRITE_TOKEN` | Only in GitHub: see [the incident apps' README](../../tanzu/metal-music-app-agentic-system/README.md) | `tanzu-apps` |
+| `TANZU_HUB_CLIENT_ID`, `TANZU_HUB_CLIENT_ASSERTION` | The Tanzu Hub login of `goad-deployer` | all three, through the `cf-login` and `cf-token` actions |
 
 Set each one with `gh secret set <name> --repo modern-apps-5/the-goad`.
 For the deploy key, add `< terraform/platform-engineer/.secrets/gitops-deploy-key`.
 
 ## Joining, when it is already built
 
-The same as the other two roots. Get from a teammate: this root's
+The same as the other roots. Get from a teammate: this root's
 `terraform.tfvars`, the file `.secrets/private-key.pem`, and the state
 token. Then `terraform init -backend-config=backend.hcl` and
 `terraform plan`, which must show no changes.
@@ -161,7 +167,7 @@ kubectl -n goad-runner logs deploy/github-runner -c runner --tail=5
 |---|---|
 | The runner image, or the scripts | `runner_commit` in `lab.auto.tfvars`, to a newer commit of supervisor-github-runner |
 | How many jobs run at once | `runner_replicas` |
-| The labels | `runner_labels`, and `runs-on` in both workflows |
+| The labels | `runner_labels`, and `runs-on` in every workflow |
 | The disk a job has | In supervisor-github-runner, then `runner_commit` |
 
 ## Remove it

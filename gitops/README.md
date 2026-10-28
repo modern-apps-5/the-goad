@@ -21,13 +21,15 @@ Each directory belongs to one owner and one Application.
      the address Job, wave 2 Private AI Services, wave 3 model
      `qwen-14b-xlarge`.
    - `music-store/` — Application `music-store`. Wave 0 is the catalog,
-     the VKS cluster `music-store` and the ESO addon, wave 1 the catalog
+     the VKS cluster `music-store` and its ESO and cert-manager addons, wave 1 the catalog
      address, wave 2 catalog init, which reads the password from Secret
      Store.
    - `music-store-platform/` — Application `music-store-platform`. The
-     `ClusterSecretStore` in the cluster, once ESO is there, and in
-     namespace `platform-tools` the Prometheus agent, the blackbox
-     exporter and the `goad-k8s-mcp` service account.
+     `ClusterSecretStore` in the cluster, once ESO is there; the
+     self-signed `ClusterIssuer` and wildcard `Certificate` for the
+     shop's Gateway, in namespace `default`; and in namespace
+     `platform-tools` the Prometheus agent, the blackbox exporter and the
+     `goad-k8s-mcp` service account.
    - `music-store-dev/users-vm/` — Application `music-store-dev-vm`.
      Wave 0 the users VM, wave 1 the Job that writes `users-service` and
      `postgres-service` into the VKS cluster. No address is in git.
@@ -40,7 +42,9 @@ Each directory belongs to one owner and one Application.
      the `ExternalSecret`s, Zammad, Grafana, Prometheus and the blackbox
      exporter. It retries until the cluster and ESO exist.
 4. The incident apps: the `platform-engineer` workflow makes their Cloud
-   Foundry space, and `tanzu-apps` pushes them. See
+   Foundry space, the `cloud-admin` workflow's job
+   `agentminder-registration` makes their AgentMinder clients in it, and
+   `tanzu-apps` pushes them. See
    [tanzu/metal-music-app-agentic-system](../tanzu/metal-music-app-agentic-system/README.md).
    Zammad starts empty on a new build. One
    `curl http://zammad.goad.gpu.set.lab/api/v1/getting_started/auto_wizard`
@@ -52,12 +56,12 @@ Each directory belongs to one owner and one Application.
 | Folder | Owner | Application | What it deploys |
 |---|---|---|---|
 | `private-ai/` | platform engineer | `private-ai` | DSM database, Private AI Services, and the Qwen model. |
-| `music-store/` | platform engineer | `music-store` | The VKS cluster `music-store`, the DSM catalog, and the ESO addon for the cluster. |
-| `music-store-platform/` | platform engineer | `music-store-platform` | Inside the VKS cluster: the `ClusterSecretStore` `secret-store` for Secret Store, and in namespace `platform-tools` what the platform tools cluster needs there: a Prometheus agent and blackbox exporter that write to its Prometheus, and the service account `goad-k8s-mcp`. |
+| `music-store/` | platform engineer | `music-store` | The VKS cluster `music-store`, the DSM catalog, and the ESO and cert-manager addons for the cluster. |
+| `music-store-platform/` | platform engineer | `music-store-platform` | Inside the VKS cluster: the `ClusterSecretStore` `secret-store` for Secret Store, the Gateway's certificate, and in namespace `platform-tools` what the platform tools cluster needs there: a Prometheus agent and blackbox exporter that write to its Prometheus, and the service account `goad-k8s-mcp`. |
 | `platform-tools/` | platform engineer | `platform-tools` | The VKS cluster `platform-tools` and its ESO addon. |
 | `platform-tools-apps/` | platform engineer | `platform-tools-apps` | Inside the platform tools cluster, namespace `incident-tools`: Zammad, Grafana with its boards and topology panel, Prometheus and the blackbox exporter, and their `ExternalSecret`s. |
 | `music-store-dev/users-vm/` | developer | `music-store-dev-vm` | The users VM, and the Job `shop-endpoints` that writes the users VM's and the catalog's addresses into the VKS cluster. |
-| `music-store-dev/app/` | developer | `music-store-dev-app` | The shop's containers, their source, and the `ExternalSecret`s `store-db` and `metal-oracle-model`, in namespace `music-store` of the VKS cluster. |
+| `music-store-dev/app/` | developer | `music-store-dev-app` | The shop's containers, their source, the `ExternalSecret`s `store-db` and `metal-oracle-model`, and the HTTPRoute and WAF L7Rule, in namespace `music-store` of the VKS cluster; and the Gateway `metal-store`, in namespace `default`. |
 
 Directories do not nest across owners. An Application syncs one
 directory and does not recurse.
@@ -78,8 +82,19 @@ For an `avi-lb` Ingress, AKO does that when:
   name;
 - the annotation `ako.vmware.com/service-engine-group` is `goad-se-group`.
 
-The record's TTL is 30 seconds. That is how `music`, `zammad`, `grafana`
-and `prometheus` under `goad.gpu.set.lab` are published. This AKO build
+The record's TTL is 30 seconds. That is how `zammad`, `grafana` and
+`prometheus` under `goad.gpu.set.lab` are published.
+
+The shop, `music.goad.gpu.set.lab`, uses Gateway API instead (decision
+43): the Gateway `metal-store` in namespace `default` listens for
+`*.goad.gpu.set.lab`, and the HTTPRoute `metal-store-frontend` names the
+host. Its HTTPS certificate is the Secret
+`default/https-goad.gpu.set.lab-cert`, which cert-manager makes from
+`music-store-platform/gateway-cert.yaml`. The L7Rule `metal-store-waf`
+puts Avi's `System-WAF-Policy` on the route; a HostRule does nothing for
+a Gateway.
+
+This AKO build
 takes one name per Service or Ingress host; a comma-separated list is
 refused (`invalid label`). The same DNS profile holds other
 organizations' domains. Leave them alone.
