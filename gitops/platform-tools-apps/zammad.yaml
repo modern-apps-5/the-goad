@@ -213,8 +213,10 @@ spec:
           ports:
             - containerPort: 11211
 ---
-# zammad-init creates the database schema on the first start, and the
-# admin user from AUTOWIZARD_JSON. On later starts it only migrates.
+# zammad-init creates the database schema on the first start, and writes
+# AUTOWIZARD_JSON to tmp/auto_wizard.json. Opening
+# http://zammad.goad.gpu.set.lab/#getting_started/auto_wizard once then
+# creates the admin user from it. On later starts it only migrates.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -254,6 +256,8 @@ spec:
           volumeMounts:
             - name: zammad-storage
               mountPath: /opt/zammad/storage
+            - name: wizard
+              mountPath: /opt/zammad/tmp
       containers:
         - name: railsserver
           image: ghcr.io/zammad/zammad:7.2.2-0000
@@ -270,6 +274,8 @@ spec:
           volumeMounts:
             - name: zammad-storage
               mountPath: /opt/zammad/storage
+            - name: wizard
+              mountPath: /opt/zammad/tmp
         - name: websocket
           image: ghcr.io/zammad/zammad:7.2.2-0000
           command: ["/opt/zammad/bin/docker-entrypoint", "zammad-websocket"]
@@ -321,6 +327,12 @@ spec:
         - name: zammad-storage
           persistentVolumeClaim:
             claimName: zammad-storage
+        # zammad-init writes tmp/auto_wizard.json on a first install, and
+        # the Rails server reads it when someone opens
+        # /#getting_started/auto_wizard. Without a shared tmp the file
+        # stays in the init container and Zammad shows its setup wizard.
+        - name: wizard
+          emptyDir: {}
 ---
 # Avi publishes the host name through AKO: the host and the
 # external-dns annotation must match.

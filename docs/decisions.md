@@ -1180,6 +1180,13 @@ Cost:
   `tanzu-apps` must run after it changes.
 - The topology panel's layout is still hand-placed, and its node list must
   follow what runs.
+- A rebuilt cluster keeps its old API address in its `ManagedEntity`, and
+  Argo CD cannot reach it (`dial tcp <old address>:6443: i/o timeout`).
+  Delete the `ManagedEntity` and run the platform engineer workflow, which
+  makes it again. Seen on 2026-10-28, when `platform-tools` was rebuilt for
+  `serviceDomain`.
+- On a first install Zammad creates its admin user only when someone opens
+  `/#getting_started/auto_wizard`.
 
 Look again if: VCF gives the tools a shared observability stack, or a second
 tenant cluster needs Zammad and Grafana.
