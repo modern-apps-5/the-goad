@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Remove app/music-store)
+
+### Removed
+
+- `app/music-store/`: the shop's earlier container manifests, which nothing
+  deployed (decision 44). The running shop is `gitops/music-store-dev/app`.
+  Git history has the old manifests, including the traffic generator.
+
 ## 2026-10-28 (Shop on Gateway API)
 
 ### Changed

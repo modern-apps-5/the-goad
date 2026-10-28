@@ -68,9 +68,9 @@ that do not exist.
 
 ### 1. Put the application in this repository
 
-The container manifests are in `app/music-store/`. They are the
-starting point: a container database, not DSM, and a container
-users service, not a VM. The Oracle, cart, orders, and users
+The container manifests were in `app/music-store/` (removed by
+decision 44; git history has them). They were the starting point: a
+container database, not DSM, and a container users service, not a VM. The Oracle, cart, orders, and users
 source stays in `NiranEC77/music-store-ai`. This plan does not
 pretend the migration already happened.
 
