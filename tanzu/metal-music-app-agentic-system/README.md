@@ -6,15 +6,18 @@ directory is one app, pushed as it is. `manifest.yml` lists them all.
 
 [.github/workflows/tanzu-apps.yml](../../.github/workflows/tanzu-apps.yml)
 pushes them on every change to this directory on `main`, and from the
-Actions page. Nobody pushes by hand. The workflow:
+Actions page. Nobody pushes by hand. The workflow runs one job per app,
+so each push has its own log. Each job:
 
 1. installs the cf CLI from the foundation and logs in as `goad-deployer`
    ([.github/actions/cf-login](../../.github/actions/cf-login/action.yml));
 2. pulls the AgentMinder SDK wheel from the private package
    `ghcr.io/modern-apps-5/agentminder-sdk`;
 3. runs `stage.sh`, which copies `shared/` into the agents;
-4. runs `cf push -f manifest.yml` with the secrets in a vars file;
-5. adds the network policies the agents need on `apps.internal`.
+4. runs `cf push <app> -f manifest.yml` with the secrets in a vars file.
+
+A last job adds the network policies the agents need on `apps.internal`,
+once every push has succeeded.
 
 The space and the user-provided services that the manifest binds are the
 platform engineer's: [terraform/platform-engineer/tanzu.tf](../../terraform/platform-engineer/tanzu.tf).

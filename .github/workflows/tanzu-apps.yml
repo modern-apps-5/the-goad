@@ -11,6 +11,9 @@
 # ghcr.io/modern-apps-5/agentminder-sdk, read with this job's GITHUB_TOKEN.
 # The runner has no Docker, so the wheel is pulled with the registry API.
 #
+# One job per app, so each push has its own log and status, and one failed
+# app does not stop the others. The network policies wait for all of them.
+#
 # The apps' secrets are GitHub secrets INCIDENT_*. They go into a vars file
 # for cf push, under the job's temp directory, deleted when the push ends.
 name: tanzu-apps
@@ -41,8 +44,23 @@ env:
 
 jobs:
   push:
+    name: push ${{ matrix.app }}
     runs-on: [self-hosted, lab]
-    timeout-minutes: 45
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The same names as in manifest.yml.
+        app:
+          - metal-k8s-mcp
+          - metal-avi-mcp
+          - metal-vcf-mcp
+          - pii-scrub
+          - metal-incident-live
+          - incident-response-agent
+          - lb-diagnostic-agent
+          - k8s-diagnostic-agent
+          - vcf-diagnostic-agent
     defaults:
       run:
         shell: bash
@@ -54,7 +72,9 @@ jobs:
           client-id: ${{ secrets.TANZU_HUB_CLIENT_ID }}
           client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
 
+      # Only the agents take the shared files and the SDK.
       - name: Pull the AgentMinder SDK
+        if: endsWith(matrix.app, '-agent')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -70,11 +90,13 @@ jobs:
           sha256sum "$RUNNER_TEMP"/sdk/agentminder-*.whl
 
       - name: Stage the shared files
+        if: endsWith(matrix.app, '-agent')
         run: "$APP_DIR/stage.sh $RUNNER_TEMP/sdk/agentminder-*.whl"
 
       - name: Push
         working-directory: ${{ env.APP_DIR }}
         env:
+          APP: ${{ matrix.app }}
           QWEN_API_KEY: ${{ secrets.INCIDENT_QWEN_API_KEY }}
           K8S_TOKEN: ${{ secrets.INCIDENT_K8S_TOKEN }}
           SIDECAR_TOKEN: ${{ secrets.INCIDENT_SIDECAR_TOKEN }}
@@ -108,13 +130,31 @@ jobs:
             exit 1
           fi
           cf target -o Goad -s metal-music-app-agentic-system
-          cf push -f manifest.yml --vars-file "$vars"
+          # cf interpolates the whole manifest, so every secret is needed
+          # even for one app.
+          cf push "$APP" -f manifest.yml --vars-file "$vars"
 
-      # The agents call each other on apps.internal, which needs a policy
-      # for each pair. add-network-policy is a no-op when it exists.
+  # The agents call each other on apps.internal, which needs a policy for
+  # each pair. add-network-policy is a no-op when it exists.
+  network-policies:
+    needs: push
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/cf-login
+        with:
+          client-id: ${{ secrets.TANZU_HUB_CLIENT_ID }}
+          client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
+
       - name: Network policies
         run: |
           set -euo pipefail
+          cf target -o Goad -s metal-music-app-agentic-system
           cf add-network-policy incident-response-agent metal-incident-live --protocol tcp --port 8080
           for agent in lb-diagnostic-agent k8s-diagnostic-agent vcf-diagnostic-agent; do
             cf add-network-policy metal-incident-live "$agent" --protocol tcp --port 8080

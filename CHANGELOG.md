@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-27 (Tanzu apps, one job per app)
+
+### Changed
+
+- `tanzu-apps.yml` pushes each app in its own job, so each push has its
+  own log and a failed app does not stop the others. The network policies
+  are a last job, after every push.
+
 ## 2026-10-27 (Tanzu apps workflow)
 
 ### Added
