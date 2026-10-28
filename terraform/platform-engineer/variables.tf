@@ -245,7 +245,7 @@ variable "incident_qwen_api_key" {
 variable "incident_k8s_api_server" {
   type        = string
   description = "Kubernetes API of the music store cluster, for metal-k8s-mcp. Not secret."
-  default     = "https://10.47.7.81"
+  default     = "https://10.47.7.81:6443"
 }
 
 variable "incident_k8s_token" {
