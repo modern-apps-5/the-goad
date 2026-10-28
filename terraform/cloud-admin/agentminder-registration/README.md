@@ -55,8 +55,12 @@ AgentMinder has no service accounts yet. When it has, use one here.
 The Cloud Foundry login is an access token, `CF_ACCESS_TOKEN`, that the
 `cf-token` action gets as `goad-deployer`.
 
-The provider is `restapi`, not `terracurl`. It gets a new token on every
-run, reads each object back, and can import. See decision 41.
+The provider is `restapi`, not `terracurl`. Terraform gets a new token on
+every run, restapi reads each object back, and it can import. See decision 41.
+
+The token comes from an `http` data source, not from restapi's
+`oauth_client_credentials`. In restapi 3.0.0 the token request ignores
+`insecure` and fails on the chart's self-signed certificate.
 
 ## Run it
 

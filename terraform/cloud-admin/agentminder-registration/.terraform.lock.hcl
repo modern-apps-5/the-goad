@@ -6,6 +6,7 @@ provider "registry.terraform.io/cloudfoundry/cloudfoundry" {
   constraints = "~> 1.18"
   hashes = [
     "h1:AHpx6uY6kUbBk3dBuWn9YeUdCGXGokGV94tRX+PgvXk=",
+    "h1:W+yXYM0EZZIRHHb48pEG9Jmtve+CYlM4QTYwvnUe1XY=",
     "zh:0af0f57afbe2f39cc675b73b2cd63db4d7f17c4fcfad9be0a814894fbeeeb3cd",
     "zh:447f9859d8cd809946bd607bc325ac87e4b4441100fadf5939ec5a62cd94a785",
     "zh:4ef201772763626a6a613dd7e101fc84d84f50b358b403e06e82744b9f4dc36c",
@@ -23,10 +24,33 @@ provider "registry.terraform.io/cloudfoundry/cloudfoundry" {
   ]
 }
 
+provider "registry.terraform.io/hashicorp/http" {
+  version     = "3.6.3"
+  constraints = "~> 3.4"
+  hashes = [
+    "h1:Giu/xKZeu5HvyYiO0iG380cA1F4ou5vAW1wEqE1qcNI=",
+    "h1:Mvu8zgleSqnHpINsslYps1E2FHn28lcE1hhy9V5G82A=",
+    "zh:17b0844bf9f6aa7096a5ae87cf025990f19ed2491c88fcfcb3bcca2f97fbe4ce",
+    "zh:31b5462ef1e0b84e5c45a21e715371a20532eb7f49afedf361adff4f85fc0698",
+    "zh:57ee8eefb0d2017e532aea30fcffb264d6eb3b79f16b86f77ebc29cc39b04923",
+    "zh:6f627f0c70e99e1da93c55e2f6360fe2ebc047a62fb20425b71c8103b39bd0a5",
+    "zh:78d5eefdd9e494defcb3c68d282b8f96630502cac21d1ea161f53cfe9bb483b3",
+    "zh:7e712c5102b8db782d5a47be7fa30101c25beeb8c8d2cdd00451fdc8c16e56ac",
+    "zh:7f96321dc0c3e45af475855a71efc7c6da5af2ab1b5ef4346f2b97343374379c",
+    "zh:a20b78658102536b0244dc2472f8344eb7dd60373e4f20391eff1dc3c39c7d8f",
+    "zh:b338f08b4be41bf2fc0789a81b1deb99f121e4f3cb5e018f525f13656bb65f8f",
+    "zh:d0819d09fe4d3feab2f8b85972bfe867b8ef46e6afd0db3ea92648c426f109ef",
+    "zh:ec0f5e7ebe3348c2de7f3b9907d3446dbf38e7cccd2acca1202dbc8873ba1652",
+    "zh:f34c5b2243049ba3ec65260e299b6c1f8db0ba10ecb6b0a1604029b4da8ca8c0",
+    "zh:f957082b40b4a22b1e2dcb85986f7030b872d836fd6463b68330bd52aa270a9c",
+  ]
+}
+
 provider "registry.terraform.io/hashicorp/kubernetes" {
   version     = "3.4.0"
   constraints = "~> 3.0"
   hashes = [
+    "h1:1MhhjtjkTzTxU1OnarvoK8a4JISljVXm5gyGVaSrVcw=",
     "h1:5y5WaxTR8Xia0MG/Y5yDHNEMqNJJUyJH8F03F6UxsfQ=",
     "zh:02a3156701f8eb7c43acaaf4ac136ddfe55cd86a703a5b2b54c679bf4fe25c02",
     "zh:08b4122be7fba2e9b4dce65f16cf9cfac8fcbc5be0d99da527a7b9aa2d011b3a",
@@ -49,6 +73,7 @@ provider "registry.terraform.io/mastercard/restapi" {
   constraints = "~> 3.0"
   hashes = [
     "h1:Fqxoc6bsydl6iWGx6ZvyqUDdGt7Cb4sW/BSHhBeHGgw=",
+    "h1:y1I3azDHOqRySTyDHsb3Xh1waP/99KfykZRagbRx1qI=",
     "zh:0b63bd3c25a31f090a41933f90b7dd6e984add1c4261d8f5caa73f4d5aa065a4",
     "zh:1c3e89cf19118fc07d7b04257251fc9897e722c16e0a0df7b07fcd261f8c12e7",
     "zh:2d31f322454d271eb328c2d3b3d41f426df98503982788be347799ddf68bf9bf",
@@ -71,6 +96,7 @@ provider "registry.terraform.io/vmware/vcfa" {
   version     = "1.2.3"
   constraints = "~> 1.2"
   hashes = [
+    "h1:O5MifH9adVBe7ZolVyKZTG4SY9uhODav11zu0/RDVn8=",
     "h1:f1S5IpSdpvOBFUDgNofnf5uO6ArCAQoL10sfcE2f2e8=",
     "zh:015f25e07dec454994512f70ef38b91e79e31bf45238243cb1fcaa9a52bee1f9",
     "zh:0ae13ca0efaeadf19dddcb04ce365199c0bbbfe375d73f21c406df2c3cb76321",
