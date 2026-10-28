@@ -19,15 +19,17 @@ the platform engineer, and the developer.
 | Platform engineer | Argo CD | The shop's DSM catalog database and its VKS cluster | [gitops/music-store](gitops/music-store) |
 | Platform engineer | Argo CD | Inside the shop's VKS cluster: the ESO store, the Gateway certificate, and what the platform tools cluster watches it with | [gitops/music-store-platform](gitops/music-store-platform) |
 | Platform engineer | Argo CD | The platform tools VKS cluster, and in it the incident demo's Zammad, Grafana and Prometheus | [gitops/platform-tools](gitops/platform-tools), [gitops/platform-tools-apps](gitops/platform-tools-apps) |
-| Developer | Argo CD | The shop's users VM, and the endpoints that point the VKS cluster at it and at the catalog | [gitops/music-store-dev/users-vm](gitops/music-store-dev/users-vm) |
-| Developer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
+| Platform engineer | Argo CD | The shop's users VM, and the endpoints that point the VKS cluster at it and at the catalog | [gitops/music-store-dev/users-vm](gitops/music-store-dev/users-vm) |
+| Platform engineer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
+| Developer | Code | The shop's source: store, cart, orders, and chat | [gitops/music-store-dev/app/src](gitops/music-store-dev/app/src) |
 | (incident demo) | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system) |
 
 The music-store application, manifests and source, is in
-[gitops/music-store-dev/app](gitops/music-store-dev/app). The platform
-engineer builds the VKS cluster `music-store` and the catalog database.
-The developer deploys the containers onto that cluster, and the users VM
-next to it.
+[gitops/music-store-dev/app](gitops/music-store-dev/app). The developer
+writes the application code in `app/src/`. The developer does not deploy
+it. The platform engineer deploys all of the music store with Argo CD:
+the VKS cluster `music-store`, the catalog database, the users VM, and
+the containers on that cluster (decision 45).
 
 [gitops/music-store](gitops/music-store) is the DSM catalog and the VKS
 cluster `music-store`. No file sets a namespace or an address. Terraform
@@ -36,8 +38,9 @@ that directory into it. The shop login is `admin` / `admin`. The catalog
 Service is `postgres-service`, which is the `DB_HOST` the containers
 already use.
 
-[gitops/music-store-dev](gitops/music-store-dev) is the developer's
-part. It has two directories, and Argo CD syncs each one to a different
+[gitops/music-store-dev](gitops/music-store-dev) is the application
+and its deploy. The platform engineer owns the deploy, and the developer
+owns the source in `app/src/`. It has two directories, and Argo CD syncs each one to a different
 place:
 
 - `users-vm/` goes into the `music-store` Supervisor Namespace. It is the

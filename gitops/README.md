@@ -14,9 +14,10 @@ Each directory belongs to one owner and one Application.
 2. Platform engineer Terraform: `terraform/platform-engineer`. That
    creates the Supervisor Namespaces, Argo CD, and the Applications
    that point at the directories below.
-3. Argo CD, in this order. The platform applications do not wait on
-   each other. The developer applications need the cluster and the
-   catalog from `music-store`, and retry until they exist.
+3. Argo CD, in this order. The applications do not wait on each
+   other. `music-store-dev-vm` and `music-store-dev-app` need the
+   cluster and the catalog from `music-store`, and retry until they
+   exist.
    - `private-ai/` — Application `private-ai`. Wave 0 database, wave 1
      the address Job, wave 2 Private AI Services, wave 3 model
      `qwen-14b-xlarge`.
@@ -60,8 +61,8 @@ Each directory belongs to one owner and one Application.
 | `music-store-platform/` | platform engineer | `music-store-platform` | Inside the VKS cluster: the `ClusterSecretStore` `secret-store` for Secret Store, the Gateway's certificate, and in namespace `platform-tools` what the platform tools cluster needs there: a Prometheus agent and blackbox exporter that write to its Prometheus, and the service account `goad-k8s-mcp`. |
 | `platform-tools/` | platform engineer | `platform-tools` | The VKS cluster `platform-tools` and its ESO addon. |
 | `platform-tools-apps/` | platform engineer | `platform-tools-apps` | Inside the platform tools cluster, namespace `incident-tools`: Zammad, Grafana with its boards and topology panel, Prometheus and the blackbox exporter, and their `ExternalSecret`s. |
-| `music-store-dev/users-vm/` | developer | `music-store-dev-vm` | The users VM, and the Job `shop-endpoints` that writes the users VM's and the catalog's addresses into the VKS cluster. |
-| `music-store-dev/app/` | developer | `music-store-dev-app` | The shop's containers, their source, the `ExternalSecret`s `store-db` and `metal-oracle-model`, and the HTTPRoute and WAF L7Rule, in namespace `music-store` of the VKS cluster; and the Gateway `metal-store`, in namespace `default`. |
+| `music-store-dev/users-vm/` | platform engineer | `music-store-dev-vm` | The users VM, and the Job `shop-endpoints` that writes the users VM's and the catalog's addresses into the VKS cluster. |
+| `music-store-dev/app/` | platform engineer; the developer owns `src/` | `music-store-dev-app` | The shop's containers, their source, the `ExternalSecret`s `store-db` and `metal-oracle-model`, and the HTTPRoute and WAF L7Rule, in namespace `music-store` of the VKS cluster; and the Gateway `metal-store`, in namespace `default`. |
 
 Directories do not nest across owners. An Application syncs one
 directory and does not recurse.

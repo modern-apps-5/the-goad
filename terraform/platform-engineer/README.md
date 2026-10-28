@@ -67,8 +67,9 @@ cannot name them. Terraform knows them. For the namespace with key
 Manifests under `gitops/` do not set a namespace. To give Argo CD another
 namespace, add it to `namespaces` and add the directory `gitops/<key>/`.
 
-The developer's part of the music store has its own handoff. Terraform
-creates:
+The rest of the music store has its own handoff. The developer writes
+the shop's code, and the platform engineer deploys it (decision 45).
+Terraform creates:
 
 - a `ManagedEntity` named `music-store-cluster`, which registers the VKS
   cluster with Argo CD. The cluster name comes from

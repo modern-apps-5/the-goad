@@ -663,6 +663,9 @@ shared with orgs.
 
 ## 34. The music store is split between the platform engineer and the developer
 
+Decision 45 gives the deploy in `gitops/music-store-dev/` to the platform
+engineer. The developer keeps only the code.
+
 The platform engineer keeps the Application `music-store`, which syncs
 `gitops/music-store/`: the VKS cluster `music-store` and the DSM catalog
 database. The users VM moved out of it. The developer owns
@@ -1240,3 +1243,36 @@ gitops shop does not have.
 
 Look again if: the demo needs generated load on the shop. Bring the traffic
 generator into `gitops/music-store-dev/app`.
+
+## 45. The platform engineer deploys the music store; the developer writes its code
+
+The developer's job is the shop's code, in
+`gitops/music-store-dev/app/src/`. The developer does not deploy it. The
+platform engineer owns all of the music store's deploy through Argo CD:
+the Applications `music-store`, `music-store-platform`,
+`music-store-dev-vm` and `music-store-dev-app`, and every manifest they
+sync. That changes three earlier decisions:
+
+- Decision 34: `gitops/music-store-dev/users-vm/` and the manifests in
+  `gitops/music-store-dev/app/` are the platform engineer's. The Job
+  `shop-endpoints` is the platform engineer's too.
+- Decision 37: `gitops/music-store-dev/` still has one owner for each
+  Application, now the platform engineer. The developer owns `app/src/`,
+  which Argo CD syncs but which holds code, not deploy.
+- Decision 38: the platform engineer writes the `ExternalSecret`s
+  `store-db` and `metal-oracle-model`. The developer tells the platform
+  engineer which values the code reads.
+
+Why: in the demo the developer builds the application and the platform
+engineer runs it. Deploy, secrets and wiring are platform work.
+
+What does not change: the directory `gitops/music-store-dev/` and the
+Application names `music-store-dev-vm` and `music-store-dev-app`. They
+are names, not owners. A renamed Application is a new Application, and
+the old one, which prunes, would delete the users VM and the shop on its
+way out. The source stays in `app/`, next to its manifests, because Argo
+CD's kustomize does not load files from outside the directory it syncs.
+
+Look again if: the developer gets a deploy of their own, for example a
+`cf push` of the shop to Tanzu Platform, or the shop's code moves to its
+own repository and an image build.

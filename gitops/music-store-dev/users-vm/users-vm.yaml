@@ -1,4 +1,4 @@
-# Users for the shop. A VM Service VM, owned by the developer.
+# Users for the shop. A VM Service VM, owned by the platform engineer.
 #
 # No namespace: Argo CD applies this with the Application
 # music-store-dev-vm into the music-store Supervisor Namespace, the one

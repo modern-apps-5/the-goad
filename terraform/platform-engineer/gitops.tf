@@ -79,10 +79,11 @@ resource "kubectl_manifest" "gitops_repository" {
   })
 }
 
-# --- The developer's handoff ---
+# --- The music store's handoff ---
 #
-# The developer owns two parts of the music store, each with its own
-# Application:
+# The platform engineer deploys the music store; the developer only
+# writes its code in gitops/music-store-dev/app/src (decision 45). Past
+# the cluster and the catalog there are two more Applications:
 #
 #   music-store-dev-vm   gitops/music-store-dev/users-vm, into the
 #                        music-store Supervisor Namespace: the users VM.

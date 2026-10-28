@@ -1,4 +1,4 @@
-# The developer's deploy: the shop's containers on the VKS cluster
+# The platform engineer's deploy: the shop's containers on the VKS cluster
 # music-store. Argo CD syncs this directory with the Application
 # music-store-dev-app into the namespace music-store.
 #
