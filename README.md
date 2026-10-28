@@ -1,8 +1,9 @@
 # The Grandmother of All Demos (GOAD)
 
 This repository is the master for the GOAD demo. Manifests and the
-walkthrough live here. A lab git server pulls a replica from this
-remote.
+walkthrough live here. Argo CD in the lab reads the manifests from
+this GitHub repository directly. The lab's Gitea server holds only the
+Terraform state.
 
 The demo shows VMware Cloud Foundation across an application's life,
 through four personas. Three of them are built so far: the cloud admin,
