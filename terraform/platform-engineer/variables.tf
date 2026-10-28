@@ -99,7 +99,7 @@ variable "namespaces" {
     #
     # The cluster in gitops/music-store/cluster.yaml is three
     # best-effort-medium nodes (2 CPU, 8 GiB each), and the users VM is one
-    # more VM. The storage limit leaves the org's 1 TiB region quota room
+    # more VM. The storage limit leaves the org's region quota room
     # for the other namespaces.
     music-store = {
       description   = "GOAD music store: users VM, catalog database, and VKS cluster. Managed by terraform/platform-engineer."

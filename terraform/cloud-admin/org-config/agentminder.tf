@@ -91,7 +91,7 @@ resource "vcfa_vks_cluster" "agentminder" {
     replicas = var.agentminder_cluster.workers
     os_image = { name = "ubuntu", version = "24.04" }
     variable_overrides = [
-      { name = "vmClass", value = jsonencode(var.agentminder_cluster.worker_class) },
+      { name = "vmClass", value = var.agentminder_cluster.worker_class },
       # AgentMinder's images are large. The node's own disk fills up
       # without a separate volume for containerd.
       {
@@ -106,9 +106,18 @@ resource "vcfa_vks_cluster" "agentminder" {
     ]
   }]
 
+  # A string value is written plain, not with jsonencode. The vcfa provider
+  # quotes a value that is not JSON when it writes it, and takes the quotes off
+  # when it reads it back, so a jsonencoded string shows as a change on every
+  # plan. Objects stay jsonencoded.
+  #
+  # VKS adds inPlaceUpdateStrategy to the cluster. It is set here to the value
+  # VKS gives it, because the provider does not ignore it and every plan would
+  # remove it.
   variables = [
-    { name = "vmClass", value = jsonencode(var.agentminder_cluster.control_plane_class) },
-    { name = "storageClass", value = jsonencode(var.storage_class_name) },
+    { name = "vmClass", value = var.agentminder_cluster.control_plane_class },
+    { name = "storageClass", value = var.storage_class_name },
+    { name = "inPlaceUpdateStrategy", value = "MinimizeSpareNodes" },
     {
       name = "bootstrapAddons"
       value = jsonencode({
