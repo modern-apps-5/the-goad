@@ -4,13 +4,15 @@
 #
 # secret-store.yaml goes into the Application's namespace, secret-store.
 # platform-tools.yaml names its own namespace, platform-tools: what the
-# platform tools cluster needs in this one (decision 42).
+# platform tools cluster needs in this one (decision 42). gateway-cert.yaml
+# is the shop Gateway's certificate, in namespace default.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
   - secret-store.yaml
   - platform-tools.yaml
+  - gateway-cert.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

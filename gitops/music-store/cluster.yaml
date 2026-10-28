@@ -21,10 +21,12 @@ metadata:
   # clusters to VCF Operations and installs its collectors. The addon
   # also needs helm-controller, which VKS already turns on for every
   # cluster with the label value automatic. external-secrets.yaml installs
-  # ESO on clusters with the second label.
+  # ESO on clusters with the second label, and cert-manager.yaml
+  # cert-manager on clusters with the third.
   labels:
     addons.kubernetes.vmware.com/platform-observability: enabled
     addons.kubernetes.vmware.com/external-secrets: enabled
+    addons.kubernetes.vmware.com/cert-manager: enabled
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:

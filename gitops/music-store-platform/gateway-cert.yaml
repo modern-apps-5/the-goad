@@ -1,0 +1,38 @@
+# The certificate the shop's Gateway serves HTTPS with
+# (gitops/music-store-dev/app/gateway-metal-store.yaml): a wildcard for
+# *.goad.gpu.set.lab in the Secret default/https-goad.gpu.set.lab-cert.
+#
+# Self-signed, made by cert-manager in the cluster (gitops/music-store
+# installs it), so no key is in git or anywhere else. Browsers warn on it,
+# as they did on Avi's default certificate before. The incident apps do not
+# verify TLS.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: self-signed
+  annotations:
+    # cert-manager's CRDs arrive with the addon.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: goad-wildcard
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  secretName: https-goad.gpu.set.lab-cert
+  commonName: "*.goad.gpu.set.lab"
+  dnsNames:
+    - "*.goad.gpu.set.lab"
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    kind: ClusterIssuer
+    name: self-signed

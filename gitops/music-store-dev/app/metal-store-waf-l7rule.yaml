@@ -16,8 +16,7 @@
 #     and be referenced by an ExtensionRef filter on the route (see the
 #     HTTPRoute patch applied alongside this file).
 #
-# Apply:
-#   kubectl apply -f k8s/metal-store-waf-l7rule.yaml
+# Argo CD applies it with the rest of this directory. To check it:
 #   kubectl -n music-store get l7rule metal-store-waf -o wide
 apiVersion: ako.vmware.com/v1alpha2
 kind: L7Rule

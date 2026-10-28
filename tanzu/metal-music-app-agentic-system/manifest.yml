@@ -14,7 +14,8 @@
 # The four agents run on Tanzu Agent Builder: python_buildpack, then
 # agent_buildpack, which starts tanzu-agent. The three diagnostic agents run
 # the AgentMinder sidecar on 127.0.0.1:8181. Their MCP tools go through it.
-# *_CONNECT_IP pins a lab name to its address inside the app. Grafana and
+# *_CONNECT_IP pins a lab name to its address inside the app. The store,
+# Grafana and
 # Zammad have none: the apps resolve *.goad.gpu.set.lab through DNS, and
 # their addresses change when the platform tools cluster is rebuilt.
 ---
@@ -131,7 +132,6 @@ applications:
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_URL: https://music.goad.gpu.set.lab/
-      STORE_CONNECT_IP: 10.47.7.68
       STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
       GRAFANA_URL: http://grafana.goad.gpu.set.lab
       GRAFANA_ADMIN_PASSWORD: ((grafana_admin_password))

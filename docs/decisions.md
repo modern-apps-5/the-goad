@@ -1183,3 +1183,30 @@ Cost:
 
 Look again if: VCF gives the tools a shared observability stack, or a second
 tenant cluster needs Zammad and Grafana.
+
+## 43. The shop is published through Gateway API, with a cert-manager certificate
+
+The shop's Ingress `metal-store` is replaced by Gateway API, as Thomas
+Kraus moved it on 2026-10-27: the Gateway `metal-store` in namespace
+`default`, with HTTP and HTTPS listeners for `*.goad.gpu.set.lab`, the
+HTTPRoute `metal-store-frontend` for `music.goad.gpu.set.lab`, and the
+L7Rule `metal-store-waf`, which puts Avi's `System-WAF-Policy` on the route.
+They are in `gitops/music-store-dev/app/` and in its kustomization, so Argo
+CD applies them and prunes the Ingress. Before, the kustomization still
+listed the deleted `ingress.yaml`, and the Application failed to build.
+
+The HTTPS listener needs the Secret `default/https-goad.gpu.set.lab-cert`.
+cert-manager makes it: the VKS cert-manager addon, installed on clusters
+labelled `addons.kubernetes.vmware.com/cert-manager: enabled` by
+`gitops/music-store/cert-manager.yaml`, and a self-signed `ClusterIssuer`
+and wildcard `Certificate` in `gitops/music-store-platform/gateway-cert.yaml`.
+No key is in git.
+
+Why Gateway API: it is what AKO is moving to, and the WAF is attached with
+an L7Rule, which only the Gateway API controller reads.
+
+Cost: the certificate is self-signed, so browsers warn, as they did on
+Avi's default certificate. The shop's address changed, so the incident
+apps no longer pin it (`STORE_CONNECT_IP`); they resolve it.
+
+Look again if: the lab gets a CA that cert-manager can issue from.

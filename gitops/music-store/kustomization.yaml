@@ -9,3 +9,4 @@ resources:
   - cluster.yaml
   - catalog.yaml
   - external-secrets.yaml
+  - cert-manager.yaml

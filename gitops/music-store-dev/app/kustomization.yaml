@@ -5,7 +5,11 @@
 # The storefront source lives in this directory: store, cart, order, and
 # chat, run from source on python:3.12-slim, with /health on cart, order,
 # and chat. Argo's kustomize will not load files outside this directory.
-# The Goad ingress is ingress.yaml.
+# The shop is published through Gateway API, not an Ingress: the Gateway
+# metal-store in namespace default (gateway-metal-store.yaml), its
+# HTTPRoute for music.goad.gpu.set.lab, and the Avi WAF L7Rule the route
+# uses. AKO publishes the host name in Avi DNS. The Gateway's certificate
+# comes from gitops/music-store-platform/gateway-cert.yaml.
 #
 # The users service and the catalog are not containers. services.yaml
 # gives the containers the names they already call, postgres-service and
@@ -27,7 +31,9 @@ resources:
   - workloads.yaml
   - services.yaml
   - persistence.yaml
-  - ingress.yaml
+  - gateway-metal-store.yaml
+  - httproute-metal-store-frontend.yaml
+  - metal-store-waf-l7rule.yaml
   - external-secrets.yaml
 
 generatorOptions:
