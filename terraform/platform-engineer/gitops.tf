@@ -244,3 +244,87 @@ resource "kubectl_manifest" "music_store_platform_application" {
 
   depends_on = [kubectl_manifest.music_store_cluster_entity]
 }
+
+# --- The platform tools cluster (decision 42) ---
+#
+# The generic Application platform-tools syncs gitops/platform-tools into
+# its Supervisor Namespace: the VKS cluster and its ESO addon. This one
+# syncs gitops/platform-tools-apps into the cluster: Secret Store's
+# ClusterSecretStore, Zammad, Grafana, Prometheus and the blackbox
+# exporter. Both are the platform engineer's.
+
+locals {
+  platform_tools_cluster_name = yamldecode(file("${path.module}/../../gitops/platform-tools/cluster.yaml")).metadata.name
+  platform_tools_namespace    = local.namespace_names["platform-tools"]
+
+  platform_tools_patches = concat(
+    [{
+      target = { kind = "ClusterSecretStore", name = "secret-store" }
+      patch = yamlencode({
+        apiVersion = "external-secrets.io/v1"
+        kind       = "ClusterSecretStore"
+        metadata   = { name = "secret-store" }
+        spec = { provider = { vault = { auth = { kubernetes = {
+          mountPath = "kubernetes-${local.platform_tools_namespace}-${local.platform_tools_cluster_name}"
+          role      = "${local.platform_tools_namespace}-${local.platform_tools_cluster_name}"
+        } } } } }
+      })
+    }],
+    [for name, kv in { "grafana-admin" = "grafana", "zammad-env" = "zammad", "qwen-probe" = "qwen" } : {
+      target                           = { kind = "ExternalSecret", name = name }
+      patch = yamlencode({
+        apiVersion = "external-secrets.io/v1"
+        kind       = "ExternalSecret"
+        metadata   = { name = name }
+        spec       = { dataFrom = [{ extract = { key = "${local.platform_tools_namespace}/${local.platform_tools_kv[kv]}" } }] }
+      })
+    }],
+  )
+}
+
+resource "kubectl_manifest" "platform_tools_cluster_entity" {
+  provider = kubectl.platform
+
+  validate_schema = false
+  yaml_body = yamlencode({
+    apiVersion = "argocd-service.vsphere.vmware.com/v1alpha1"
+    kind       = "ManagedEntity"
+    metadata   = { name = "platform-tools-cluster", namespace = local.platform_namespace }
+    spec = {
+      clusterName = "platform-tools-cluster"
+      targetRef = {
+        apiGroup  = "cluster.x-k8s.io"
+        kind      = "Cluster"
+        name      = local.platform_tools_cluster_name
+        namespace = local.platform_tools_namespace
+        project   = var.project_name
+      }
+    }
+  })
+
+  depends_on = [terracurl_request.argocd_service_account_role]
+}
+
+resource "kubectl_manifest" "platform_tools_apps_application" {
+  provider = kubectl.platform
+
+  validate_schema = false
+  yaml_body = yamlencode({
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "Application"
+    metadata   = { name = "platform-tools-apps", namespace = local.platform_namespace }
+    spec = {
+      project = "default"
+      source = {
+        repoURL        = var.gitops_repo.url
+        targetRevision = var.gitops_repo.revision
+        path           = "gitops/platform-tools-apps"
+        kustomize      = { patches = local.platform_tools_patches }
+      }
+      destination = { name = "platform-tools-cluster", namespace = "incident-tools" }
+      syncPolicy  = merge(local.retry_sync_policy, { syncOptions = ["CreateNamespace=true"] })
+    }
+  })
+
+  depends_on = [kubectl_manifest.platform_tools_cluster_entity]
+}

@@ -107,6 +107,16 @@ variable "namespaces" {
       memory_limit  = "48Gi"
       storage_limit = "150Gi"
     }
+    # The platform's own tools cluster: Zammad, Grafana and Prometheus for
+    # the incident demo, apart from the clusters they watch. The cluster in
+    # gitops/platform-tools/cluster.yaml is one best-effort-medium control
+    # plane and one best-effort-large worker.
+    platform-tools = {
+      description   = "GOAD platform tools: the VKS cluster for Zammad, Grafana and Prometheus. Managed by terraform/platform-engineer."
+      cpu_limit     = "20000M"
+      memory_limit  = "32Gi"
+      storage_limit = "150Gi"
+    }
   }
 
   validation {
@@ -181,6 +191,29 @@ variable "music_store_chat" {
     model    = string
   })
   description = "The model the shop's chat calls: the Private AI Services OpenAI-compatible URL and the model name. Not secret; stored in the same KV as the API key."
+}
+
+# --- Platform tools secrets (decision 42) ---
+
+variable "incident_grafana_admin_password" {
+  type        = string
+  description = "Password of Grafana's admin user on the platform tools cluster. GitHub secret INCIDENT_GRAFANA_ADMIN_PASSWORD; tanzu-apps.yml sets the same value in the orchestrator's env. Null or empty skips the KV."
+  sensitive   = true
+  default     = null
+}
+
+variable "incident_zammad_db_password" {
+  type        = string
+  description = "Password of Zammad's own Postgres. GitHub secret INCIDENT_ZAMMAD_DB_PASSWORD. Null or empty skips the KV."
+  sensitive   = true
+  default     = null
+}
+
+variable "incident_zammad_admin_password" {
+  type        = string
+  description = "Password of the Zammad admin user that Zammad's first start creates. GitHub secret INCIDENT_ZAMMAD_ADMIN_PASSWORD. Null or empty skips the KV."
+  sensitive   = true
+  default     = null
 }
 
 # --- Tanzu Platform: the incident apps' space and services (tanzu.tf) ---

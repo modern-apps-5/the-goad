@@ -3,6 +3,43 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Platform tools cluster for the incident demo's tools)
+
+### Added
+
+- `gitops/platform-tools/`: the VKS cluster `platform-tools` and its ESO
+  addon, in the new Supervisor Namespace `platform-tools` (decision 42).
+- `gitops/platform-tools-apps/`: Zammad, Grafana with its four boards and
+  the topology panel, Prometheus and the blackbox exporter, in namespace
+  `incident-tools` of that cluster. Their Secrets come from Secret Store
+  through ESO. The Application `platform-tools-apps` syncs it.
+- `gitops/music-store-platform/platform-tools.yaml`: namespace
+  `platform-tools` on the music store cluster, with a blackbox exporter, a
+  Prometheus agent that remote-writes to the tools cluster, and the service
+  account `goad-k8s-mcp` with a token that does not expire.
+- `terraform/platform-engineer`: the namespace `platform-tools`, the KVs
+  `platform-tools-grafana`, `platform-tools-zammad` and
+  `platform-tools-qwen`, the `ManagedEntity` `platform-tools-cluster` and
+  the Application `platform-tools-apps`. New variables
+  `incident_grafana_admin_password`, `incident_zammad_db_password` and
+  `incident_zammad_admin_password`, from the GitHub secrets
+  `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD` and
+  `INCIDENT_ZAMMAD_ADMIN_PASSWORD`.
+- `terraform/cloud-admin/agentminder`: the Service `ingress-nginx-mgmt-dns`
+  for `mgmt-agentminder.goad.gpu.set.lab`, imported.
+
+### Changed
+
+- The walk is `scripts/incident-walk.sh` and `scripts/incident-walk.py`.
+- `manifest.yml` no longer pins Grafana's and Zammad's addresses.
+- The architecture board lists what runs now, with no addresses.
+
+### Removed
+
+- `incident-demo/`: `apply.py`, the earlier Kubernetes agents and MCP
+  servers, CLM's manifest, the custom probe, `BLANKS.md`, `RUNBOOK.md` and
+  `secrets/templates.yaml`. Git history has them.
+
 ## 2026-10-28 (Runner loops instead of restarting)
 
 ### Changed

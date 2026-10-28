@@ -17,6 +17,7 @@ the platform engineer, and the developer.
 | Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 | Platform engineer | Argo CD | The shop's DSM catalog database and its VKS cluster | [gitops/music-store](gitops/music-store) |
+| Platform engineer | Argo CD | The platform tools VKS cluster, and in it the incident demo's Zammad, Grafana and Prometheus | [gitops/platform-tools](gitops/platform-tools), [gitops/platform-tools-apps](gitops/platform-tools-apps) |
 | Developer | Argo CD | The shop's users VM, and the endpoints that point the VKS cluster at it and at the catalog | [gitops/music-store-dev/users-vm](gitops/music-store-dev/users-vm) |
 | Developer | Argo CD | The shop's containers, on the VKS cluster | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
 
@@ -49,11 +50,17 @@ place:
 
 [gitops/music-store-platform](gitops/music-store-platform) is the platform
 engineer's part inside the VKS cluster: the `ClusterSecretStore` that ESO
-reads Secret Store with.
+reads Secret Store with, and the Prometheus agent and service account the
+platform tools cluster uses to watch the shop.
 
-The incident demo that runs beside the shop is in
-[incident-demo](incident-demo). A person runs it, so it is not under
-`gitops/`.
+The incident demo's tools run on their own VKS cluster, `platform-tools`,
+apart from the cluster they watch (decision 42).
+[gitops/platform-tools](gitops/platform-tools) is the cluster, and
+[gitops/platform-tools-apps](gitops/platform-tools-apps) is Zammad,
+Grafana, Prometheus and the blackbox exporter in it. The incident apps
+themselves are Cloud Foundry apps in
+[tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system),
+and `scripts/incident-walk.sh` starts a walk.
 
 ## Automation flow
 
@@ -86,15 +93,17 @@ flowchart TD
     end
 
     subgraph platform_engineer["4. Platform engineer: terraform/platform-engineer"]
-        namespaces["Supervisor Namespaces: platform, private-ai, music-store"]
+        namespaces["Supervisor Namespaces: platform, private-ai, music-store, platform-tools"]
         argocd["Argo CD instance, in platform"]
         role["Role for the Argo CD service account"]
         repo_secret["Repository Secret, with the deploy key"]
         pais_secret["Secret pais-static-credentials, in private-ai"]
         handoff["Per namespace: ManagedEntity, then Application"]
         dev_handoff["For the developer: ManagedEntity music-store-cluster, then Applications music-store-dev-vm and music-store-dev-app"]
+        tools_handoff["For the tools: ManagedEntity platform-tools-cluster, then Application platform-tools-apps"]
         images["Content library goad-images, with the Ubuntu image"]
         namespaces --> argocd --> role --> handoff --> dev_handoff
+        handoff --> tools_handoff
         namespaces --> repo_secret
         namespaces --> pais_secret
         namespaces --> images
@@ -127,6 +136,14 @@ flowchart TD
         dev_app["The shop's containers, in namespace music-store of the VKS cluster"]
     end
 
+    subgraph platform_tools["5. Argo CD: gitops/platform-tools"]
+        tools_cluster["The VKS cluster platform-tools and its ESO addon"]
+    end
+
+    subgraph platform_tools_apps["5. Argo CD: gitops/platform-tools-apps"]
+        tools_apps["Zammad, Grafana, Prometheus and the blackbox exporter, in namespace incident-tools"]
+    end
+
     cloud_admin --> org_config
     org_config -->|"cluster agentminder"| agentminder
     org_config -->|"Service Engine Group, and the svc.platform_engineer API token"| platform_engineer
@@ -138,6 +155,9 @@ flowchart TD
     dev_handoff -->|"Application music-store-dev-app"| music_store_dev_app
     music_store -.->|"the cluster and the catalog"| music_store_dev_app
     music_store -.->|"the cluster and the catalog"| dev_vm_wave1
+    handoff -->|"Application platform-tools"| platform_tools
+    tools_handoff -->|"Application platform-tools-apps"| platform_tools_apps
+    platform_tools -.->|"the cluster"| platform_tools_apps
     pais_secret -.->|"login for admin"| pais_wave2
     images -.->|"image for the users VM"| dev_vm_wave0
 ```
@@ -482,8 +502,8 @@ terraform/runner/              The self-hosted runner for the workflows. Not a p
 gitops/<namespace key>/        What Argo CD syncs into that namespace
 gitops/music-store-dev/        The developer's part: users-vm/ into the Supervisor Namespace, app/ into the VKS cluster
 tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
-scripts/                       What a person runs by hand, once
-incident-demo/                 The incident demo, run by hand after the shop answers
+gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
+scripts/                       What a person runs by hand: setup once, and the incident walk
 app/music-store/               The earlier container manifests and the Antrea policy tests; not deployed
 .github/workflows/             One Terraform workflow for each persona, and tanzu-apps.yml
 .github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer

@@ -65,6 +65,11 @@ deletes:
 | `avi_username`, `avi_password` | `INCIDENT_AVI_USERNAME`, `INCIDENT_AVI_PASSWORD` |
 | `mcp_read_token`, `mcp_write_token` | `INCIDENT_MCP_READ_TOKEN`, `INCIDENT_MCP_WRITE_TOKEN` |
 
+The K8s token is the token of the service account `goad-k8s-mcp` in
+namespace `platform-tools` of the music store cluster, from the Secret
+`goad-k8s-mcp-token` that `gitops/music-store-platform` makes. It does not
+expire.
+
 The Qwen key, the K8s token and the sidecar token are also in the
 user-provided services, so the platform engineer workflow reads the same
 three secrets. Change one in both places at once: rerun the platform
@@ -88,8 +93,46 @@ change `SDK_TAG` in the workflow.
 
 ## Starting a walk
 
-`walk/demo.sh start` (in `incident-demo/`) slows the catalog and opens one
-Zammad ticket. It does not start the agents. Type this in the chat on
+`scripts/incident-walk.sh start` slows the catalog and opens one Zammad
+ticket. It does not start the agents. It runs `kubectl` against the music
+store cluster's current context, and reads `STORE_URL`, `ZAMMAD_URL` and
+`ZAMMAD_TOKEN` from the environment. Then type this in the chat on
 `https://incident-response-agent.apps.goad.gpu.set.lab/`:
 
 `pick up the latest incident ticket and enrich it`
+
+A walk has passed when:
+
+- the chat lists the ticket and each diagnostic step, and the line
+  `Decision gate: CLM fallback (CLM_URL is unset)`;
+- Grafana (`http://grafana.goad.gpu.set.lab`) has one annotation tagged
+  `incident` for each step;
+- the newest Zammad ticket has one article with the subject `Enrichment`
+  whose body names storage latency as the root cause.
+
+`/health` answering 200 on every app is not a passed walk. `avi_latency`
+may be denied with HTTP 403: the account on the cluster can sign in to Avi
+but not read virtual services. The note still posts.
+
+## Lessons
+
+- The foundation has one Diego cell, about 16 GB, and Diego places apps
+  by reservation, not by memory used. `cf start` fails with
+  `InsufficientResources` while the cell still has free memory. Shrink
+  other apps' reservations before staging these nine. The Java app
+  `autoscale-api` needs 1024M; with 512M it exits at once.
+- `apps.internal` does not answer until the destination app has a route
+  on it (`cf map-route APP apps.internal --hostname APP`). A network
+  policy alone leaves bosh-dns with an empty answer, and the chat reports
+  `URLError` in under a second. `metal-incident-live` and the three
+  diagnostic agents have that route in the manifest.
+- `cf add-network-policy` takes the destination app as a positional
+  argument (`SOURCE DESTINATION`), not `--destination-app`.
+- Qwen is the Private AI `ModelEndpoint` `qwen-14b-xlarge`. 1.5B weights
+  are too small to call tools.
+- AgentMinder's console is
+  `https://agentminder.goad.gpu.set.lab/default/ui/v1/adminconsole/`. `/`
+  is a Spring 404.
+- The orchestrator's decision gate is CLM, a routing model that is not
+  installed in this lab. With `CLM_URL` unset it calls all three
+  diagnostic agents and says so in the note.

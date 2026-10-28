@@ -51,6 +51,58 @@ resource "helm_release" "ingress_nginx" {
   })]
 }
 
+# A second DNS name on the same nginx, mgmt-agentminder.goad.gpu.set.lab.
+# This AKO build takes one name per LoadBalancer Service, so the second name
+# is its own Service, with the same selector, and its own Avi virtual
+# service. loadBalancerClass can only be set when the Service is created.
+#
+# It was applied by hand from incident-demo/agentminder/ and is imported
+# here. A server-side apply manifest, so the annotations AKO and Antrea add
+# stay theirs.
+import {
+  to = kubernetes_manifest.ingress_nginx_mgmt_service
+  id = "apiVersion=v1,kind=Service,namespace=ingress-nginx,name=ingress-nginx-mgmt-dns"
+}
+
+resource "kubernetes_manifest" "ingress_nginx_mgmt_service" {
+  manifest = {
+    apiVersion = "v1"
+    kind       = "Service"
+    metadata = {
+      name      = "ingress-nginx-mgmt-dns"
+      namespace = "ingress-nginx"
+      labels = {
+        "app.kubernetes.io/name"    = "ingress-nginx-mgmt-dns"
+        "app.kubernetes.io/part-of" = "agentminder"
+      }
+      annotations = {
+        "ako.vmware.com/service-engine-group"       = "goad-se-group"
+        "external-dns.alpha.kubernetes.io/hostname" = "mgmt-${var.agentminder_hostname}"
+      }
+    }
+    spec = {
+      type              = "LoadBalancer"
+      loadBalancerClass = "ako.vmware.com/avi-lb"
+      selector = {
+        "app.kubernetes.io/component" = "controller"
+        "app.kubernetes.io/instance"  = "ingress-nginx"
+        "app.kubernetes.io/name"      = "ingress-nginx"
+      }
+      ports = [
+        { name = "http", port = 80, protocol = "TCP", targetPort = "http" },
+        { name = "https", port = 443, protocol = "TCP", targetPort = "https" },
+      ]
+    }
+  }
+
+  # kubectl applied it first, so its fields belong to kubectl's manager.
+  field_manager {
+    force_conflicts = true
+  }
+
+  depends_on = [helm_release.ingress_nginx]
+}
+
 # A new VKS cluster has no default StorageClass, and the ssp-infra chart
 # has no setting for its database volume's class. Without a default the
 # volume stays Pending: "pod has unbound immediate PersistentVolumeClaims".

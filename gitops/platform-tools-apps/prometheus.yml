@@ -1,0 +1,88 @@
+# Prometheus on the platform tools cluster (decision 42).
+#
+# It probes what it can reach by name through the blackbox exporter, and it
+# receives what the agent on the music store cluster writes: that agent
+# probes the shop's in-cluster names and sends kube-state-metrics
+# (gitops/music-store-platform/platform-tools.yaml). rules.yml turns both
+# into the series the boards read.
+global:
+  scrape_interval: 30s
+  scrape_timeout: 28s
+rule_files:
+  - /etc/prometheus/rules.yml
+scrape_configs:
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["http://zammad-nginx.incident-tools.svc:8080/"]
+        labels: {id: zammad, check: zammad}
+      - targets: ["https://agentminder.goad.gpu.set.lab/default/ui/v1/adminconsole/"]
+        labels: {id: am-ui}
+      - targets: ["https://incident-response-agent.apps.goad.gpu.set.lab/health"]
+        labels: {id: incident}
+      - targets: ["https://metal-incident-live.apps.goad.gpu.set.lab/health"]
+        labels: {id: cf-orch}
+      - targets: ["https://lb-diagnostic-agent.apps.goad.gpu.set.lab/health"]
+        labels: {id: lb-agent}
+      - targets: ["https://k8s-diagnostic-agent.apps.goad.gpu.set.lab/health"]
+        labels: {id: k8s-agent}
+      - targets: ["https://vcf-diagnostic-agent.apps.goad.gpu.set.lab/health"]
+        labels: {id: vcf-agent}
+      - targets: ["https://pii-scrub.apps.goad.gpu.set.lab/health"]
+        labels: {id: pii}
+      - targets: ["https://metal-avi-mcp.apps.goad.gpu.set.lab/health"]
+        labels: {id: avi-mcp}
+      - targets: ["https://metal-k8s-mcp.apps.goad.gpu.set.lab/health"]
+        labels: {id: k8s-mcp}
+      - targets: ["https://metal-vcf-mcp.apps.goad.gpu.set.lab/health"]
+        labels: {id: vcf-mcp}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox.incident-tools.svc:9115
+  - job_name: blackbox-tcp
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets: ["zammad-postgresql.incident-tools.svc:5432"]
+        labels: {id: zammad-db}
+      - targets: ["zammad-redis.incident-tools.svc:6379"]
+        labels: {id: zammad-redis}
+      - targets: ["zammad-memcached.incident-tools.svc:11211"]
+        labels: {id: zammad-cache}
+      - targets: ["ops01.gpu.set.lab:443"]
+        labels: {id: vcf-ops}
+      - targets: ["auto.gpu.set.lab:443"]
+        labels: {id: vcfa}
+      - targets: ["vc01.gpu.set.lab:443"]
+        labels: {id: vcenter}
+      - targets: ["nsx01.gpu.set.lab:443"]
+        labels: {id: nsx}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox.incident-tools.svc:9115
+  # The Qwen URL is an address, so it is not in git: ESO writes this
+  # target file into the Secret qwen-probe from Secret Store.
+  - job_name: blackbox-qwen
+    metrics_path: /probe
+    params:
+      module: [http_qwen]
+    file_sd_configs:
+      - files: [/etc/prometheus/qwen/targets.json]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox.incident-tools.svc:9115

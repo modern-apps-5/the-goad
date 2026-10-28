@@ -1,0 +1,170 @@
+# What the platform tools cluster needs inside the music store cluster
+# (decision 42), in the namespace platform-tools:
+# - the blackbox exporter and a Prometheus agent, which probe the shop's
+#   in-cluster names and send them, with kube-state-metrics, to the
+#   Prometheus on the platform tools cluster;
+# - goad-k8s-mcp, the ServiceAccount the Cloud Foundry app metal-k8s-mcp
+#   reads this cluster with. Its token is the Secret goad-k8s-mcp-token,
+#   which Kubernetes fills and does not expire. That token is the GitHub
+#   secret INCIDENT_K8S_TOKEN (tanzu/metal-music-app-agentic-system).
+#
+# The agent's and the exporter's configuration files are in this
+# directory; kustomization.yaml makes their ConfigMaps.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-tools
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blackbox
+  namespace: platform-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blackbox
+  template:
+    metadata:
+      labels:
+        app: blackbox
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: blackbox
+          image: prom/blackbox-exporter:v0.25.0
+          args:
+            - --config.file=/etc/blackbox/blackbox.yml
+          ports:
+            - containerPort: 9115
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 65534
+          readinessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9115
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/blackbox
+      volumes:
+        - name: config
+          configMap:
+            name: blackbox-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blackbox
+  namespace: platform-tools
+spec:
+  selector:
+    app: blackbox
+  ports:
+    - name: http
+      port: 9115
+      targetPort: 9115
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-agent
+  namespace: platform-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-agent
+  template:
+    metadata:
+      labels:
+        app: prometheus-agent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.55.1
+          args:
+            - --config.file=/etc/prometheus/prometheus-agent.yml
+            - --enable-feature=agent
+            - --storage.agent.path=/prometheus
+          ports:
+            - containerPort: 9090
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 65534
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: wal
+              mountPath: /prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-agent-config
+        - name: wal
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: goad-k8s-mcp
+  namespace: platform-tools
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: goad-k8s-mcp-token
+  namespace: platform-tools
+  annotations:
+    kubernetes.io/service-account.name: goad-k8s-mcp
+type: kubernetes.io/service-account-token
+---
+# Read-only, cluster-wide: the k8s diagnostic agent looks at the shop's
+# pods, logs, events and Deployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: goad-k8s-mcp-read
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events", "namespaces", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: goad-k8s-mcp-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: goad-k8s-mcp-read
+subjects:
+  - kind: ServiceAccount
+    name: goad-k8s-mcp
+    namespace: platform-tools
