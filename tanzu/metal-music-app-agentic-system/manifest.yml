@@ -41,7 +41,7 @@ applications:
       MCP_RESOURCE_URL: https://metal-k8s-mcp.apps.goad.gpu.set.lab/mcp
       MCP_READ_TOKEN: ((mcp_read_token))
       MCP_WRITE_TOKEN: ((mcp_write_token))
-      K8S_API_SERVER: https://10.47.7.81
+      K8S_API_SERVER: https://10.47.7.81:6443
       K8S_TOKEN: ((k8s_token))
       K8S_NAMESPACE: metal-music-store
       K8S_API_TIMEOUT: "40"
