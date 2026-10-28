@@ -214,8 +214,8 @@ spec:
             - containerPort: 11211
 ---
 # zammad-init creates the database schema on the first start, and writes
-# AUTOWIZARD_JSON to tmp/auto_wizard.json. Opening
-# http://zammad.goad.gpu.set.lab/#getting_started/auto_wizard once then
+# AUTOWIZARD_JSON to tmp/auto_wizard.json. One GET of
+# http://zammad.goad.gpu.set.lab/api/v1/getting_started/auto_wizard then
 # creates the admin user from it. On later starts it only migrates.
 apiVersion: apps/v1
 kind: Deployment
@@ -327,10 +327,11 @@ spec:
         - name: zammad-storage
           persistentVolumeClaim:
             claimName: zammad-storage
-        # zammad-init writes tmp/auto_wizard.json on a first install, and
-        # the Rails server reads it when someone opens
-        # /#getting_started/auto_wizard. Without a shared tmp the file
-        # stays in the init container and Zammad shows its setup wizard.
+        # zammad-init writes tmp/auto_wizard.json on a first install
+        # (AUTOWIZARD_RELATIVE_PATH in zammad-env), and the Rails server
+        # reads it at GET /api/v1/getting_started/auto_wizard. Without a
+        # shared tmp the file stays in the init container and Zammad shows
+        # its setup wizard.
         - name: wizard
           emptyDir: {}
 ---

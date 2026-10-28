@@ -1185,8 +1185,10 @@ Cost:
   Delete the `ManagedEntity` and run the platform engineer workflow, which
   makes it again. Seen on 2026-10-28, when `platform-tools` was rebuilt for
   `serviceDomain`.
-- On a first install Zammad creates its admin user only when someone opens
-  `/#getting_started/auto_wizard`.
+- On a first install Zammad creates its admin user only when something
+  calls `GET /api/v1/getting_started/auto_wizard`. That needs
+  `AUTOWIZARD_RELATIVE_PATH` set and `tmp` shared between `zammad-init` and
+  the Rails server; neither was so before 2026-10-28.
 
 Look again if: VCF gives the tools a shared observability stack, or a second
 tenant cluster needs Zammad and Grafana.
