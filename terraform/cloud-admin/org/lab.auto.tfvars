@@ -24,14 +24,27 @@ zone_allocations = {
 }
 
 vm_class_names = [
+  "best-effort-xsmall",
   "best-effort-small",
   "best-effort-medium",
   "best-effort-large",
   "best-effort-xlarge",
+  "best-effort-2xlarge",
+  "best-effort-4xlarge",
+  "best-effort-8xlarge",
+  "guaranteed-xsmall",
+  "guaranteed-small",
+  "guaranteed-medium",
+  "guaranteed-large",
+  "guaranteed-xlarge",
+  "guaranteed-2xlarge",
+  "guaranteed-2xlarge-32g",
+  "guaranteed-4xlarge",
+  "guaranteed-8xlarge",
 ]
 
 storage_policy_limits_mib = {
-  "MGMT-cl01 - Optimal Datastore Default Policy - AutoRAID" = 1048576
+  "MGMT-cl01 - Optimal Datastore Default Policy - AutoRAID" = 7200768
 }
 
 dsm_infrastructure_policy_names = ["dsm-infra-xscl5"]
