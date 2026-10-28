@@ -42,8 +42,10 @@ Each directory belongs to one owner and one Application.
 4. The incident apps: the `platform-engineer` workflow makes their Cloud
    Foundry space, and `tanzu-apps` pushes them. See
    [tanzu/metal-music-app-agentic-system](../tanzu/metal-music-app-agentic-system/README.md).
-   Zammad starts empty on a new build: make its API token by hand and
-   store it as the GitHub secret `INCIDENT_ZAMMAD_TOKEN` before the push.
+   Zammad starts empty on a new build. One
+   `curl http://zammad.goad.gpu.set.lab/api/v1/getting_started/auto_wizard`
+   creates the admin user from Secret Store, then make its API token by hand and store it as
+   the GitHub secret `INCIDENT_ZAMMAD_TOKEN` before the push.
 
 ## Folders
 

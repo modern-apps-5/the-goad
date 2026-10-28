@@ -123,7 +123,8 @@ def open_ticket() -> None:
     payload = {
         "title": TITLE,
         "group": "Users",
-        "customer": "agent@example.lab",
+        # The Zammad admin, which the autowizard creates (gitops/platform-tools-apps).
+        "customer": "admin@goad.gpu.set.lab",
         "article": {"subject": TITLE, "body": "Catalog pages are taking 10+ seconds.", "type": "note", "internal": False},
     }
     req = urllib.request.Request(
