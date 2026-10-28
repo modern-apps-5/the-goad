@@ -13,7 +13,7 @@ applied. See [decision 29](../../../docs/decisions.md).
 | File | What it creates |
 |---|---|
 | `providers.tf` | Reads the state of `org-config`, gets the cluster's admin kubeconfig, and configures the Helm and Kubernetes providers with it. |
-| `agentminder.tf` | The namespace `ssp`, the pull secret, and the Helm releases `ingress-nginx`, `infra-ssp`, and `ssp`. |
+| `agentminder.tf` | The namespace `ssp`, the pull secret, the Helm releases `ingress-nginx`, `infra-ssp`, and `ssp`, and the Service for the second DNS name. |
 | `outputs.tf` | `ingress_address` and `agentminder_url`. |
 
 ## What it creates
@@ -30,6 +30,14 @@ applied. See [decision 29](../../../docs/decisions.md).
 - `infra-ssp`, the chart `ssp-infra` 4.1.1+1673: the Percona MySQL
   database.
 - `ssp`, the chart `ssp` 4.1.1+1673: AgentMinder.
+- The Service `ingress-nginx-mgmt-dns`: a second LoadBalancer Service on
+  the same ingress controller, for the second name
+  `mgmt-agentminder.goad.gpu.set.lab`. This AKO build takes one name per
+  Service. It was made by hand first and is imported.
+
+The agents and MCP servers are not configured here. Stage 4,
+[../agentminder-registration](../agentminder-registration), registers
+them.
 
 The charts come from `https://ssp_helm_charts.storage.googleapis.com`.
 

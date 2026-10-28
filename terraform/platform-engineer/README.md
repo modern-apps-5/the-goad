@@ -10,11 +10,12 @@ account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
 | File | What it creates |
 |---|---|
 | `images.tf` | The org content library `goad-images` and the Ubuntu image in it, for the users VM. The library is attached to every namespace in the org. A `terraform_data` downloads the OVA with `curl` into `.images/` (ignored by git) on the first apply, so that machine or runner needs `curl` and internet access to cloud-images.ubuntu.com. The storage policy is the lab value `content_library_storage_policy`; `ubuntu_image` sets the image name and URL. |
-| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM, catalog, and VKS cluster. |
+| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM, catalog, and VKS cluster, and `platform-tools` for the VKS cluster of the incident demo's tools. |
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
-| `secrets.tf` | The music store's `KeyValueSecret`s in Secret Store, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY` (decision 38). Empty values skip them. |
-| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform`, `music-store-dev-vm` and `music-store-dev-app`; and the patches that put the generated namespace name into the music store's manifests. |
+| `secrets.tf` | `KeyValueSecret`s in Secret Store (decision 38). In `music-store`: the catalog password and the chat's model key, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY`. In `platform-tools`: Grafana's and Zammad's passwords, from `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD` and `INCIDENT_ZAMMAD_ADMIN_PASSWORD`, and the blackbox exporter's Qwen check, from `INCIDENT_QWEN_API_KEY`. Empty values skip them. |
+| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform`, `music-store-dev-vm` and `music-store-dev-app`; the platform tools cluster's registration and the Application `platform-tools-apps`; and the patches that put the generated namespace and cluster names into the manifests. |
+| `tanzu.tf` | On Tanzu Platform, org `Goad`: the space `metal-music-app-agentic-system` and the user-provided services the incident apps bind, `goad-qwen`, `k8s-mcp-cluster`, `sc-incident-response-agent-orch` and one `sc-*` per sidecar tool (decision 40). The provider logs in with `CF_ACCESS_TOKEN`, a token for `goad-deployer` that the `cf-token` action gets. |
 
 It uses the org's default project and default VPC. It does not create the
 Avi Service Engine Group: the namespaces only name it
@@ -42,9 +43,15 @@ can.
 ```sh
 cp terraform.tfvars.example terraform.tfvars   # secrets only; copy the team's if the demo is built
 cp backend.hcl.example backend.hcl             # then put the state token in it
+export CF_ACCESS_TOKEN=<a Tanzu Platform token for goad-deployer>
 terraform init -backend-config=backend.hcl
 terraform apply
 ```
+
+`CF_ACCESS_TOKEN` is for `tanzu.tf`. The foundation accepts only the
+`goad-deployer` app's client assertion, which the Cloud Foundry provider
+cannot sign, so the token is fetched first. In GitHub the `cf-token`
+action does it.
 
 ## The handoff
 
@@ -72,15 +79,26 @@ creates:
   `gitops/music-store-dev/app/` into the namespace `music-store` of the
   VKS cluster.
 
-Both Applications retry, because they depend on the cluster and the
+- an `Application` named `music-store-platform`, which syncs
+  `gitops/music-store-platform/` into the VKS cluster: the platform
+  engineer's part inside it.
+
+These Applications retry, because they depend on the cluster and the
 catalog that the Application `music-store` builds.
+
+The platform tools cluster has the same kind of handoff: a `ManagedEntity`
+named `platform-tools-cluster`, for the cluster that
+`gitops/platform-tools/cluster.yaml` names, and the Application
+`platform-tools-apps`, which syncs `gitops/platform-tools-apps/` into its
+namespace `incident-tools` (decision 42).
 
 Argo CD reads the repository with a read-only deploy key. The private
 half stays in `.secrets/`, which git ignores.
 
 The key is shared by the team, and so is `terraform.tfvars`. Terraform
 writes the key and the Private AI Services password hash into Secrets,
-and the music store's password and chat key into Secret Store.
+the music store's and the platform tools' passwords and keys into Secret
+Store, and the incident apps' keys into Cloud Foundry services.
 If you apply with a key or a hash of your own, Terraform replaces the
 team's, and Argo CD can no longer read git. Copy both files from a
 teammate. `docs/terraform-state.md` has the list.

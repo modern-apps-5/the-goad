@@ -14,12 +14,14 @@ the platform engineer, and the developer.
 | Cloud admin | Terraform | Stage 2: inside the org, the users and their roles, the Service Engine Group, and a project with a VKS cluster for AgentMinder | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
 | Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](terraform/cloud-admin/agentminder) |
 | Cloud admin | Terraform | Stage 4: the incident demo's agents and MCP servers registered in AgentMinder, and their clients handed to the apps as Cloud Foundry services | [terraform/cloud-admin/agentminder-registration](terraform/cloud-admin/agentminder-registration) |
-| Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, Argo CD, and the handoff to it | [terraform/platform-engineer](terraform/platform-engineer) |
+| Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, the secrets in Secret Store, Argo CD and the handoff to it, and the incident apps' Tanzu Platform space and services | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 | Platform engineer | Argo CD | The shop's DSM catalog database and its VKS cluster | [gitops/music-store](gitops/music-store) |
+| Platform engineer | Argo CD | Inside the shop's VKS cluster: the ESO store, the Gateway certificate, and what the platform tools cluster watches it with | [gitops/music-store-platform](gitops/music-store-platform) |
 | Platform engineer | Argo CD | The platform tools VKS cluster, and in it the incident demo's Zammad, Grafana and Prometheus | [gitops/platform-tools](gitops/platform-tools), [gitops/platform-tools-apps](gitops/platform-tools-apps) |
 | Developer | Argo CD | The shop's users VM, and the endpoints that point the VKS cluster at it and at the catalog | [gitops/music-store-dev/users-vm](gitops/music-store-dev/users-vm) |
-| Developer | Argo CD | The shop's containers, on the VKS cluster | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
+| Developer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-dev/app](gitops/music-store-dev/app) |
+| (incident demo) | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system) |
 
 The music-store application, manifests and source, is in
 [gitops/music-store-dev/app](gitops/music-store-dev/app). The platform
@@ -50,8 +52,13 @@ place:
 
 [gitops/music-store-platform](gitops/music-store-platform) is the platform
 engineer's part inside the VKS cluster: the `ClusterSecretStore` that ESO
-reads Secret Store with, and the Prometheus agent and service account the
-platform tools cluster uses to watch the shop.
+reads Secret Store with, the self-signed wildcard certificate for the
+shop's Gateway (decision 43), and the Prometheus agent and service account
+the platform tools cluster uses to watch the shop.
+
+The shop is published at `music.goad.gpu.set.lab` through Gateway API: the
+Gateway `metal-store`, the HTTPRoute `metal-store-frontend`, and the
+L7Rule `metal-store-waf`, which puts Avi's WAF policy on the route.
 
 The incident demo's tools run on their own VKS cluster, `platform-tools`,
 apart from the cluster they watch (decision 42).
@@ -64,8 +71,9 @@ and `scripts/incident-walk.sh` starts a walk.
 
 ## Automation flow
 
-Four Terraform applies, from a machine or from GitHub, then Argo CD. An arrow means the first box is
-done before the second one starts.
+Five Terraform roots, from a machine or from GitHub, then Argo CD and the
+`tanzu-apps` workflow. An arrow means the first box is done before the
+second one starts.
 
 ```mermaid
 flowchart TD
@@ -98,20 +106,33 @@ flowchart TD
         role["Role for the Argo CD service account"]
         repo_secret["Repository Secret, with the deploy key"]
         pais_secret["Secret pais-static-credentials, in private-ai"]
+        kv_secrets["KeyValueSecrets in Secret Store, in music-store and platform-tools"]
         handoff["Per namespace: ManagedEntity, then Application"]
-        dev_handoff["For the developer: ManagedEntity music-store-cluster, then Applications music-store-dev-vm and music-store-dev-app"]
+        dev_handoff["For the shop cluster: ManagedEntity music-store-cluster, then Applications music-store-platform, music-store-dev-vm and music-store-dev-app"]
         tools_handoff["For the tools: ManagedEntity platform-tools-cluster, then Application platform-tools-apps"]
         images["Content library goad-images, with the Ubuntu image"]
+        cf_space["Tanzu Platform: space metal-music-app-agentic-system and its services"]
         namespaces --> argocd --> role --> handoff --> dev_handoff
         handoff --> tools_handoff
         namespaces --> repo_secret
         namespaces --> pais_secret
+        namespaces --> kv_secrets
         namespaces --> images
+    end
+
+    subgraph registration["5. Cloud admin: terraform/cloud-admin/agentminder-registration"]
+        am_objects["AgentMinder MCP servers, clients, and policies"]
+        am_services["User-provided services am-*, in the incident apps' space"]
+        am_objects --> am_services
+    end
+
+    subgraph tanzu_apps["6. Workflow tanzu-apps: tanzu/metal-music-app-agentic-system"]
+        incident_apps["The nine incident apps, cf push, then network policies"]
     end
 
     git[("GitHub: gitops/ on main")]
 
-    subgraph private_ai["5. Argo CD: gitops/private-ai"]
+    subgraph private_ai["Argo CD: gitops/private-ai"]
         pais_wave0["Wave 0: PostgresCluster pais-db and its Service"]
         pais_wave1["Wave 1: Job writes the database address into the Service"]
         pais_wave2["Wave 2: PAISConfiguration"]
@@ -119,28 +140,32 @@ flowchart TD
         pais_wave0 --> pais_wave1 --> pais_wave2 --> pais_wave3
     end
 
-    subgraph music_store["5. Argo CD: gitops/music-store"]
-        shop_wave0["Wave 0: PostgresCluster catalog, its Service, and the VKS cluster music-store"]
+    subgraph music_store["Argo CD: gitops/music-store"]
+        shop_wave0["Wave 0: PostgresCluster catalog, its Service, the VKS cluster music-store, and its ESO and cert-manager addons"]
         shop_wave1["Wave 1: Job writes the database address into the Service"]
-        shop_wave2["Wave 2: Job catalog-init fills the catalog"]
+        shop_wave2["Wave 2: Job catalog-init fills the catalog, with the password from Secret Store"]
         shop_wave0 --> shop_wave1 --> shop_wave2
     end
 
-    subgraph music_store_dev_vm["5. Argo CD: gitops/music-store-dev/users-vm"]
+    subgraph music_store_platform["Argo CD: gitops/music-store-platform"]
+        shop_platform["In the VKS cluster: ClusterSecretStore, Gateway certificate, Prometheus agent, blackbox exporter, service account goad-k8s-mcp"]
+    end
+
+    subgraph music_store_dev_vm["Argo CD: gitops/music-store-dev/users-vm"]
         dev_vm_wave0["Wave 0: the users VM and its Service"]
         dev_vm_wave1["Wave 1: Job writes users-service and postgres-service Endpoints into the VKS cluster"]
         dev_vm_wave0 --> dev_vm_wave1
     end
 
-    subgraph music_store_dev_app["5. Argo CD: gitops/music-store-dev/app"]
-        dev_app["The shop's containers, in namespace music-store of the VKS cluster"]
+    subgraph music_store_dev_app["Argo CD: gitops/music-store-dev/app"]
+        dev_app["The shop's containers, ExternalSecrets, and Gateway, HTTPRoute and WAF L7Rule, in the VKS cluster"]
     end
 
-    subgraph platform_tools["5. Argo CD: gitops/platform-tools"]
+    subgraph platform_tools["Argo CD: gitops/platform-tools"]
         tools_cluster["The VKS cluster platform-tools and its ESO addon"]
     end
 
-    subgraph platform_tools_apps["5. Argo CD: gitops/platform-tools-apps"]
+    subgraph platform_tools_apps["Argo CD: gitops/platform-tools-apps"]
         tools_apps["Zammad, Grafana, Prometheus and the blackbox exporter, in namespace incident-tools"]
     end
 
@@ -151,21 +176,36 @@ flowchart TD
     git -.->|"Argo CD pulls"| handoff
     handoff -->|"Application private-ai"| private_ai
     handoff -->|"Application music-store"| music_store
+    dev_handoff -->|"Application music-store-platform"| music_store_platform
     dev_handoff -->|"Application music-store-dev-vm"| music_store_dev_vm
     dev_handoff -->|"Application music-store-dev-app"| music_store_dev_app
     music_store -.->|"the cluster and the catalog"| music_store_dev_app
     music_store -.->|"the cluster and the catalog"| dev_vm_wave1
+    music_store -.->|"the cluster and its addons"| music_store_platform
+    music_store_platform -.->|"ClusterSecretStore and certificate"| music_store_dev_app
     handoff -->|"Application platform-tools"| platform_tools
     tools_handoff -->|"Application platform-tools-apps"| platform_tools_apps
     platform_tools -.->|"the cluster"| platform_tools_apps
     pais_secret -.->|"login for admin"| pais_wave2
+    kv_secrets -.->|"passwords and keys"| shop_wave2
+    kv_secrets -.->|"passwords and keys, through ESO"| platform_tools_apps
     images -.->|"image for the users VM"| dev_vm_wave0
+    agentminder -->|"AgentMinder running"| registration
+    cf_space -->|"the space"| registration
+    cf_space -->|"space, goad-qwen and sc-* services"| tanzu_apps
+    am_services -->|"am-* services"| tanzu_apps
 ```
 
 Solid arrows are that order. Dotted arrows are what one part reads from
 another. After the handoff, Terraform does not touch what runs in
-`private-ai`, `music-store`, and the cluster `music-store`: a commit to
-`gitops/` on `main` is the change.
+`private-ai`, `music-store`, `platform-tools`, and the clusters
+`music-store` and `platform-tools`: a commit to `gitops/` on `main` is the
+change.
+
+`agentminder-registration` needs the space that the platform engineer
+makes. On a first build the `cloud-admin` workflow runs before
+`platform-engineer`, so its last job, `agentminder-registration`, fails
+until `platform-engineer` has applied. Run `cloud-admin` again after it.
 
 ## Joining a demo that is already built
 
@@ -173,21 +213,30 @@ The lab is shared and the demo is running. To work on it from your
 machine you do not build anything. You need the secrets that the team
 shares, and nothing else that is not in git:
 
-1. Get them from a teammate: the four `terraform.tfvars` files, the
+1. Get them from a teammate: the five `terraform.tfvars` files, the
    deploy key, and the state token. They come as one text to paste at
    the root of your clone. Put the cloud admin's files in
-   `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`, and
-   `terraform/cloud-admin/agentminder`.
+   `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
+   `terraform/cloud-admin/agentminder`, and
+   `terraform/cloud-admin/agentminder-registration`.
 2. In `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
-   `terraform/cloud-admin/agentminder`, and `terraform/platform-engineer`:
+   `terraform/cloud-admin/agentminder`,
+   `terraform/cloud-admin/agentminder-registration`, and
+   `terraform/platform-engineer`:
 
    ```sh
    terraform init -backend-config=backend.hcl
    terraform plan
    ```
 
-   In `terraform/cloud-admin/agentminder`, also run
-   `export TF_HTTP_PASSWORD=<the state token>` first.
+   In `terraform/cloud-admin/agentminder` and
+   `terraform/cloud-admin/agentminder-registration`, also run
+   `export TF_HTTP_PASSWORD=<the state token>` first. In
+   `terraform/cloud-admin/agentminder-registration` and
+   `terraform/platform-engineer`, also export `CF_ACCESS_TOKEN`, a Tanzu
+   Platform access token for `goad-deployer`: the Cloud Foundry provider
+   logs in with it. In `agentminder-registration`, never print the plan:
+   follow [its README](terraform/cloud-admin/agentminder-registration/README.md).
 
 3. All plans must show no changes. If one shows a change you did not
    make, stop: your files differ from the team's.
@@ -196,7 +245,7 @@ shares, and nothing else that is not in git:
 
 Do not create your own deploy key, password hash, or passwords.
 
-That is all for the demo. `terraform/runner` is a third root, for the
+That is all for the demo. `terraform/runner` is one more root, for the
 runner that the GitHub workflows run on. You need it only to change the
 runner. It has two more shared secrets, the vCenter password and the
 GitHub App's private key: see
@@ -205,16 +254,18 @@ GitHub App's private key: see
 ## Running Terraform from GitHub
 
 The persona roots can also run in GitHub Actions, on a runner in the
-lab. There is one workflow for each persona:
+lab. There is one Terraform workflow for each persona, and one workflow
+that pushes the incident apps:
 
-| Workflow | Root |
+| Workflow | What it runs |
 |---|---|
 | `cloud-admin` | Four jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder`, then `agentminder-registration` runs `terraform/cloud-admin/agentminder-registration` |
 | `platform-engineer` | `terraform/platform-engineer` |
+| `tanzu-apps` | `cf push` of each app in `tanzu/metal-music-app-agentic-system`, then their network policies. See [its README](tanzu/metal-music-app-agentic-system/README.md) |
 
-A workflow runs only when a person starts it. Nothing runs on a pull
-request or on a push. In GitHub: Actions, the workflow, **Run workflow**.
-Or:
+A Terraform workflow runs only when a person starts it. Nothing runs on a
+pull request or on a push. In GitHub: Actions, the workflow, **Run
+workflow**. Or:
 
 ```sh
 gh workflow run cloud-admin.yml                 # plan
@@ -225,8 +276,13 @@ A run plans, and the plan is on the run's summary page. It applies only
 with `apply`, and only on `main`: a run on another branch can plan and
 cannot apply.
 
-Nothing orders the two workflows. On a first build, let `cloud-admin`
-finish, then start `platform-engineer`.
+`tanzu-apps` runs on every push to `main` that changes
+`tanzu/metal-music-app-agentic-system`, and by hand. It does not plan or
+apply; it pushes.
+
+Nothing orders the workflows. On a first build: `cloud-admin`, then
+`platform-engineer`, then `cloud-admin` again (its last job needs the
+space that `platform-engineer` makes), then `tanzu-apps`.
 
 The workflows use the same state and the same shared secrets as a
 machine does, so a run and a teammate's `terraform apply` are the same
@@ -237,8 +293,8 @@ says how the runner is built.
 
 ## Quickstart
 
-For a first build: from an empty org to a served model. About 20
-minutes, most of it waiting.
+For a first build: from an empty org to the shop and the incident demo.
+Most of the time is waiting for VKS clusters and the model.
 
 ### Before you start
 
@@ -252,10 +308,18 @@ The lab must already have:
   infrastructure policy and PostgreSQL 16 enabled.
 - Private AI Services installed as a Supervisor Service, with the Qwen
   model and the engine image in the Supervisor's Harbor.
-- The Argo CD Supervisor Service.
+- The Argo CD Supervisor Service, and Secret Store (the vault injector) on
+  the Supervisor.
+- The VKS addons `external-secrets` and `cert-manager` in the Supervisor's
+  addon repository.
+- Avi's `System-WAF-Policy`, set to enforcement if the shop's WAF must
+  block.
+- A Tanzu Platform foundation with the org `Goad`, and the Tanzu Hub
+  account `goad-deployer` that the workflows log in as. The incident apps
+  run there.
 
-Your machine needs `terraform` 1.11 or later, `git`, `gh`, `openssl`, `curl`, and
-a network path to VCF Automation and to the lab's Gitea server.
+Your machine needs `terraform` 1.11 or later, `git`, `gh`, `openssl`, `curl`, `jq`, and
+a network path to VCF Automation, to Tanzu Platform, and to the lab's Gitea server.
 
 You need the password of the provider administrator (`admin` in the
 `System` org), admin rights on this GitHub repository, and the token of
@@ -306,12 +370,13 @@ terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
-It logs in to the org as `cloud-admin` and imports the VCF SSO users:
-the platform engineers, who become admins of the project
-`default-project`, and the AD service account
+It logs in to the org as `cloud-admin` and imports from VCF SSO the AD
+group `ans-platform-engineer@set.lab`, whose members become admins of the
+project `default-project`, and the AD service account
 `svc.platform_engineer@set.lab`. It also creates the Service Engine
-Group, the project `cloud-admin`, a namespace in it, and the VKS cluster
-`agentminder`. The cluster takes a while to come up.
+Group, the project `kro-authors` for kro APIs, the project `cloud-admin`,
+a namespace in it, and the VKS cluster `agentminder`. The cluster takes a
+while to come up.
 
 ### 1c. Cloud admin: install AgentMinder
 
@@ -326,8 +391,8 @@ terraform apply
 
 It reads the cluster from the state of `org-config` and installs
 `ingress-nginx` and AgentMinder with Helm. AgentMinder is installed
-small, with no agents configured:
-[decision 30](docs/decisions.md). Avi DNS makes the record for
+small: [decision 30](docs/decisions.md). Its agents are registered later,
+in step 5. Avi DNS makes the record for
 `agentminder.goad.gpu.set.lab` by itself: see decision 31.
 
 ### 2. Give Argo CD read access to this repository
@@ -370,24 +435,35 @@ Again two files:
 
 - `lab.auto.tfvars`, in git: the region, zone, VPC, storage class, and
   the path of the deploy key.
-- `terraform.tfvars`, not in git: `vcfa_api_token`, the API token above,
-  and `pais_admin_password_hash`, the
-  output of `openssl passwd -6` for the Private AI Services user
-  `admin`. If the demo is already built, copy the team's file.
+- `terraform.tfvars`, not in git: `vcfa_api_token`, the API token above;
+  `pais_admin_password_hash`, the output of `openssl passwd -6` for the
+  Private AI Services user `admin`; the music store's and the platform
+  tools' passwords and keys, which Terraform writes to Secret Store; and
+  the incident apps' keys for their Cloud Foundry services. In GitHub
+  each is a repository secret: `terraform.tfvars.example` names them. If
+  the demo is already built, copy the team's file.
 
 ```sh
 cp backend.hcl.example backend.hcl
+export CF_ACCESS_TOKEN=<a Tanzu Platform token for goad-deployer>
 terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
-It creates the namespaces `platform-xxxxx`,
-`private-ai-xxxxx`, and `music-store-xxxxx`, and the Argo CD instance.
-For each namespace other than `platform` it creates one Argo CD
-Application that syncs `gitops/<namespace key>/` into it. It also creates
-the content library `goad-images` and uploads the Ubuntu image to it, for
+It creates the namespaces `platform-xxxxx`, `private-ai-xxxxx`,
+`music-store-xxxxx`, and `platform-tools-xxxxx`, and the Argo CD
+instance. For each namespace other than `platform` it creates one Argo CD
+Application that syncs `gitops/<namespace key>/` into it. It registers
+the VKS clusters `music-store` and `platform-tools` with Argo CD and
+creates the Applications that sync into them. It writes the secrets into
+Secret Store as `KeyValueSecret`s (decision 38). It also creates the
+content library `goad-images` and uploads the Ubuntu image to it, for
 the users VM. The first apply downloads about 570 MiB with `curl`, so the
 machine needs internet access to cloud-images.ubuntu.com.
+
+On Tanzu Platform it creates the space `metal-music-app-agentic-system`
+in org `Goad`, and the user-provided services `goad-qwen` and `sc-*` that
+the incident apps bind (decision 40).
 
 `terraform output namespaces` prints the generated namespace names.
 
@@ -401,7 +477,7 @@ and waits for each to be healthy:
 | 0 | DSM `PostgresCluster` `pais-db`, and its Service | 5 minutes |
 | 1 | The Job that points the Service at the database | under a minute |
 | 2 | `PAISConfiguration` | 3 minutes |
-| 3 | `ModelEndpoint` `qwen` | 1 minute |
+| 3 | `ModelEndpoint` `qwen-14b-xlarge`, routing name `qwen` | a few minutes, for the model load |
 
 DSM assigns the database its address when it creates it. Nothing in git
 holds that address: Private AI Services connects to the Service name
@@ -409,9 +485,11 @@ holds that address: Private AI Services connects to the Service name
 Endpoints.
 
 Argo CD syncs `gitops/music-store/` the same way, into the `music-store`
-namespace: the catalog database and the VKS cluster `music-store`, with
-the same kind of Service name in front of the database. The cluster takes
-about 15 minutes to build.
+namespace: the catalog database and the VKS cluster `music-store` with its
+ESO and cert-manager addons, with the same kind of Service name in front
+of the database. The cluster takes about 15 minutes to build. Then
+`music-store-platform` puts the `ClusterSecretStore` and the Gateway's
+certificate in the cluster.
 
 Argo CD then syncs `gitops/music-store-dev/` as the developer. The
 Application `music-store-dev-vm` creates the users VM in the same
@@ -420,10 +498,44 @@ into Endpoints in the VKS cluster. The Application `music-store-dev-app`
 deploys the containers onto the cluster. Both depend on the cluster and
 the catalog, so they retry until those exist.
 
-### 5. Check it
+Argo CD syncs `gitops/platform-tools/` into the `platform-tools`
+namespace: the VKS cluster `platform-tools` and its ESO addon. Then
+`platform-tools-apps` puts Zammad, Grafana, Prometheus and the blackbox
+exporter in it, in namespace `incident-tools`.
+
+### 5. Cloud admin: register the incident agents in AgentMinder
+
+Needs the space from step 3.
+
+```sh
+cd terraform/cloud-admin/agentminder-registration
+cp terraform.tfvars.example terraform.tfvars   # cloud_admin_password, the same as in org
+cp backend.hcl.example backend.hcl             # then put the state token in it
+export TF_HTTP_PASSWORD=<the same token>
+export CF_ACCESS_TOKEN=<a Tanzu Platform token for goad-deployer>
+terraform init -backend-config=backend.hcl
+```
+
+Then plan and apply as its
+[README](terraform/cloud-admin/agentminder-registration/README.md) says,
+without printing the plan: the plan can show client secrets. It creates
+the MCP servers and clients in AgentMinder, and the services `am-*` that
+hand each diagnostic agent its client.
+
+### 6. Push the incident apps
+
+Zammad starts empty. Create its admin and the walk tickets' organization,
+then store the admin's API token as the GitHub secret
+`INCIDENT_ZAMMAD_TOKEN`: see [gitops/README.md](gitops/README.md). Then
+run the `tanzu-apps` workflow, or push a change under
+`tanzu/metal-music-app-agentic-system`.
+[Its README](tanzu/metal-music-app-agentic-system/README.md) lists the
+GitHub secrets it reads and how to start a walk.
+
+### 7. Check it
 
 - **VCF Automation**, as a member of `ans-platform-engineer@set.lab`
-  (for example `william.arroyo@set.lab`) in the org `goad`: three
+  (for example `william.arroyo@set.lab`) in the org `goad`: four
   namespaces in the default project.
 - **Argo CD**: the address is the `externalIP` in the status of the
   `ArgoCD` object in the `platform` namespace. Log in with "VCF
@@ -436,28 +548,38 @@ the catalog, so they retry until those exist.
 - **AgentMinder**: `kubectl -n ssp get pods` on the cluster
   `agentminder` shows every pod running. Then
   `https://agentminder.goad.gpu.set.lab` answers.
-- **VKS cluster**: the Cluster `music-store` in the `music-store`
-  namespace is Available (`kubectl get clusters` in that namespace).
+- **VKS clusters**: the Cluster `music-store` in the `music-store`
+  namespace and the Cluster `platform-tools` in the `platform-tools`
+  namespace are Available (`kubectl get clusters` in each namespace).
+- **The shop**: `https://music.goad.gpu.set.lab` answers, with a
+  self-signed certificate.
+- **The incident tools**: `http://zammad.goad.gpu.set.lab` and
+  `http://grafana.goad.gpu.set.lab` answer.
+- **The incident apps**: `cf apps` in org `Goad`, space
+  `metal-music-app-agentic-system`, shows nine apps running.
 - **Terraform**: `terraform plan` in each root shows no changes.
 
 ### Tear down
 
-Reverse order. The platform engineer first, because its namespaces use
+Reverse order. `agentminder-registration` first: it needs the running
+AgentMinder to delete its objects, and its services are in the platform
+engineer's space. Then the platform engineer, because its namespaces use
 the Service Engine Group, and the org cannot be deleted while it has
-namespaces and a Service Engine Group. Then `agentminder-registration`, which needs the running AgentMinder to delete its objects, then `agentminder`, because its
+namespaces and a Service Engine Group. Then `agentminder`, because its
 cluster must exist for Helm to remove what it installed. Then
 `org-config`, then `org`.
 
 ```sh
-cd terraform/platform-engineer && terraform destroy
-cd ../cloud-admin/agentminder-registration && terraform destroy
-cd ../agentminder && terraform destroy
+cd terraform/cloud-admin/agentminder-registration && terraform destroy
+cd ../../platform-engineer && terraform destroy
+cd ../cloud-admin/agentminder && terraform destroy
 cd ../org-config && terraform destroy
 cd ../org && terraform destroy
 ```
 
 Deleting a namespace deletes what Argo CD put in it: for `private-ai`,
-the database, Private AI Services, and the model.
+the database, Private AI Services, and the model; for `music-store` and
+`platform-tools`, their VKS clusters.
 
 ## Terraform state
 
@@ -470,6 +592,7 @@ talks to it, with locking. Gitea keeps every version of the state.
 | `terraform/cloud-admin/org` | `goad-cloud-admin` |
 | `terraform/cloud-admin/org-config` | `goad-cloud-admin-org-config` |
 | `terraform/cloud-admin/agentminder` | `goad-cloud-admin-agentminder` |
+| `terraform/cloud-admin/agentminder-registration` | `goad-cloud-admin-agentminder-registration` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
 | `terraform/runner` | `goad-runner` |
 
@@ -493,17 +616,18 @@ what to do when it goes wrong, and how to go back to an earlier state.
 
 ```
 terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
-terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, AgentMinder's cluster
+terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, kro-authors, AgentMinder's cluster
 terraform/cloud-admin/agentminder/ Stage 3, AgentMinder on that cluster, with Helm
 terraform/cloud-admin/agentminder-registration/ Stage 4, the incident demo's agents registered in AgentMinder
-terraform/platform-engineer/   Inside the org; stops at the handoff to Argo CD
-terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
+terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD handoff, Tanzu Platform space
   manifests/                   Manifests that Terraform applies
-gitops/<namespace key>/        What Argo CD syncs into that namespace
+terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
+gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
+gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster
 gitops/music-store-dev/        The developer's part: users-vm/ into the Supervisor Namespace, app/ into the VKS cluster
-tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
 gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
-scripts/                       What a person runs by hand: setup once, and the incident walk
+tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
+scripts/                       What a person runs by hand: setup once, the SDK mirror, and the incident walk
 .github/workflows/             One Terraform workflow for each persona, and tanzu-apps.yml
 .github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer
 .github/actions/cf-token/      Gets a Tanzu Platform token for goad-deployer, for Terraform
@@ -517,8 +641,10 @@ pushes it, it is under `tanzu/`. If a person runs it, it is under
 
 To give Argo CD another namespace, add it to `namespaces` in
 `terraform/platform-engineer` and add the directory `gitops/<key>/`.
-`music-store` was added that way.
-Manifests under `gitops/` do not set a namespace.
+`music-store` and `platform-tools` were added that way. Manifests under
+`gitops/<namespace key>/` do not set a namespace. A directory that syncs
+into a VKS cluster has its own `ManagedEntity` and Application in
+`terraform/platform-engineer/gitops.tf`.
 
 ## Things to know
 
@@ -561,3 +687,5 @@ Manifests under `gitops/` do not set a namespace.
 | [terraform/cloud-admin/agentminder/README.md](terraform/cloud-admin/agentminder/README.md) | The cloud admin Terraform, stage 3 (AgentMinder), in detail |
 | [terraform/cloud-admin/agentminder-registration/README.md](terraform/cloud-admin/agentminder-registration/README.md) | The cloud admin Terraform, stage 4 (AgentMinder registration), in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |
+| [gitops/README.md](gitops/README.md) | Each gitops directory, its owner and Application, and how host names are published |
+| [tanzu/metal-music-app-agentic-system/README.md](tanzu/metal-music-app-agentic-system/README.md) | The incident demo's Cloud Foundry apps, their secrets, and how to run a walk |

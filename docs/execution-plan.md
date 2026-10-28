@@ -4,33 +4,36 @@ Suggested order. The design is the target. The script is ahead of
 the software. Build one true scene, then write the narration for
 that scene. Do not film a product that is not installed.
 
-## Status on 2026-10-08
+## Status on 2026-10-28
 
 This plan was written before any of the software in this repository
 existed. It is kept as written below. What has changed since:
 
 - **Built and running in the lab:** the cloud admin and platform
   engineer Terraform, Argo CD, a DSM database, and Private AI Services
-  with the Qwen model on CPU. The quickstart in the top-level README
+  with the Qwen 14B model on CPU. The quickstart in the top-level README
   builds all of it. This covers "Terraform plus Argo CD against VCF
   Automation" and DSM from the list of what was not there.
-- **In git, handed to Argo CD:** the DSM catalog database, in
-  `gitops/music-store/`, and the users VM Service VM, in
-  `gitops/music-store-dev/users-vm/`. This is both moves of step 4.
-- **In git, handed to Argo CD:** the music-store VKS cluster, in
-  `gitops/music-store/cluster.yaml`.
-- **In git, handed to Argo CD, not yet applied in the lab:** the store,
-  cart, and orders containers on VKS (step 2), in
-  `gitops/music-store-dev/app/`. The Applications need a platform
-  engineer apply.
-- **Not started:** the Oracle on Tanzu (step 3) and the security
-  episode (step 6).
-- **In git, not configured:** AgentMinder for goad. A GOAD-owned
-  install, in the `cloud-admin` project on its own VKS cluster
-  (`terraform/cloud-admin/agentminder`). It has no agents configured
-  yet.
-- **Still true:** no GPU. Istio, OPA, Headlamp, vDefend DFW, and
-  Antrea policy are not in the repository.
+- **Built, from Argo CD:** the music-store VKS cluster and the DSM
+  catalog database, in `gitops/music-store/`, and the users VM Service
+  VM, in `gitops/music-store-dev/users-vm/`. This is both moves of
+  step 4.
+- **Built, from Argo CD:** the store, cart, orders, and chat containers
+  on VKS (step 2), in `gitops/music-store-dev/app/`, published at
+  `music.goad.gpu.set.lab` through Gateway API with Avi's WAF on the
+  route (decision 43). Their secrets come from Secret Store through ESO
+  (decision 38). The traffic generator is not deployed (decision 44).
+- **Built:** an incident demo. Agents and MCP servers on Tanzu Platform
+  (`tanzu/metal-music-app-agentic-system`, decision 40), registered in a
+  GOAD-owned AgentMinder (`terraform/cloud-admin/agentminder` and
+  `agentminder-registration`, decision 41). Their tools, Zammad, Grafana
+  and Prometheus, run on a platform tools VKS cluster from gitops
+  (decision 42).
+- **Not started:** the Oracle as its own Tanzu app (step 3); the chat
+  runs as a container in the shop. The security episode (step 6) has the
+  WAF, and nothing else.
+- **Still true:** no GPU. Istio, OPA, Headlamp, and vDefend DFW are not
+  in the repository, and no Antrea policy is applied.
 - **Changed:** the master is on GitHub. The lab git server holds the
   Terraform state: see `docs/terraform-state.md`.
 

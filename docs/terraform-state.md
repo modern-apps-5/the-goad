@@ -37,6 +37,13 @@ or for the two keys, instructions in `terraform.tfvars.example`.
 Lab values are in git so that they cannot differ between people. Only
 what is secret has to be passed around.
 
+`terraform/platform-engineer` and
+`terraform/cloud-admin/agentminder-registration` also need
+`CF_ACCESS_TOKEN` in the environment, a Tanzu Platform token for
+`goad-deployer`, for the Cloud Foundry provider. It expires in 30 minutes
+and is not shared: get a new one for each run. The workflows get it with
+the `cf-token` action.
+
 `terraform/cloud-admin/agentminder` also reads the state of `org-config`
 with `terraform_remote_state`. A data source cannot read `backend.hcl`,
 so on a machine also `export TF_HTTP_PASSWORD=<the same token>` before
@@ -66,7 +73,10 @@ and do not make your own.
 |---|---|---|
 | Deploy key | `terraform/platform-engineer/.secrets/gitops-deploy-key` | Terraform replaces the key in Argo CD's repository Secret with yours. Yours is not on the GitHub repository, so Argo CD can no longer read git and stops syncing. |
 | `pais_admin_password_hash` | `terraform/platform-engineer/terraform.tfvars` | The hash is salted. A new hash of the same password is still a different value, so Terraform rewrites the Secret and Private AI Services restarts pods. Copy the hash itself. |
-| `cloud_admin_password` | `terraform/cloud-admin/org/terraform.tfvars`, `terraform/cloud-admin/org-config/terraform.tfvars`, and `terraform/cloud-admin/agentminder/terraform.tfvars` | Terraform changes the password of `cloud-admin`, the org's one local user. Stage 2 and everyone else's login then fail. It is the same value in all three files. |
+| `cloud_admin_password` | `terraform/cloud-admin/org/terraform.tfvars`, `terraform/cloud-admin/org-config/terraform.tfvars`, `terraform/cloud-admin/agentminder/terraform.tfvars`, and `terraform/cloud-admin/agentminder-registration/terraform.tfvars` | Terraform changes the password of `cloud-admin`, the org's one local user. The later stages and everyone else's login then fail. It is the same value in all four files. |
+| `music_store_db_password` | `terraform/platform-engineer/terraform.tfvars` | Terraform rewrites the KV in Secret Store. The next sync of `catalog-init` sets it on the database, and the shop's pods need a restart to pick it up. |
+| `music_store_chat_api_key`, `incident_grafana_admin_password`, `incident_zammad_db_password`, `incident_zammad_admin_password` | `terraform/platform-engineer/terraform.tfvars` | Terraform rewrites the KV in Secret Store, and ESO copies the new value into the cluster. Keep the GitHub secret with the same name the same: `tanzu-apps` gives the incident apps the Grafana password from there. |
+| `incident_qwen_api_key`, `incident_k8s_token`, `incident_sidecar_token` | `terraform/platform-engineer/terraform.tfvars` | Terraform rewrites the Cloud Foundry services. `tanzu-apps` pushes the same three from GitHub secrets, so the two copies differ until both match. |
 | `ssp_registry_username` and `ssp_registry_password` | `terraform/cloud-admin/agentminder/terraform.tfvars` | Not written to the lab, but a wrong one fails the image pulls from Broadcom's registry. Terraform does write them into the Secret `ssp-registry`. |
 | `ops_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the VCF Operations login that makes the org's VCF SSO client. |
 | `vcfa_api_token` | `terraform/platform-engineer/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is an API token of `svc.platform_engineer@set.lab`, made by hand once. |
@@ -92,8 +102,11 @@ manager, and copy the whole file.
 - `terraform/cloud-admin/org-config/terraform.tfvars` (one password)
 - `terraform/cloud-admin/agentminder/terraform.tfvars` (the same password,
   and the registry login)
+- `terraform/cloud-admin/agentminder-registration/terraform.tfvars` (the
+  same password)
 - `terraform/platform-engineer/terraform.tfvars` (one API token, one
-  hash)
+  hash, and the music store's, platform tools' and incident apps'
+  passwords and keys)
 - `terraform/platform-engineer/.secrets/gitops-deploy-key`
 - The token for `backend.hcl`
 
@@ -144,9 +157,10 @@ too.
 
 Passwords, a token, and a private key: the VCF Automation provider
 administrator password, the `cloud-admin` password, the VCF Operations
-password, the platform engineer's API token, the Argo CD deploy key, and
-the Private AI Services password hash. Anyone with the shared token can
-read them. Treat the token as you would those.
+password, the platform engineer's API token, the Argo CD deploy key, the
+Private AI Services password hash, the values written to Secret Store and
+to the Cloud Foundry services, and the AgentMinder clients' secrets. Anyone
+with the shared token can read them. Treat the token as you would those.
 
 ## How it was set up in Gitea
 
