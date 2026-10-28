@@ -30,3 +30,11 @@ runner_commit = "8ff90daaf1b624195c82a20d0a9293e8cd02252b"
 # prints the ID when it creates the App. The ID is not a secret. Without
 # it, Terraform creates the namespace and no runner.
 github_app_id = "5288268"
+
+# Upstream gives each runner 2 CPU and 2Gi. The Tanzu cf CLI's first run
+# (tanzu-apps.yml) starts dozens of plugin processes at once and got pods
+# evicted for memory pressure. The VM is sized from the limits.
+runner_resources = {
+  requests = { cpu = "1", memory = "2Gi" }
+  limits   = { cpu = "4", memory = "8Gi" }
+}
