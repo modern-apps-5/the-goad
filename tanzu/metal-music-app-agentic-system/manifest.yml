@@ -1,0 +1,286 @@
+# The Metal Music incident apps. Org Goad, space metal-music-app-agentic-system.
+#
+# .github/workflows/tanzu-apps.yml pushes this on every change under tanzu/,
+# after stage.sh. The space and the user-provided services are the platform
+# engineer's Terraform (terraform/platform-engineer/tanzu.tf); this file
+# only binds them.
+#
+# ((name)) is a secret. The workflow writes the values from GitHub secrets to
+# a vars file for the push and deletes it after. Never put a value here.
+#
+# The four agents run on Tanzu Agent Builder: python_buildpack, then
+# agent_buildpack, which starts tanzu-agent. The three diagnostic agents run
+# the AgentMinder sidecar on 127.0.0.1:8181. Their MCP tools go through it.
+# *_CONNECT_IP pins a lab name to its address inside the app.
+---
+applications:
+  - name: metal-k8s-mcp
+    path: metal-k8s-mcp
+    command: python k8s_mcp.py
+    buildpacks: [python_buildpack]
+    memory: 256M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: metal-k8s-mcp.apps.goad.gpu.set.lab
+    services: [k8s-mcp-cluster]
+    env:
+      IDSP_ISSUER: https://agentminder.goad.gpu.set.lab/default
+      IDSP_TLS_VERIFY: "0"
+      AGENTMINDER_CONNECT_IP: 10.47.7.82
+      MCP_RESOURCE_URL: https://metal-k8s-mcp.apps.goad.gpu.set.lab/mcp
+      MCP_READ_TOKEN: ((mcp_read_token))
+      MCP_WRITE_TOKEN: ((mcp_write_token))
+      K8S_API_SERVER: https://10.47.7.81
+      K8S_TOKEN: ((k8s_token))
+      K8S_NAMESPACE: metal-music-store
+      K8S_API_TIMEOUT: "40"
+
+  - name: metal-avi-mcp
+    path: metal-avi-mcp
+    command: python server.py
+    buildpacks: [python_buildpack]
+    memory: 256M
+    disk_quota: 512M
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: metal-avi-mcp.apps.goad.gpu.set.lab
+    env:
+      IDSP_ISSUER: https://agentminder.goad.gpu.set.lab/default
+      IDSP_TLS_VERIFY: "0"
+      AGENTMINDER_CONNECT_IP: 10.47.7.82
+      MCP_RESOURCE_URL: https://metal-avi-mcp.apps.goad.gpu.set.lab/mcp
+      MCP_READ_TOKEN: ((mcp_read_token))
+      MCP_WRITE_TOKEN: ((mcp_write_token))
+      AVI_CONTROLLER: 10.47.0.180
+      AVI_USERNAME: ((avi_username))
+      AVI_PASSWORD: ((avi_password))
+      AVI_TENANT: goad
+
+  - name: metal-vcf-mcp
+    path: metal-vcf-mcp
+    command: python -m vcf_mcp serve-http
+    buildpacks: [python_buildpack]
+    memory: 512M
+    disk_quota: 2G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 120
+    routes:
+      - route: metal-vcf-mcp.apps.goad.gpu.set.lab
+    env:
+      IDSP_ISSUER: https://agentminder.goad.gpu.set.lab/default
+      AGENTMINDER_CONNECT_IP: 10.47.7.82
+      VCF_MCP_HOSTS_FILE: /home/vcap/app/hosts.json
+      VCF_MCP_SPEC_DIR: /home/vcap/app/specs
+      VCF_ALLOWED_HOSTS: metal-vcf-mcp.apps.goad.gpu.set.lab
+      VCF_MCP_RESOURCE_URL: https://metal-vcf-mcp.apps.goad.gpu.set.lab/mcp
+      VCF_MCP_VERIFY_TLS: "0"
+      VCF_MCP_OAUTH_TLS_VERIFY: "0"
+      VCF_MCP_OAUTH_ISSUER: https://agentminder.goad.gpu.set.lab/default
+      VCF_DISK_LATENCY_REPLAY: "on"
+      PYTHONPATH: /home/vcap/app
+      PYTHONUNBUFFERED: "1"
+
+  - name: pii-scrub
+    path: pii-scrub
+    command: python scrub.py
+    buildpacks: [python_buildpack]
+    memory: 256M
+    disk_quota: 512M
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: pii-scrub.apps.goad.gpu.set.lab
+
+  # The orchestrator. It calls the diagnostic agents on apps.internal.
+  - name: metal-incident-live
+    path: metal-incident-live
+    command: python harness.py
+    buildpacks: [python_buildpack]
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: metal-incident-live.apps.goad.gpu.set.lab
+      - route: metal-incident-live.apps.internal
+    env:
+      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_API_KEY: ((qwen_api_key))
+      QWEN_MODEL: qwen
+      STORE_URL: https://music.goad.gpu.set.lab/
+      STORE_CONNECT_IP: 10.47.7.68
+      STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
+      GRAFANA_URL: http://grafana.goad.gpu.set.lab
+      GRAFANA_CONNECT_IP: 10.47.7.84
+      GRAFANA_ADMIN_PASSWORD: ((grafana_admin_password))
+      ZAMMAD_URL: https://zammad.goad.gpu.set.lab
+      ZAMMAD_CONNECT_IP: 10.47.7.83
+      ZAMMAD_TOKEN: ((zammad_token))
+      AGENTMINDER_CONNECT_IP: 10.47.7.82
+      LB_AGENT_URL: http://lb-diagnostic-agent.apps.internal:8080/api/chat
+      K8S_AGENT_URL: http://k8s-diagnostic-agent.apps.internal:8080/api/chat
+      VCF_AGENT_URL: http://vcf-diagnostic-agent.apps.internal:8080/api/chat
+
+  - name: incident-response-agent
+    path: incident-response-agent
+    buildpacks: [python_buildpack, agent_buildpack]
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: incident-response-agent.apps.goad.gpu.set.lab
+    services: [goad-qwen, sc-incident-response-agent-orch]
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      ORCHESTRATOR_URL: http://metal-incident-live.apps.internal:8080/run
+      ZAMMAD_URL: https://zammad.goad.gpu.set.lab
+      ZAMMAD_CONNECT_IP: 10.47.7.83
+      ZAMMAD_TOKEN: ((zammad_token))
+
+  - name: lb-diagnostic-agent
+    path: lb-diagnostic-agent
+    buildpacks: [python_buildpack, agent_buildpack]
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: lb-diagnostic-agent.apps.goad.gpu.set.lab
+      - route: lb-diagnostic-agent.apps.internal
+    services: [goad-qwen, sc-lb-diagnostic-agent-avi]
+    sidecars:
+      - name: agentminder-sdk
+        process_types: [web]
+        command: bash sidecar/run-sidecar.sh
+        memory: 128M
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      AGENT_ROLE: lb_diagnostic_agent
+      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_API_KEY: ((qwen_api_key))
+      QWEN_MODEL: qwen
+      STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
+      AGENTMINDER_CONNECT_IP: 10.47.7.82
+      AGENTMINDER_IDSP_URL: https://agentminder.goad.gpu.set.lab/default
+      AGENTMINDER_VERIFY_SSL: "false"
+      AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
+      AM_TOKEN_URL: https://agentminder.goad.gpu.set.lab/default/oauth2/v1/token
+      AM_CLIENT_ID: ceb9c864-a1b4-498c-992b-352498103fdb
+      AM_CLIENT_SECRET: ((am_lb_client_secret))
+      AM_GATEWAY: &lb_gateway https://agentminder.goad.gpu.set.lab/default/aigateway/v1/mcp/MDc2MmFhNzEtMTdkMC00NTY5LWIzMGUtZjNjNTllYzQ5YTIw
+      AGENTMINDER_SIDECAR_AGENT_CLIENT_ID: ceb9c864-a1b4-498c-992b-352498103fdb
+      AGENTMINDER_SIDECAR_AGENT_CLIENT_SECRET: ((am_lb_client_secret))
+      AGENTMINDER_ORCHESTRATOR_CLIENT_ID: ceb9c864-a1b4-498c-992b-352498103fdb
+      AGENTMINDER_ORCHESTRATOR_CLIENT_SECRET: ((am_lb_client_secret))
+      AGENTMINDER_SIDECAR_RESOURCE_0_NAME: avi
+      AGENTMINDER_SIDECAR_RESOURCE_0_URL: *lb_gateway
+      AGENTMINDER_SIDECAR_RESOURCE_0_AUDIENCE: *lb_gateway
+
+  - name: k8s-diagnostic-agent
+    path: k8s-diagnostic-agent
+    buildpacks: [python_buildpack, agent_buildpack]
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: k8s-diagnostic-agent.apps.goad.gpu.set.lab
+      - route: k8s-diagnostic-agent.apps.internal
+    services: [goad-qwen, sc-k8s-diagnostic-agent-k8s]
+    sidecars:
+      - name: agentminder-sdk
+        process_types: [web]
+        command: bash sidecar/run-sidecar.sh
+        memory: 128M
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      AGENT_ROLE: k8s_diagnostic_agent
+      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_API_KEY: ((qwen_api_key))
+      QWEN_MODEL: qwen
+      STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
+      AGENTMINDER_CONNECT_IP: 10.47.7.82
+      AGENTMINDER_IDSP_URL: https://agentminder.goad.gpu.set.lab/default
+      AGENTMINDER_VERIFY_SSL: "false"
+      AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
+      AM_TOKEN_URL: https://agentminder.goad.gpu.set.lab/default/oauth2/v1/token
+      AM_CLIENT_ID: 89d3b67d-7098-44eb-a9a9-5a8226b9647a
+      AM_CLIENT_SECRET: ((am_k8s_client_secret))
+      AM_GATEWAY: &k8s_gateway https://agentminder.goad.gpu.set.lab/default/aigateway/v1/mcp/ODY3NzdlMGMtZTEyYS00YzVkLWEwNTQtNjkxZGM4NTEzMWEw
+      AGENTMINDER_SIDECAR_AGENT_CLIENT_ID: 89d3b67d-7098-44eb-a9a9-5a8226b9647a
+      AGENTMINDER_SIDECAR_AGENT_CLIENT_SECRET: ((am_k8s_client_secret))
+      AGENTMINDER_ORCHESTRATOR_CLIENT_ID: 89d3b67d-7098-44eb-a9a9-5a8226b9647a
+      AGENTMINDER_ORCHESTRATOR_CLIENT_SECRET: ((am_k8s_client_secret))
+      AGENTMINDER_SIDECAR_RESOURCE_0_NAME: k8s
+      AGENTMINDER_SIDECAR_RESOURCE_0_URL: *k8s_gateway
+      AGENTMINDER_SIDECAR_RESOURCE_0_AUDIENCE: *k8s_gateway
+
+  - name: vcf-diagnostic-agent
+    path: vcf-diagnostic-agent
+    buildpacks: [python_buildpack, agent_buildpack]
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /health
+    health-check-invocation-timeout: 60
+    routes:
+      - route: vcf-diagnostic-agent.apps.goad.gpu.set.lab
+      - route: vcf-diagnostic-agent.apps.internal
+    services: [goad-qwen, sc-vcf-diagnostic-agent-vcf]
+    sidecars:
+      - name: agentminder-sdk
+        process_types: [web]
+        command: bash sidecar/run-sidecar.sh
+        memory: 128M
+    env:
+      TANZU_AGENT_ENABLE_DEBUG_UI: "true"
+      AGENT_ROLE: vcf_diagnostic_agent
+      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_API_KEY: ((qwen_api_key))
+      QWEN_MODEL: qwen
+      STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
+      AGENTMINDER_CONNECT_IP: 10.47.7.82
+      AGENTMINDER_IDSP_URL: https://agentminder.goad.gpu.set.lab/default
+      AGENTMINDER_VERIFY_SSL: "false"
+      AGENTMINDER_SIDECAR_TOKEN: ((sidecar_token))
+      AM_TOKEN_URL: https://agentminder.goad.gpu.set.lab/default/oauth2/v1/token
+      AM_CLIENT_ID: 3664c5d9-7083-4b61-abcf-8f9a92275c0b
+      AM_CLIENT_SECRET: ((am_vcf_client_secret))
+      AM_GATEWAY: &vcf_gateway https://agentminder.goad.gpu.set.lab/default/aigateway/v1/mcp/NTYzZWYxY2MtMWMxZi00OTBkLWE2MjUtNzUyODQ4ODJhZDMw
+      AGENTMINDER_SIDECAR_AGENT_CLIENT_ID: 3664c5d9-7083-4b61-abcf-8f9a92275c0b
+      AGENTMINDER_SIDECAR_AGENT_CLIENT_SECRET: ((am_vcf_client_secret))
+      AGENTMINDER_ORCHESTRATOR_CLIENT_ID: 3664c5d9-7083-4b61-abcf-8f9a92275c0b
+      AGENTMINDER_ORCHESTRATOR_CLIENT_SECRET: ((am_vcf_client_secret))
+      AGENTMINDER_SIDECAR_RESOURCE_0_NAME: vcf
+      AGENTMINDER_SIDECAR_RESOURCE_0_URL: *vcf_gateway
+      AGENTMINDER_SIDECAR_RESOURCE_0_AUDIENCE: *vcf_gateway

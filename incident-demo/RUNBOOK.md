@@ -127,19 +127,18 @@ Avi.
 
 Routes, after `cf push`:
 
-- `https://incident-response-agent.${TANZU_APPS_DOMAIN}/` is the chat
-- `https://lb-diagnostic-agent.${TANZU_APPS_DOMAIN}/health`
-- `https://k8s-diagnostic-agent.${TANZU_APPS_DOMAIN}/health`
-- `https://vcf-diagnostic-agent.${TANZU_APPS_DOMAIN}/health`
-- `https://metal-k8s-mcp.${TANZU_APPS_DOMAIN}/health`
-- `https://metal-avi-mcp.${TANZU_APPS_DOMAIN}/health`
-- `https://metal-vcf-mcp.${TANZU_APPS_DOMAIN}/health`
-- `https://metal-incident-live.${TANZU_APPS_DOMAIN}/health`
-- `https://pii-scrub.${TANZU_APPS_DOMAIN}/health`
+- `https://incident-response-agent.apps.goad.gpu.set.lab/` is the chat
+- `https://lb-diagnostic-agent.apps.goad.gpu.set.lab/health`
+- `https://k8s-diagnostic-agent.apps.goad.gpu.set.lab/health`
+- `https://vcf-diagnostic-agent.apps.goad.gpu.set.lab/health`
+- `https://metal-k8s-mcp.apps.goad.gpu.set.lab/health`
+- `https://metal-avi-mcp.apps.goad.gpu.set.lab/health`
+- `https://metal-vcf-mcp.apps.goad.gpu.set.lab/health`
+- `https://metal-incident-live.apps.goad.gpu.set.lab/health`
+- `https://pii-scrub.apps.goad.gpu.set.lab/health`
 
-Manifests: `tanzu-agents/manifest.yml`, `tanzu-agents/mcp.yml`,
-`tanzu-agents/live.yml`, `tanzu-agents/pii.yml`. Push:
-`tanzu-agents/push.py`.
+Manifest: `tanzu/metal-music-app-agentic-system/manifest.yml`. The
+`tanzu-apps` workflow pushes it.
 
 ## Rebuild order
 
@@ -157,15 +156,14 @@ Manifests: `tanzu-agents/manifest.yml`, `tanzu-agents/mcp.yml`,
    namespace `incident-tools`. `ZAMMAD_HTTP_TYPE` is `http` because the published
    URL is `http://`. Set Grafana `admin` and the Zammad admin password
    in the cluster secrets to the standard lab password. Do not print it.
-7. `cf target -o Goad -s metal-music-app-agentic-system` on
-   `https://api.sys.tp.gpu.set.lab`. Create the org and space if they
-   are absent. Do not push into org `demo`.
-8. `python3 tanzu-agents/push.py` with the blanks in the environment
-   (`QWEN_*`, `ZAMMAD_*`, `GRAFANA_*`, `K8S_TOKEN`, Avi controller
-   fields). The script does not print them.
+7. Run the `platform-engineer` workflow with apply. It makes the space
+   `metal-music-app-agentic-system` in org `Goad` and its user-provided
+   services.
+8. Run the `tanzu-apps` workflow. The apps' secrets are the
+   `INCIDENT_*` GitHub secrets.
 9. Point the three AgentMinder resource servers `goad-k8s-mcp`,
    `goad-avi-mcp`, and `goad-vcf-mcp` at
-   `https://metal-*-mcp.${TANZU_APPS_DOMAIN}/mcp`.
+   `https://metal-*-mcp.apps.goad.gpu.set.lab/mcp`.
 10. `walk/demo.sh start` slows the catalog and opens one Zammad ticket.
     It does not start the agents.
 

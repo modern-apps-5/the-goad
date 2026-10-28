@@ -1,0 +1,121 @@
+# Push the incident apps to Tanzu Platform: org Goad, space
+# metal-music-app-agentic-system. See decision 40.
+#
+# Runs on every push to main that changes tanzu/metal-music-app-agentic-system,
+# and by hand from the Actions page. The space and the user-provided services
+# it binds are the platform engineer's Terraform (tanzu.tf), so run
+# platform-engineer.yml first on a new foundation.
+#
+# Every Cloud Foundry login is goad-deployer (cf-login action). The
+# AgentMinder SDK comes from the private package
+# ghcr.io/modern-apps-5/agentminder-sdk, read with this job's GITHUB_TOKEN.
+# The runner has no Docker, so the wheel is pulled with the registry API.
+#
+# The apps' secrets are GitHub secrets INCIDENT_*. They go into a vars file
+# for cf push, under the job's temp directory, deleted when the push ends.
+name: tanzu-apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tanzu/metal-music-app-agentic-system/**
+      - .github/workflows/tanzu-apps.yml
+      - .github/actions/cf-login/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: tanzu-apps
+  cancel-in-progress: false
+
+env:
+  APP_DIR: tanzu/metal-music-app-agentic-system
+  SDK_IMAGE: modern-apps-5/agentminder-sdk
+  # The AgentMinder release installed in the lab. Change it with the mirror:
+  # scripts/mirror-agentminder-sdk.sh.
+  SDK_TAG: "4.1.1"
+
+jobs:
+  push:
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/cf-login
+        with:
+          client-id: ${{ secrets.TANZU_HUB_CLIENT_ID }}
+          client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
+
+      - name: Pull the AgentMinder SDK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          token=$(curl -sf -u "x:$GH_TOKEN" "https://ghcr.io/token?scope=repository:$SDK_IMAGE:pull" | jq -r .token)
+          echo "::add-mask::$token"
+          auth="Authorization: Bearer $token"
+          layer=$(curl -sf -H "$auth" -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+            "https://ghcr.io/v2/$SDK_IMAGE/manifests/$SDK_TAG" | jq -r '.layers[0].digest')
+          mkdir -p "$RUNNER_TEMP/sdk"
+          curl -sfL -H "$auth" "https://ghcr.io/v2/$SDK_IMAGE/blobs/$layer" | tar xz -C "$RUNNER_TEMP/sdk"
+          ls "$RUNNER_TEMP"/sdk/agentminder-*.whl
+          sha256sum "$RUNNER_TEMP"/sdk/agentminder-*.whl
+
+      - name: Stage the shared files
+        run: "$APP_DIR/stage.sh $RUNNER_TEMP/sdk/agentminder-*.whl"
+
+      - name: Push
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          QWEN_API_KEY: ${{ secrets.INCIDENT_QWEN_API_KEY }}
+          K8S_TOKEN: ${{ secrets.INCIDENT_K8S_TOKEN }}
+          SIDECAR_TOKEN: ${{ secrets.INCIDENT_SIDECAR_TOKEN }}
+          ZAMMAD_TOKEN: ${{ secrets.INCIDENT_ZAMMAD_TOKEN }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.INCIDENT_GRAFANA_ADMIN_PASSWORD }}
+          AVI_USERNAME: ${{ secrets.INCIDENT_AVI_USERNAME }}
+          AVI_PASSWORD: ${{ secrets.INCIDENT_AVI_PASSWORD }}
+          MCP_READ_TOKEN: ${{ secrets.INCIDENT_MCP_READ_TOKEN }}
+          MCP_WRITE_TOKEN: ${{ secrets.INCIDENT_MCP_WRITE_TOKEN }}
+          AM_LB_CLIENT_SECRET: ${{ secrets.INCIDENT_AM_LB_CLIENT_SECRET }}
+          AM_K8S_CLIENT_SECRET: ${{ secrets.INCIDENT_AM_K8S_CLIENT_SECRET }}
+          AM_VCF_CLIENT_SECRET: ${{ secrets.INCIDENT_AM_VCF_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          vars=$RUNNER_TEMP/vars.yml
+          trap 'rm -f "$vars"' EXIT
+          umask 077
+          # JSON is YAML, and jq quotes every value safely.
+          jq -n '{
+            qwen_api_key: env.QWEN_API_KEY, k8s_token: env.K8S_TOKEN,
+            sidecar_token: env.SIDECAR_TOKEN, zammad_token: env.ZAMMAD_TOKEN,
+            grafana_admin_password: env.GRAFANA_ADMIN_PASSWORD,
+            avi_username: env.AVI_USERNAME, avi_password: env.AVI_PASSWORD,
+            mcp_read_token: env.MCP_READ_TOKEN, mcp_write_token: env.MCP_WRITE_TOKEN,
+            am_lb_client_secret: env.AM_LB_CLIENT_SECRET,
+            am_k8s_client_secret: env.AM_K8S_CLIENT_SECRET,
+            am_vcf_client_secret: env.AM_VCF_CLIENT_SECRET
+          }' > "$vars"
+          if jq -e 'any(.[]; . == null or . == "")' "$vars" >/dev/null; then
+            echo "missing secrets: $(jq -r 'to_entries[] | select(.value == null or .value == "") | .key' "$vars" | xargs)" >&2
+            exit 1
+          fi
+          cf target -o Goad -s metal-music-app-agentic-system
+          cf push -f manifest.yml --vars-file "$vars"
+
+      # The agents call each other on apps.internal, which needs a policy
+      # for each pair. add-network-policy is a no-op when it exists.
+      - name: Network policies
+        run: |
+          set -euo pipefail
+          cf add-network-policy incident-response-agent metal-incident-live --protocol tcp --port 8080
+          for agent in lb-diagnostic-agent k8s-diagnostic-agent vcf-diagnostic-agent; do
+            cf add-network-policy metal-incident-live "$agent" --protocol tcp --port 8080
+          done

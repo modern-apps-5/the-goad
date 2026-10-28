@@ -953,3 +953,55 @@ it only runs where the SDK is unpacked.
 
 Look again if: part of the earlier design, such as fault injection, comes
 back. Bring it into `incident-demo/`, not a second tree.
+
+## 40. Tanzu Platform apps: Terraform makes the space, a workflow pushes
+
+The incident demo's nine Cloud Foundry apps were pushed by hand with
+`incident-demo/tanzu-agents/push.py`, which also made their services and
+set their env with `cf curl`, from files under `/tmp` and `~/.cache`.
+Now the work is split by who owns it:
+
+- The platform engineer's Terraform (`terraform/platform-engineer/tanzu.tf`)
+  owns the space `metal-music-app-agentic-system` and its six
+  user-provided services. It reads org `Goad`, which exists already. The
+  space and services were imported, not made again.
+- `.github/workflows/tanzu-apps.yml` owns the apps. It pushes
+  `tanzu/metal-music-app-agentic-system/manifest.yml` on every change to
+  that directory on `main`, and adds the network policies.
+- `tanzu/<space>/` is a new top-level directory: one directory per app,
+  pushed as it is. `stage.sh` copies in only what several apps share. The
+  sidecar from decision 39 is in `shared/sidecar/`.
+
+Every login is `goad-deployer`, a Tanzu Hub OAuth app with admin roles,
+for now. The foundation takes only its client assertion secret. The
+Tanzu cf CLI signs that itself, and the `cloudfoundry` provider cannot,
+so the `cf-login` action logs in with the CLI and gives Terraform the
+CLI's access token. The CLI comes from the foundation at run time
+(`links.tanzu_cf_cli` on the CF API root), so it always matches the
+foundation.
+
+The apps' secrets are GitHub secrets `INCIDENT_*`, passed to `cf push`
+in a vars file that is deleted after the push. Three of them are also in
+the services, so both workflows read them. The AgentMinder SDK is a
+private GitHub package, `ghcr.io/modern-apps-5/agentminder-sdk`, filled
+by `scripts/mirror-agentminder-sdk.sh`: it is not on public PyPI, and the
+runner has no Docker and no Broadcom registry token.
+
+Why GitHub secrets and not CredHub-backed services: the apps read env
+vars. Services would mean changing every app to read `VCAP_SERVICES`.
+Music store secrets come from GitHub secrets too (decision 38).
+
+Why a workflow and not the `cloudfoundry` provider's app resource: an
+app push is a deploy that should follow every change to the code, not a
+person starting a plan. Terraform still owns what outlives a deploy.
+
+Cost: a secret changed in GitHub reaches the apps only on the next push,
+and the three shared ones need both workflows to run. The AgentMinder
+client IDs and gateway URLs are fixed in the manifest until the security
+admin's AgentMinder Terraform owns them. `goad-deployer` has far more
+rights than a push needs.
+
+Look again if: Tanzu Hub service accounts get narrower roles, the
+`cloudfoundry` provider learns `private_key_jwt`, or AgentMinder clients
+move to Terraform.
+
