@@ -1065,9 +1065,12 @@ already work.
 
 Why `restapi` and not `terracurl`, which issue 38 named: terracurl keeps the
 bearer token in state when it creates a resource and sends it again at
-destroy. AgentMinder tokens expire, so a destroy months later fails. `restapi`
-gets a new token on every run, reads each object back so a change in the
-console shows in the plan, and can import.
+destroy. AgentMinder tokens expire, so a destroy months later fails. With
+`restapi`, the token is new on every run, each object is read back so a change
+in the console shows in the plan, and existing objects can be imported. The
+token comes from an `http` data source rather than restapi's
+`oauth_client_credentials`, because restapi 3.0.0's token request ignores
+`insecure` and fails on the chart's self-signed certificate.
 
 Why Terraform state and not Secret Store, for now: reading a
 `KeyValueSecret` back needs an OpenBao login. The runner pods are in
