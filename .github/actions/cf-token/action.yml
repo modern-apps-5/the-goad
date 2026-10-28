@@ -1,0 +1,28 @@
+# Get a Cloud Foundry access token for goad-deployer, for Terraform's
+# cloudfoundry provider, which reads CF_ACCESS_TOKEN and CF_API_URL.
+#
+# The provider cannot sign goad-deployer's client assertion, and the Tanzu
+# cf CLI installs about 140 MB of plugins on a fresh HOME before it logs in,
+# which is minutes on the runner. token.sh signs the assertion with openssl.
+# The token lasts 30 minutes.
+name: cf-token
+description: Get a Cloud Foundry access token for goad-deployer.
+inputs:
+  client-assertion:
+    description: goad-deployer's client assertion secret (secret TANZU_HUB_CLIENT_ASSERTION).
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        CF_CLIENT_ASSERTION: ${{ inputs.client-assertion }}
+        CF_API: https://api.sys.goad.gpu.set.lab
+      run: |
+        set -euo pipefail
+        token_url=$(curl -skf "$CF_API/" | jq -r .links.uaa.href)/oauth/token
+        token=$("$GITHUB_ACTION_PATH/token.sh" "$token_url")
+        echo "::add-mask::$token"
+        echo "CF_ACCESS_TOKEN=$token" >> "$GITHUB_ENV"
+        echo "CF_API_URL=$CF_API" >> "$GITHUB_ENV"
+        echo "token for $(curl -skf -H "Authorization: bearer $token" "$CF_API/v3/organizations" | jq -r '[.resources[].name] | length') orgs"

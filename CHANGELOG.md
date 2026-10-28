@@ -3,6 +3,19 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-27 (Tanzu apps, one job per app)
+
+### Changed
+
+- `tanzu-apps.yml` pushes each app in its own job, so each push has its
+  own log and a failed app does not stop the others. The network policies
+  are a last job, after every push.
+- `platform-engineer.yml` gets its Cloud Foundry token from the new
+  `.github/actions/cf-token`, which signs goad-deployer's client assertion
+  with `openssl`. It no longer installs the cf CLI, whose first run installs
+  about 140 MB of plugins and got a runner pod evicted for memory pressure.
+- `cf-login` puts the CLI's `HOME` on the runner's work disk.
+
 ## 2026-10-27 (Tanzu apps workflow)
 
 ### Added
