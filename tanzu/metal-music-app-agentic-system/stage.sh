@@ -9,7 +9,9 @@
 #     agents. The Goad model ingress certificate is signed by its own CA;
 #   - the findings schema, next to each agent's skill;
 #   - the AgentMinder sidecar, with the SDK unpacked into
-#     sidecar/site-packages, for the three diagnostic agents.
+#     sidecar/site-packages, and agentminder-env.sh, which reads the agent's
+#     AgentMinder client from its bound am-* service, for the three
+#     diagnostic agents.
 # The wheel comes from ghcr.io/modern-apps-5/agentminder-sdk
 # (scripts/mirror-agentminder-sdk.sh). The SDK is not on public PyPI.
 set -euo pipefail
@@ -30,7 +32,7 @@ done
 for app in lb-diagnostic-agent k8s-diagnostic-agent vcf-diagnostic-agent; do
   side=$HERE/$app/sidecar
   mkdir -p "$side/site-packages"
-  cp "$SHARED/sidecar/run-sidecar.sh" "$SHARED/sidecar/mcp_bridge.py" "$side/"
+  cp "$SHARED/sidecar/run-sidecar.sh" "$SHARED/sidecar/mcp_bridge.py" "$SHARED/sidecar/agentminder-env.sh" "$side/"
   # A wheel is a zip of the installed package, so unpacking it is the install.
   if command -v unzip >/dev/null; then
     unzip -q -o "$WHEEL" -d "$side/site-packages"

@@ -1001,11 +1001,100 @@ person starting a plan. Terraform still owns what outlives a deploy.
 
 Cost: a secret changed in GitHub reaches the apps only on the next push,
 and the three shared ones need both workflows to run. The AgentMinder
-client IDs and gateway URLs are fixed in the manifest until the security
-admin's AgentMinder Terraform owns them. `goad-deployer` has far more
+client IDs, secrets and gateway URLs are not GitHub secrets: the cloud
+admin's Terraform puts them in user-provided services (decision 41).
+`goad-deployer` has far more
 rights than a push needs.
 
 Look again if: Tanzu Hub service accounts get narrower roles, the
 `cloudfoundry` provider learns `private_key_jwt`, or AgentMinder clients
 move to Terraform.
 
+## 41. The cloud admin registers AgentMinder in Terraform, with restapi
+
+`incident-demo/agentminder/register.py` made the incident demo's
+AgentMinder objects by hand. Now `terraform/cloud-admin/agentminder-registration`
+makes them, and the fourth job of `cloud-admin.yml` runs it. It makes the MCP resource
+servers `goad-avi-mcp`, `goad-k8s-mcp` and `goad-vcf-mcp`, the clients
+`py-goad-lb`, `py-goad-k8s`, `py-goad-vcf` and `py-goad-incident-response`,
+one role policy for each diagnostic client, and each client's entry in
+`AuthClientPolicy`. The state is `goad-cloud-admin-agentminder-registration`.
+`register.py` is removed.
+
+**Why the cloud admin.** The cloud admin owns AgentMinder, and the incident
+demo's diagnostic agents are the cloud admin's troubleshooting tools. It
+already has the VCF Automation and cluster login. Issues 3 and 38 framed
+this as a security admin persona. That persona is not built.
+
+**Why a separate stage.** The `restapi` provider's configuration needs
+AgentMinder running, and stage 3 creates it. In one root, a fresh build
+could not plan.
+
+**The login.** The root logs in to VCF Automation as `cloud-admin`, as stage
+3 does, reads `org-config`'s state for the cluster names, and gets the
+AgentMinder cluster's kubeconfig with `vcfa_vks_cluster_kubeconfig`. A
+`kubernetes_secret_v1` data source reads the `ssp` chart's Secret
+`ssp-ssp-secret-defaulttenantclient`, in the namespace `ssp`. That is the
+default tenant's admin OAuth client, and it configures the `restapi`
+provider. Stage 3 has no outputs and passes no secret through remote state.
+AgentMinder has no service accounts yet.
+
+**The handoff to the apps.** AgentMinder returns each client's secret on
+read. This root also uses the `cloudfoundry` provider
+(`cloudfoundry.tf`, token from the `cf-token` action) and makes one
+user-provided service for each diagnostic agent, `am-lb-diagnostic-agent`,
+`am-k8s-diagnostic-agent` and `am-vcf-diagnostic-agent`, in org `Goad`, space
+`metal-music-app-agentic-system`. Each is tagged `agentminder-client` and
+holds `client_id`, `client_secret` and `gateway_url`. The space is still the
+platform engineer's: this root only reads it. The manifest binds each
+service to its agent. `shared/sidecar/agentminder-env.sh` finds the bound
+service tagged `agentminder-client` in `VCAP_SERVICES` and exports the
+variables the SDK reads. The CF sidecar (`run-sidecar.sh`) and the web
+process (`shared/trust/profile`) both source it. `tanzu-apps.yml` has no
+AgentMinder values and reads no state. The three `INCIDENT_AM_*_CLIENT_SECRET`
+GitHub secrets are unused. A changed client secret reaches an app on
+`cf restart <app>`.
+
+Why Cloud Foundry services and not GitHub secrets written by Terraform:
+writing a GitHub secret needs a PAT or a GitHub App key that can write
+repository secrets, which `GITHUB_TOKEN` cannot. That is a new, powerful
+credential, and `tanzu-apps` would still carry the values. With services the
+secrets go from AgentMinder to Terraform to Cloud Foundry, and never through
+GitHub or the push workflow. That is how `goad-qwen` and the `sc-*` services
+already work.
+
+Why `restapi` and not `terracurl`, which issue 38 named: terracurl keeps the
+bearer token in state when it creates a resource and sends it again at
+destroy. AgentMinder tokens expire, so a destroy months later fails. `restapi`
+gets a new token on every run, reads each object back so a change in the
+console shows in the plan, and can import.
+
+Why Terraform state and not Secret Store, for now: reading a
+`KeyValueSecret` back needs an OpenBao login. The runner pods are in
+`goad-runner`, a namespace vCenter made. They have no service account token,
+and VCF Automation logins cannot write there. Gitea's state already holds
+sensitive values.
+
+**Never print the plan.** `restapi` keeps each response in attributes it
+does not mark sensitive, and the response has the app's secret. A plan prints
+the old value when it changes. So the workflow runs
+`terraform plan -out=tfplan >/dev/null` and lists only each address and
+action from `terraform show -json tfplan`. Do the same by hand, and do not
+paste plan output anywhere.
+
+**The import.** `imports.tf` finds the objects `register.py` made by name and
+adopts them, so the running agents keep their IDs and secrets. The grants in
+`AuthClientPolicy` are not imported: the first apply adds each client
+again. Delete `imports.tf` after the first apply. On a new AgentMinder its
+lookups find nothing and fail the plan.
+
+Cost:
+- The client secrets are in this root's state, in plain text, and in the
+  services. Anyone with the Gitea state token or read access to the
+  services can read them.
+- `tanzu-apps` reads no state, but its push fails until the `am-*` services
+  exist.
+- A changed secret reaches an app only on `cf restart <app>`.
+
+Look again if: AgentMinder gets service accounts, or the runner pods get a
+way to log in to Secret Store. Move the login there.

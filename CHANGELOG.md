@@ -3,6 +3,57 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Cloud admin stage 4: AgentMinder registration)
+
+### Added
+
+- `terraform/cloud-admin/agentminder-registration`: the cloud admin's fourth
+  stage. It registers the incident demo's AgentMinder objects with the
+  restapi provider: the MCP resource servers `goad-avi-mcp`, `goad-k8s-mcp`
+  and `goad-vcf-mcp`, the clients `py-goad-lb`, `py-goad-k8s`, `py-goad-vcf`
+  and `py-goad-incident-response`, one role policy for each diagnostic
+  client, and each client in `AuthClientPolicy`. The state is
+  `goad-cloud-admin-agentminder-registration`.
+- It logs in to VCF Automation as `cloud-admin`, gets the AgentMinder
+  cluster's kubeconfig, and reads the default tenant's admin OAuth client
+  from the Secret `ssp-ssp-secret-defaulttenantclient`. Stage 3 is
+  unchanged and has no outputs for it.
+- It is a separate stage because the restapi provider needs AgentMinder
+  running, and stage 3 creates it.
+- `cloud-admin.yml` has a fourth job, `agentminder-registration`, after
+  `agentminder`. It runs the `cf-token` action and never prints the plan,
+  only each resource and its action.
+- `imports.tf` in that root adopts the objects `register.py` made, so the
+  running agents keep their IDs and secrets. Delete it after the first
+  apply.
+- A Stage 4 row in the README's cloud admin persona table.
+- Decision 41.
+
+### Changed
+
+- The root also uses the `cloudfoundry` provider. It makes one
+  user-provided service for each diagnostic agent, `am-lb-diagnostic-agent`,
+  `am-k8s-diagnostic-agent` and `am-vcf-diagnostic-agent`, tagged
+  `agentminder-client`, with `client_id`, `client_secret` and `gateway_url`.
+  The secrets go from AgentMinder to Cloud Foundry without GitHub.
+- `manifest.yml`: the three diagnostic agents bind their `am-*` service. The
+  `AM_*` and `AGENTMINDER_*` env entries and the `((am_*))` vars are gone.
+- `shared/sidecar/agentminder-env.sh` finds the bound service tagged
+  `agentminder-client` in `VCAP_SERVICES` and exports the SDK's variables.
+  `run-sidecar.sh` and `shared/trust/profile` source it, and `stage.sh` copies
+  it into each agent's `sidecar/`.
+- `tanzu-apps.yml` has no AgentMinder values and reads no Gitea state.
+- The output `agent_client_secrets` is removed. `agent_clients` and
+  `mcp_servers` stay, for people.
+- A changed client secret reaches an app on `cf restart <app>`.
+
+### Removed
+
+- `incident-demo/agentminder/register.py`. Terraform does its work.
+- The GitHub secrets `INCIDENT_AM_LB_CLIENT_SECRET`,
+  `INCIDENT_AM_K8S_CLIENT_SECRET` and `INCIDENT_AM_VCF_CLIENT_SECRET` are no
+  longer used. Delete them after the rollout.
+
 ## 2026-10-28 (Tanzu apps, one CLI install)
 
 ### Changed
