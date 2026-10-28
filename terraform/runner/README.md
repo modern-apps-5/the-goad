@@ -21,13 +21,20 @@ reasons.
 | `vsphere_namespace.runner` | The Supervisor Namespace `goad-runner`, made in vCenter, not through VCF Automation |
 | `kubectl_manifest.github_app` | The Secret `github-app`: the GitHub App's ID and private key |
 | `kubectl_manifest.runner_settings` | The ConfigMap `github-runner`: the organization and the labels |
-| `kubectl_manifest.runner_entrypoint` | The ConfigMap with the script the container starts with |
+| `kubectl_manifest.runner_entrypoint` | The ConfigMap with the scripts the two containers start with |
 | `kubectl_manifest.runner_deployment` | The Deployment `github-runner`, two replicas |
 
-The Deployment and the script are not in this repository. Terraform reads
+The Deployment and the scripts are not in this repository. Terraform reads
 them from supervisor-github-runner at the commit `runner_commit`, and
-changes two things: the number of replicas, and an annotation that
-restarts the pods when the script or the settings change.
+changes three things: the number of replicas, the runner container's CPU
+and memory, and an annotation that restarts the pods when a script or the
+settings change.
+
+Each pod has two containers. `minter` holds the GitHub App's key and mints
+one just-in-time runner registration at a time. `runner` takes each one,
+runs one job, cleans up, and waits for the next. The runner container never
+exits, so the next job starts within seconds. Before, it exited after every
+job, and Kubernetes waited up to five minutes before restarting it.
 
 The namespace has one storage policy and the Supervisor's workload
 network, which is the default. It has no VM classes and no limits. It has
@@ -100,10 +107,11 @@ The plan is four resources. The apply waits until both pods are ready.
 To see them register:
 
 ```sh
-kubectl -n goad-runner logs deploy/github-runner
+kubectl -n goad-runner logs deploy/github-runner -c minter
+kubectl -n goad-runner logs deploy/github-runner -c runner
 ```
 
-Each pod prints `Registered runner`, then `Listening for Jobs`. In GitHub,
+The minter prints `Minted runner`, and the runner `Listening for Jobs`. In GitHub,
 the organization's Settings, Actions, Runners lists two runners with the
 labels `self-hosted` and `lab`.
 
@@ -144,14 +152,14 @@ middle leaves a state lock that nobody holds. Before you apply such a
 plan, check that no job is running:
 
 ```sh
-kubectl -n goad-runner logs deploy/github-runner --tail=5
+kubectl -n goad-runner logs deploy/github-runner -c runner --tail=5
 ```
 
 `Listening for Jobs` is safe. `Running job` is not.
 
 | To change | Change |
 |---|---|
-| The runner image, or the script | `runner_commit` in `lab.auto.tfvars`, to a newer commit of supervisor-github-runner |
+| The runner image, or the scripts | `runner_commit` in `lab.auto.tfvars`, to a newer commit of supervisor-github-runner |
 | How many jobs run at once | `runner_replicas` |
 | The labels | `runner_labels`, and `runs-on` in both workflows |
 | The disk a job has | In supervisor-github-runner, then `runner_commit` |

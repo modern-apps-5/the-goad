@@ -3,6 +3,18 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Runner loops instead of restarting)
+
+### Changed
+
+- `terraform/runner`: `runner_commit` is now supervisor-github-runner
+  `4fe17f0`. Each runner pod has two containers. `minter` holds the GitHub
+  App's key and mints one just-in-time registration at a time. `runner`
+  runs one job, cleans up, and waits for the next. Before, the container
+  exited after every job, and Kubernetes waited up to five minutes before
+  restarting it, so queued jobs sat with no runner.
+- `runner.tf` also reads `mint.sh` and puts it in the scripts' ConfigMap.
+
 ## 2026-10-28 (Cloud admin stage 4: AgentMinder registration)
 
 ### Added

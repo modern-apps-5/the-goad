@@ -24,8 +24,8 @@ resource "kubectl_manifest" "github_app" {
   })
 }
 
-# The runner is supervisor-github-runner: a Deployment, and the script its
-# container starts with. Both are read from that repository at one commit,
+# The runner is supervisor-github-runner: a Deployment, and the scripts its
+# two containers start with. Both are read from that repository at one commit,
 # so nothing is copied here and nothing changes until runner_commit does.
 data "http" "runner_deployment" {
   url = "${local.runner_source}/deployment.yaml"
@@ -49,6 +49,17 @@ data "http" "runner_entrypoint" {
   }
 }
 
+data "http" "runner_minter" {
+  url = "${local.runner_source}/mint.sh"
+
+  lifecycle {
+    postcondition {
+      condition     = self.status_code == 200
+      error_message = "Cannot read mint.sh at commit ${var.runner_commit}: HTTP ${self.status_code}."
+    }
+  }
+}
+
 locals {
   # What the runner serves, and the labels a workflow asks for. These are
   # all the labels: nothing is added to them.
@@ -61,8 +72,10 @@ locals {
 
   # The upstream Deployment, with three things changed: the number of
   # replicas, the runner container's CPU and memory, and an annotation on
-  # the pod. A pod reads the script and the settings only when it starts.
-  # The annotation changes when they do, and that restarts the pods.
+  # the pod. A pod reads the scripts and the settings only when it starts.
+  # The annotation changes when they do, and that restarts the pods. The
+  # runner is the first container. The minter beside it keeps upstream's
+  # resources.
   #
   # A vSphere Pod's VM is sized from the limits. Upstream gives 2 CPU and
   # 2Gi. The Tanzu cf CLI's first run starts dozens of copies of its plugin
@@ -85,6 +98,7 @@ locals {
         metadata = merge(local.upstream_deployment.spec.template.metadata, {
           annotations = {
             "goad/entrypoint-sha256" = sha256(data.http.runner_entrypoint.response_body)
+            "goad/minter-sha256"     = sha256(data.http.runner_minter.response_body)
             "goad/settings-sha256"   = sha256(jsonencode(local.runner_settings))
           }
         })
@@ -121,6 +135,7 @@ resource "kubectl_manifest" "runner_entrypoint" {
     }
     data = {
       "entrypoint.sh" = data.http.runner_entrypoint.response_body
+      "mint.sh"       = data.http.runner_minter.response_body
     }
   })
 }
