@@ -10,6 +10,6 @@ and the catalog is the DSM `PostgresCluster` in
 
 These manifests are the earlier shape: published images, a container
 users service, and a container database. They are kept as a record.
-`anp/` is the Antrea network policy test, applied by hand.
+`gateway-api/` is the optional L7 HTTPRoute and Gateway objects for the music-store-1-service
 
 The Oracle, cart, orders, and users source lives in https://github.com/NiranEC77/music-store-ai. These files still pull the published images.
