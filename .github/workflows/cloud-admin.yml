@@ -138,9 +138,11 @@ jobs:
   #
   # AgentMinder returns each app's client secret when the app is read, and
   # the restapi provider keeps the response in attributes it does not mark
-  # sensitive. A plan prints their old values when they change. So this job
-  # never prints the plan: the summary lists only each resource and its
-  # action.
+  # sensitive. A plan prints their old values when they change, and an error
+  # can print them too: "inconsistent result after apply" prints the whole
+  # response. So this job never prints Terraform's output. The summary lists
+  # only each resource and its action, and a failure prints only each
+  # error's title and resource.
   agentminder-registration:
     needs: agentminder
     runs-on: [self-hosted, lab]
@@ -165,10 +167,24 @@ jobs:
         with:
           client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
       - run: terraform init
+      # Prints only the lines that name an error and its resource, never a
+      # value.
+      - name: Error filter
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          cat > "$RUNNER_TEMP/bin/errors-only" <<'EOF'
+          #!/usr/bin/env bash
+          grep -E '^(Error: |  with |When applying changes to [^ ,]+)' \
+            | sed -E 's/^(When applying changes to [^ ,]+).*/\1/'
+          echo "(Terraform's full error output is hidden: it can hold client secrets.)"
+          EOF
+          chmod +x "$RUNNER_TEMP/bin/errors-only"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: Plan
         run: |
           set -euo pipefail
-          terraform plan -no-color -lock-timeout=5m -out=tfplan > /dev/null
+          terraform plan -no-color -lock-timeout=5m -out=tfplan > /dev/null 2> tf.err \
+            || { errors-only < tf.err; exit 1; }
           {
             echo '## agentminder-registration'
             echo '```'
@@ -180,4 +196,6 @@ jobs:
           } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Apply
         if: env.APPLY == 'true'
-        run: terraform apply -no-color -lock-timeout=5m tfplan > /dev/null
+        run: |
+          terraform apply -no-color -lock-timeout=5m tfplan > /dev/null 2> tf.err \
+            || { errors-only < tf.err; exit 1; }

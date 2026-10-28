@@ -120,8 +120,10 @@ resource "restapi_object" "mcp_server" {
     primaryAudience = each.value.backend
   }))
 
-  ignore_all_server_changes = true
-
+  # Not ignore_all_server_changes: with it, restapi plans the old response
+  # for an update, so the response to the PUT fails the apply as an
+  # inconsistent result. The first apply after the import updates this
+  # object, to record destroy_path and id_attribute in the state.
   lifecycle {
     ignore_changes = [data]
   }
