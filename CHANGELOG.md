@@ -3,6 +3,25 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Shop on Gateway API)
+
+### Changed
+
+- `gitops/music-store-dev/app/kustomization.yaml` lists the Gateway
+  `metal-store`, the HTTPRoute `metal-store-frontend` and the L7Rule
+  `metal-store-waf` instead of the deleted `ingress.yaml`, so the
+  Application `music-store-dev-app` builds again (decision 43).
+- `gitops/platform-tools/cluster.yaml` sets `serviceDomain`, which the
+  helm-controller addon 1.5.5 needs.
+- `manifest.yml` no longer pins the shop's address.
+
+### Added
+
+- `gitops/music-store/cert-manager.yaml`: the VKS cert-manager addon on the
+  music store cluster.
+- `gitops/music-store-platform/gateway-cert.yaml`: a self-signed wildcard
+  certificate for `*.goad.gpu.set.lab`, the Gateway's HTTPS certificate.
+
 ## 2026-10-28 (Platform tools cluster for the incident demo's tools)
 
 ### Added
