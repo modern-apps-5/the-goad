@@ -15,9 +15,9 @@
 # agent_buildpack, which starts tanzu-agent. The three diagnostic agents run
 # the AgentMinder sidecar on 127.0.0.1:8181. Their MCP tools go through it.
 # *_CONNECT_IP pins a lab name to its address inside the app. The store,
-# Grafana and
-# Zammad have none: the apps resolve *.goad.gpu.set.lab through DNS, and
-# their addresses change when the platform tools cluster is rebuilt.
+# Grafana and Zammad have none: the apps resolve *.goad.gpu.set.lab through
+# DNS, and their addresses change when the Gateway or the platform tools
+# cluster is rebuilt.
 ---
 applications:
   - name: metal-k8s-mcp
