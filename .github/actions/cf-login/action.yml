@@ -10,10 +10,17 @@
 # a token, use the cf-token action instead.
 #
 # On a fresh HOME the CLI first installs its plugins, about 140 MB, even the
-# core cf commands. HOME and CF_HOME are under the job's temp directory, on
-# the runner's work disk: the container's own filesystem is small, and a
-# runner pod was evicted for memory pressure during that install. The login
-# never lands in the runner's real home.
+# core cf commands. That takes from half a minute to several minutes on the
+# runner. So tanzu-apps.yml does it once, in a job that sets login to false,
+# and passes the CLI and HOME/.tanzucf to the other jobs as an artifact. When
+# the CLI is already in place, this step skips the download, and the
+# plugins are already installed. The installed files hold absolute paths,
+# which is why HOME is the same path in every job.
+#
+# HOME and CF_HOME are under the job's temp directory, on the runner's work
+# disk: a runner pod was evicted for memory pressure when the plugins went
+# to the container's own filesystem. The login, in CF_HOME, never lands in
+# the runner's real home and is never in the artifact.
 name: cf-login
 description: Install the Tanzu cf CLI and log in as goad-deployer.
 inputs:
@@ -23,6 +30,9 @@ inputs:
   client-assertion:
     description: goad-deployer's client assertion secret (secret TANZU_HUB_CLIENT_ASSERTION).
     required: true
+  login:
+    description: Log in. With "false", only install the CLI and its plugins, for the artifact.
+    default: "true"
 runs:
   using: composite
   steps:
@@ -31,19 +41,26 @@ runs:
         CF_API: https://api.sys.goad.gpu.set.lab
         TANZUCF_CLIENT_ID: ${{ inputs.client-id }}
         TANZUCF_CLIENT_SECRET: ${{ inputs.client-assertion }}
+        LOGIN: ${{ inputs.login }}
       run: |
         set -euo pipefail
         bin=$RUNNER_TEMP/cf-cli
         export CF_HOME=$RUNNER_TEMP/cf-home HOME=$RUNNER_TEMP/home
         mkdir -p "$bin" "$CF_HOME" "$HOME"
-        base=$(curl -skf "$CF_API/" | jq -r .links.tanzu_cf_cli.href)
-        curl -skfL -o "$bin/cf.tgz" "$base/cf10-cli-linux-amd64.tar.gz"
-        sha256sum "$bin/cf.tgz"
-        tar xzf "$bin/cf.tgz" -C "$bin" && rm "$bin/cf.tgz"
+        if [ -x "$bin/cf10" ]; then
+          echo "cf CLI already installed"
+        else
+          base=$(curl -skf "$CF_API/" | jq -r .links.tanzu_cf_cli.href)
+          curl -skfL -o "$bin/cf.tgz" "$base/cf10-cli-linux-amd64.tar.gz"
+          sha256sum "$bin/cf.tgz"
+          tar xzf "$bin/cf.tgz" -C "$bin" && rm "$bin/cf.tgz"
+        fi
         echo "$bin" >> "$GITHUB_PATH"
         echo "CF_HOME=$CF_HOME" >> "$GITHUB_ENV"
         echo "HOME=$HOME" >> "$GITHUB_ENV"
         "$bin/cf" version
         # Lab certificates are self-signed.
         "$bin/cf" api "$CF_API" --skip-ssl-validation
-        "$bin/cf" auth --client-credentials
+        if [ "$LOGIN" = "true" ]; then
+          "$bin/cf" auth --client-credentials
+        fi

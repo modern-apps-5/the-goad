@@ -3,6 +3,16 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-28 (Tanzu apps, one CLI install)
+
+### Changed
+
+- `tanzu-apps.yml` installs the cf CLI and its plugins once, in a new `cli`
+  job, and gives them to the push jobs as an artifact. Each push job's cf
+  login took from 26 seconds to almost 7 minutes when it installed the
+  plugins itself. `cf-login` skips the download when the CLI is already in
+  place, and has a `login: "false"` mode for the `cli` job.
+
 ## 2026-10-27 (Tanzu apps, one job per app)
 
 ### Changed

@@ -13,6 +13,10 @@
 #
 # One job per app, so each push has its own log and status, and one failed
 # app does not stop the others. The network policies wait for all of them.
+# The cli job installs the cf CLI and its plugins once, which takes from half
+# a minute to several minutes on the runner, and hands them to the other
+# jobs as a tarball artifact (a tarball keeps the symlink and file modes).
+# It never logs in, so the artifact holds no token.
 #
 # The apps' secrets are GitHub secrets INCIDENT_*. They go into a vars file
 # for cf push, under the job's temp directory, deleted when the push ends.
@@ -43,7 +47,30 @@ env:
   SDK_TAG: "4.1.1"
 
 jobs:
+  cli:
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/cf-login
+        with:
+          client-id: ${{ secrets.TANZU_HUB_CLIENT_ID }}
+          client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
+          login: "false"
+      - name: Pack the CLI and its plugins
+        run: tar czf "$RUNNER_TEMP/tanzu-cf-cli.tgz" -C "$RUNNER_TEMP" cf-cli home/.tanzucf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tanzu-cf-cli
+          path: ${{ runner.temp }}/tanzu-cf-cli.tgz
+          retention-days: 1
+          compression-level: 0
+
   push:
+    needs: cli
     name: push ${{ matrix.app }}
     runs-on: [self-hosted, lab]
     timeout-minutes: 20
@@ -66,6 +93,13 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tanzu-cf-cli
+          path: ${{ runner.temp }}
+      - name: Unpack the CLI and its plugins
+        run: tar xzf "$RUNNER_TEMP/tanzu-cf-cli.tgz" -C "$RUNNER_TEMP"
 
       - uses: ./.github/actions/cf-login
         with:
@@ -145,6 +179,13 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tanzu-cf-cli
+          path: ${{ runner.temp }}
+      - name: Unpack the CLI and its plugins
+        run: tar xzf "$RUNNER_TEMP/tanzu-cf-cli.tgz" -C "$RUNNER_TEMP"
 
       - uses: ./.github/actions/cf-login
         with:
