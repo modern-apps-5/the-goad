@@ -39,6 +39,7 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     dsm: "dsm", qwen: "private-ai",
     incident: "tanzu", "cf-orch": "tanzu", "lb-agent": "tanzu", "k8s-agent": "tanzu", "vcf-agent": "tanzu",
     pii: "tanzu", "avi-mcp": "tanzu", "k8s-mcp": "tanzu", "vcf-mcp": "tanzu",
+    "tas-vks": "vks",
     "vcf-ops": "vcf", vcfa: "vcf", vcenter: "vcf", nsx: "vcf"
   };
   var KIND_OF = {
@@ -50,6 +51,7 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     "k8s-mcp": "mcp", "vcf-mcp": "mcp", "avi-mcp": "mcp",
     dsm: "data", qwen: "model",
     incident: "agent", "cf-orch": "agent", "lb-agent": "agent", "k8s-agent": "agent", "vcf-agent": "agent",
+    "tas-vks": "platform",
     "vcf-ops": "platform", vcfa: "platform", vcenter: "platform", nsx: "platform"
   };
 
@@ -104,6 +106,9 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     meta("avi-mcp", "Avi", "MCP server", "plug", "wide", "tanzu-cf", SPACE, "—", "—", cf("metal-avi-mcp"), "python"),
     meta("k8s-mcp", "Kubernetes", "MCP server", "plug", "wide", "tanzu-cf", SPACE, "—", "—", cf("metal-k8s-mcp"), "python"),
     meta("vcf-mcp", "VCF", "MCP server", "plug", "wide", "tanzu-cf", SPACE, "—", "—", cf("metal-vcf-mcp"), "python"),
+    // The TAS runtime's VKS cluster. Prometheus has nothing for these
+    // addresses, so this box is a label only: no probe and no health query.
+    meta("tas-vks", "tnz-9cbba8455f", "VKS cluster", "cluster", "wide", "tnz-9cbba8455f", "tanzu-fdn-zcx32", "1 control plane, 3 workers", "172.30.0.163-165", "—", "—"),
     meta("vcf-ops", "VCF Ops", "ops01", "pulse", "wide", "vcf", "ops01", "—", "—", "ops01.gpu.set.lab:443", "ops01.gpu.set.lab"),
     meta("vcfa", "VCFA", "Automation", "window", "wide", "vcf", "auto", "—", "—", "auto.gpu.set.lab:443", "auto.gpu.set.lab"),
     meta("vcenter", "vCenter", "vc01", "server", "wide", "vcf", "vc01", "—", "—", "vc01.gpu.set.lab:443", "vc01.gpu.set.lab"),
@@ -190,13 +195,23 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
   function layout() {
     var nodes = {};
     // Tanzu: the agents on the left, and on the right what each one calls,
-    // on the same row so the wire is straight.
+    // on the same row so the wire is straight. The rows are shorter than
+    // the other zones so the VKS cluster they run on fits underneath.
+    var tzTop = 186;
+    var tzH = 64;
+    var tzStep = 70;
     ["incident", "cf-orch", "lb-agent", "k8s-agent", "vcf-agent"].forEach(function (id, i) {
-      place(nodes, id, 32, 192 + i * 98, 272, 88);
+      place(nodes, id, 32, tzTop + i * tzStep, 272, tzH);
     });
     ["pii", "avi-mcp", "k8s-mcp", "vcf-mcp"].forEach(function (id, i) {
-      place(nodes, id, 340, 192 + (i + 1) * 98, 260, 88);
+      place(nodes, id, 340, tzTop + (i + 1) * tzStep, 260, tzH);
     });
+    var tasNest = {
+      x: 28, y: 568, w: 576, h: 176,
+      title: "VKS cluster",
+      accent: PLATFORMS.vks.accent, ink: PLATFORMS.vks.ink
+    };
+    place(nodes, "tas-vks", 44, 608, 544, 116);
     place(nodes, "users-vm", 640, 192, 100, 118);
     row(nodes, ["music", "chat"], 784, 192, 234, 96, 12);
     row(nodes, ["cart", "order"], 784, 302, 234, 96, 12);
@@ -227,7 +242,7 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       zoneOf("am", "vks", "AgentMinder"),
       zoneOf("vcf", "vcf")
     ];
-    return { zones: zones, nodes: nodes, infra: infra };
+    return { zones: zones, nodes: nodes, infra: [infra, tasNest] };
   }
 
   function mx(n) { return n.x + n.w / 2; }
@@ -365,10 +380,15 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     sky("e-lb-qwen", N["lb-agent"], SKY[1], 1824);
     sky("e-k8s-qwen", N["k8s-agent"], SKY[2], 1848);
     sky("e-vcf-qwen", N["vcf-agent"], SKY[3], 1872);
-    [["e-lb-am", "lb-agent", 0], ["e-k8s-am", "k8s-agent", 8], ["e-vcf-am", "vcf-agent", 16]].forEach(function (e) {
+    // These leave across the gap above the nested VKS box, then down the
+    // gutter beside the Tanzu zone, so they do not cross that box.
+    var gap = 540;
+    [["e-lb-am", "lb-agent", 0], ["e-k8s-am", "k8s-agent", 6], ["e-vcf-am", "vcf-agent", 12]].forEach(function (e) {
       add(e[0], [
         [cx(N[e[1]]) - 60 + e[2], B(N[e[1]])],
-        [cx(N[e[1]]) - 60 + e[2], under - 4 + e[2] / 2],
+        [cx(N[e[1]]) - 60 + e[2], gap + e[2]],
+        [622, gap + e[2]],
+        [622, under - 4 + e[2] / 2],
         [1756 + e[2] / 2, under - 4 + e[2] / 2],
         [1756 + e[2] / 2, cy(N["am-ui"]) + e[2] - 8],
         [L(N["am-ui"]), cy(N["am-ui"]) + e[2] - 8]
@@ -382,7 +402,9 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
     ]);
     add("e-vcfmcp-vcenter", [
       [cx(N["vcf-mcp"]), B(N["vcf-mcp"])],
-      [cx(N["vcf-mcp"]), under + 2],
+      [cx(N["vcf-mcp"]), 558],
+      [610, 558],
+      [610, under + 2],
       [cx(N.vcenter), under + 2],
       [cx(N.vcenter), T(N.vcenter)]
     ]);
@@ -557,6 +579,10 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       var live = (parsed.nodes && parsed.nodes[n.id]) || {};
       var lat = parsed.lats && parsed.lats[n.id];
       var latency = lat && lat.value != null && lat.value !== "" ? Number(lat.value) : null;
+      // No series exists for this cluster, and a missing one must not draw
+      // as down. Keep the neutral unknown dot even if a stray value arrives.
+      var quiet = n.id === "tas-vks";
+      if (quiet) latency = null;
       nodes[n.id] = {
         label: n.label,
         role: n.role,
@@ -569,9 +595,9 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
         endpoint: pick(live.endpoint, n.endpoint),
         version: pick(live.version, n.version),
         title: pick(live.title, n.label),
-        value: live.value,
+        value: quiet ? "" : live.value,
         latency: latency,
-        state: stateOf(live.value, latency)
+        state: quiet ? "unknown" : stateOf(live.value, latency)
       };
     });
     var edges = {};
@@ -650,11 +676,12 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       }
       parts.push(paint(tx, z.y + 20, "start", z.ink, head, "500", z.title));
     });
-    if (PLACED.infra) {
-      var inf = PLACED.infra;
+    var nests = PLACED.infra || [];
+    if (!Array.isArray(nests)) nests = [nests];
+    nests.forEach(function (inf) {
       parts.push('<rect x="' + inf.x + '" y="' + inf.y + '" width="' + inf.w + '" height="' + inf.h + '" rx="12" fill="none" stroke="' + inf.accent + '" stroke-width="1.25" stroke-dasharray="7 5" stroke-opacity="0.85"/>');
       parts.push(paint(inf.x + 14, inf.y + 22, "start", inf.ink, 13, "500", inf.title));
-    }
+    });
 
     var drawn = [];
     EDGES.forEach(function (e) {
@@ -771,7 +798,7 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       if (!n) return null;
       title = n.title || n.label;
       accent = HEALTH[n.state];
-      var health = n.state === "up" ? "Up" : n.state === "down" ? "Down" : n.state === "slow" ? "Slow" : "Unknown";
+      var health = n.state === "up" ? "Up" : n.state === "down" ? "Down" : n.state === "slow" ? "Slow" : (id === "tas-vks" ? "No signal" : "Unknown");
       var lat = n.latency != null && !isNaN(n.latency) ? Math.round(n.latency) + " ms" : "";
       var platName = (PLATFORMS[n.platform] && PLATFORMS[n.platform].legend) || n.platform;
       if (id.indexOf("am-") === 0) platName = "VKS · AgentMinder";
