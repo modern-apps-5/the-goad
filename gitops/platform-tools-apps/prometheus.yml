@@ -38,6 +38,12 @@ scrape_configs:
         labels: {id: k8s-mcp}
       - targets: ["https://metal-vcf-mcp.apps.goad.gpu.set.lab/health"]
         labels: {id: vcf-mcp}
+      # GOAD foundation API (cf_api_url). Ops Manager, the router VIP,
+      # Hub, and the SSH proxy are not named in this repo, so they are
+      # not probed. The BOSH director and Diego on VKS tnz-9cbba8455f
+      # do not answer from inside the lab, so they stay out.
+      - targets: ["https://api.sys.goad.gpu.set.lab/"]
+        labels: {check: cf-api}
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
