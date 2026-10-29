@@ -1,0 +1,136 @@
+{
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "vcfops-app0-music-store"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "vcfops-app0-music-store"
+          },
+          "editorMode": "code",
+          "expr": "sum(k8s.deployment.available{k8s.namespace.name=\"music-store\"})",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "music-store deployments available",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "vcfops-vsphere-vc01"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "vcfops-vsphere-vc01"
+          },
+          "editorMode": "code",
+          "expr": "count(cpu.usagemhz.VM)",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "vc01 VMs reporting",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "vcfops-app0-music-store"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "vcfops-app0-music-store"
+          },
+          "editorMode": "code",
+          "expr": "k8s.deployment.available{k8s.namespace.name=\"music-store\"}",
+          "legendFormat": "{{k8s.deployment.name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "music-store deployments available",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "vcfops-vsphere-vc01"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "vcfops-vsphere-vc01"
+          },
+          "editorMode": "code",
+          "expr": "topk(5, cpu.usagemhz.VM)",
+          "legendFormat": "{{vm}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Top 5 VMs by CPU (MHz)",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "title": "VCF Ops DQS test",
+  "uid": "vcfops-dqs-test",
+  "version": 1
+}
