@@ -239,7 +239,7 @@ define(["react", "@grafana/data"], function (ReactMod, dataMod) {
       zoneOf("tools", "vks", "VKS · platform-tools"),
       zoneOf("dsm", "dsm"),
       zoneOf("pai", "pai"),
-      zoneOf("am", "vks", "AgentMinder"),
+      zoneOf("am", "vks", "VKS · agentminder"),
       zoneOf("vcf", "vcf")
     ];
     return { zones: zones, nodes: nodes, infra: [infra, tasNest] };
