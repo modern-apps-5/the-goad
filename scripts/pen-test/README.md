@@ -64,3 +64,16 @@ them back. Argo CD heals anything deleted by hand, so do it in git:
    five checks answer 200.
 2. Revert that commit. Once Argo CD syncs, the checks give the table
    above.
+
+## The board
+
+The same five checks run all the time from namespace `pen-test`
+(`gitops/music-store-platform/pen-test.yaml`), every 30 seconds. The
+Grafana board "Pen test" on the platform tools cluster draws them as
+the attacker's paths to the store, green or red, with their history
+under it. During the before and after, the history shows when each
+layer went out and came back.
+
+Checks 1 and 2 are TCP connections, not HTTP requests: a pass is no
+connection. A probe that fails for another reason, such as DNS, also
+shows as dropped. `run.sh` remains the check to run by hand.

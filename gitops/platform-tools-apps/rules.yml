@@ -10,6 +10,14 @@ groups:
         expr: max by (check) (probe_duration_seconds{check!=""}) * 1000
       - record: arch_latency_ms
         expr: max by (id) (probe_duration_seconds{id!=""}) * 1000
+      # The pen test's checks, from the probes in namespace pen-test of the
+      # music store cluster (gitops/music-store-platform/pen-test.yaml).
+      # 1 when a check comes out as decision 49 wants: around Avi, no
+      # connection; through Avi, the code in expect.
+      - record: pen_test_pass
+        expr: >-
+          max by (pen_test) (1 - probe_success{pen_test!="", expect="drop"})
+          or max by (pen_test) (probe_success{pen_test!="", expect!="drop"})
       # music-nodes is up only when every node of the music store cluster
       # is Ready.
       - record: arch_up

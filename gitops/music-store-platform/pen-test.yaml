@@ -1,0 +1,101 @@
+# The pen test, always on (decision 49). A blackbox exporter in its own
+# namespace, pen-test, probes the shop the five ways scripts/pen-test does,
+# and the Prometheus agent in platform-tools sends the results to the
+# board "Pen test" on the platform tools cluster.
+#
+# It is not in platform-tools on purpose: the platform's monitoring allow
+# (network-policy.yaml) lets platform-tools reach the shop's pods, so a
+# probe from there would never be dropped. pen-test is allowed nothing,
+# so it sees what any other pod in the cluster sees.
+#
+# The checks are in prometheus-agent.yml, the probe modules in
+# pen-test-blackbox.yml.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pen-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pen-test-probe
+  namespace: pen-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pen-test-probe
+  template:
+    metadata:
+      labels:
+        app: pen-test-probe
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: blackbox
+          image: prom/blackbox-exporter:v0.25.0
+          args:
+            - --config.file=/etc/blackbox/blackbox.yml
+          ports:
+            - containerPort: 9115
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 65534
+          readinessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9115
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/blackbox
+      volumes:
+        - name: config
+          configMap:
+            name: pen-test-blackbox-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pen-test-probe
+  namespace: pen-test
+spec:
+  selector:
+    app: pen-test-probe
+  ports:
+    - name: http
+      port: 9115
+      targetPort: 9115
+---
+# Check 1 probes the store pod's IP, which changes, so the agent finds the
+# pod through the Kubernetes API.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus-agent-pod-discovery
+  namespace: music-store
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-agent-pod-discovery
+  namespace: music-store
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prometheus-agent-pod-discovery
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-agent
+    namespace: platform-tools

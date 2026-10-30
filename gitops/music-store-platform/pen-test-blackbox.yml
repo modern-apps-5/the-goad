@@ -1,0 +1,29 @@
+# Probe modules of the pen test's blackbox exporter (pen-test.yaml). The
+# lab's certificates are signed by lab CAs the image does not trust, so
+# TLS is not verified.
+modules:
+  # Checks 1 and 2, around Avi. Up when a connection opens. The default
+  # deny drops the SYN, so a pass is this probe failing.
+  pen_test_tcp:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: ip4
+  # Checks 3 and 4, attacks through Avi. Up only when the WAF answers 403.
+  pen_test_waf:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4
+      valid_status_codes: [403]
+      tls_config:
+        insecure_skip_verify: true
+  # Check 5, a clean request through Avi. Store pages are slowed by 10
+  # seconds during the walk; the timeout leaves room for that.
+  pen_test_clean:
+    prober: http
+    timeout: 25s
+    http:
+      preferred_ip_protocol: ip4
+      tls_config:
+        insecure_skip_verify: true

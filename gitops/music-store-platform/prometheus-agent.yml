@@ -1,9 +1,12 @@
 # Prometheus in agent mode on the music store cluster (decision 42). It
 # keeps nothing itself: it writes everything to the Prometheus on the
-# platform tools cluster, which serves the boards. It sends two things:
+# platform tools cluster, which serves the boards. It sends three things:
 # - probes of the shop's in-cluster names, which only this cluster can
 #   resolve, through the blackbox exporter beside it;
-# - the kube-state-metrics series the boards use.
+# - the kube-state-metrics series the boards use;
+# - the pen test's five checks, through the blackbox exporter in pen-test
+#   (pen-test.yaml). Their labels are pen_test, the check, and expect,
+#   what a pass is. Not check or id, which the other boards read.
 global:
   scrape_interval: 30s
   scrape_timeout: 28s
@@ -55,5 +58,51 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox.platform-tools.svc:9115
+  # Check 1: the store pod's IP, around the Service and Avi.
+  - job_name: pen-test-pod
+    metrics_path: /probe
+    params:
+      module: [pen_test_tcp]
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [music-store]
+        selectors:
+          - role: pod
+            label: service-name=store
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_phase]
+        regex: Running
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __param_target
+        replacement: $1:5000
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: pen-test-probe.pen-test.svc:9115
+      - target_label: pen_test
+        replacement: pod
+      - target_label: expect
+        replacement: drop
+  # Checks 2 to 5. Each target names its own module.
+  - job_name: pen-test
+    metrics_path: /probe
+    static_configs:
+      - targets: ["music-store-1-service.music-store.svc:5000"]
+        labels: {pen_test: service, expect: drop, __param_module: pen_test_tcp}
+      - targets: ["https://music.goad.gpu.set.lab/?searchString=%27%20OR%201%3D1--"]
+        labels: {pen_test: sqli, expect: "403", __param_module: pen_test_waf}
+      - targets: ["https://music.goad.gpu.set.lab/?file=php%3A%2F%2Ffilter%2Fconvert.base64-encode%2Fresource%3Dindex.php"]
+        labels: {pen_test: phpi, expect: "403", __param_module: pen_test_waf}
+      - targets: ["https://music.goad.gpu.set.lab/"]
+        labels: {pen_test: clean, expect: "200", __param_module: pen_test_clean}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: pen-test-probe.pen-test.svc:9115
 remote_write:
   - url: http://prometheus.goad.gpu.set.lab/api/v1/write
