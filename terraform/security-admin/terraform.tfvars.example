@@ -1,0 +1,5 @@
+# Secrets for the security admin's root. Copy to terraform.tfvars, which
+# git ignores. The workflow reads the same value from the GitHub secret
+# SECURITY_ADMIN_NSX_PASSWORD.
+
+nsx_password = "CHANGE-ME"

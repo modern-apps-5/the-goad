@@ -3,6 +3,16 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Security admin: vDefend guardrails)
+
+### Added
+
+- `terraform/security-admin` and the workflow `security-admin`: the
+  music store's vDefend policy in NSX, pushed into its VKS cluster as an
+  Antrea ClusterNetworkPolicy. One rule: only Avi's service engines reach
+  the store on TCP 5000 (decision 49). The NSX password is the GitHub
+  secret `SECURITY_ADMIN_NSX_PASSWORD`.
+
 ## 2026-10-30 (No image build for Markdown)
 
 ### Changed
