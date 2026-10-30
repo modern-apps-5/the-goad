@@ -40,13 +40,13 @@ resources:
 # apps/music-store. Its pull request sets newTag; merging it deploys.
 images:
   - name: depot.kube-system.svc/music-store/store
-    newTag: ff4cf83e2310
+    newTag: 02e625f06606
   - name: depot.kube-system.svc/music-store/cart
-    newTag: ff4cf83e2310
+    newTag: 02e625f06606
   - name: depot.kube-system.svc/music-store/order
-    newTag: ff4cf83e2310
+    newTag: 02e625f06606
   - name: depot.kube-system.svc/music-store/chat
-    newTag: ff4cf83e2310
+    newTag: 02e625f06606
 
 patches:
   - path: cart-persistence.yaml
