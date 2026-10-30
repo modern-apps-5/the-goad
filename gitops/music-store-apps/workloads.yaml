@@ -1,4 +1,6 @@
-# Storefront, cart, orders, and chat.
+# Storefront, cart, orders, and chat, from the images the platform
+# engineer's pipeline builds from apps/music-store (decision 48).
+# kustomization.yaml sets their tag.
 # Users and the catalog are Service names from backing.yaml.
 # Chat model values come from secret metal-oracle-model.
 # No Postgres deployment: postgres-service already points at the DSM catalog.
@@ -72,20 +74,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: cart
-          image: python:3.12-slim
-          command: ["sh", "-c"]
-          args:
-            - |
-              set -e
-              cp -a /opt/src/. /tmp/app
-              pip install --quiet --target=/tmp/py -r /tmp/app/requirements.txt
-              cd /tmp/app
-              PYTHONPATH=/tmp/py python app.py
+          image: depot.kube-system.svc/music-store/cart
           env:
-            - name: HOME
-              value: /tmp
-            - name: PIP_CACHE_DIR
-              value: /tmp/pip
             - name: ORDER_SERVICE_URL
               value: http://order-service:5001
           ports:
@@ -110,13 +100,6 @@ spec:
               drop: ["ALL"]
             runAsNonRoot: true
             runAsUser: 1000
-          volumeMounts:
-            - name: src
-              mountPath: /opt/src
-      volumes:
-        - name: src
-          configMap:
-            name: cart-src
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -140,20 +123,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: order
-          image: python:3.12-slim
-          command: ["sh", "-c"]
-          args:
-            - |
-              set -e
-              cp -a /opt/src/. /tmp/app
-              pip install --quiet --target=/tmp/py -r /tmp/app/requirements.txt
-              cd /tmp/app
-              PYTHONPATH=/tmp/py python app.py
+          image: depot.kube-system.svc/music-store/order
           env:
-            - name: HOME
-              value: /tmp
-            - name: PIP_CACHE_DIR
-              value: /tmp/pip
             - name: ORDER_DB_PATH
               value: /tmp/orders.db
           ports:
@@ -178,13 +149,6 @@ spec:
               drop: ["ALL"]
             runAsNonRoot: true
             runAsUser: 1000
-          volumeMounts:
-            - name: src
-              mountPath: /opt/src
-      volumes:
-        - name: src
-          configMap:
-            name: order-src
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -208,20 +172,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: chat
-          image: python:3.12-slim
-          command: ["sh", "-c"]
-          args:
-            - |
-              set -e
-              cp -a /opt/src/. /tmp/app
-              pip install --quiet --target=/tmp/py -r /tmp/app/requirements.txt
-              cd /tmp/app
-              PYTHONPATH=/tmp/py python app.py
+          image: depot.kube-system.svc/music-store/chat
           env:
-            - name: HOME
-              value: /tmp
-            - name: PIP_CACHE_DIR
-              value: /tmp/pip
             - name: DB_HOST
               value: postgres-service
             - name: DB_PORT
@@ -276,13 +228,6 @@ spec:
               drop: ["ALL"]
             runAsNonRoot: true
             runAsUser: 1000
-          volumeMounts:
-            - name: src
-              mountPath: /opt/src
-      volumes:
-        - name: src
-          configMap:
-            name: chat-src
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -307,22 +252,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: store
-          image: python:3.12-slim
-          command: ["sh", "-c"]
-          args:
-            - |
-              set -e
-              cp -a /opt/src/. /tmp/app
-              mkdir -p /tmp/app/static/covers
-              cp -a /opt/covers/. /tmp/app/static/covers/
-              pip install --quiet --target=/tmp/py -r /tmp/app/requirements.txt
-              cd /tmp/app
-              PYTHONPATH=/tmp/py python app.py
+          image: depot.kube-system.svc/music-store/store
           env:
-            - name: HOME
-              value: /tmp
-            - name: PIP_CACHE_DIR
-              value: /tmp/pip
             - name: CART_SERVICE_URL
               value: http://cart-service:5002
             - name: ORDER_SERVICE_URL
@@ -366,16 +297,3 @@ spec:
               drop: ["ALL"]
             runAsNonRoot: true
             runAsUser: 1000
-          volumeMounts:
-            - name: src
-              mountPath: /opt/src
-            - name: covers
-              mountPath: /opt/covers
-              readOnly: true
-      volumes:
-        - name: src
-          configMap:
-            name: store-src
-        - name: covers
-          configMap:
-            name: store-covers

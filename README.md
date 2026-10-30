@@ -43,11 +43,10 @@ shop login is `admin` / `admin`. The catalog Service is
 
 [gitops/music-store-apps](gitops/music-store-apps) is the application
 and its deploy. It goes into the namespace `music-store` of the VKS
-cluster. It is the store, cart, orders, and chat. For now the shop runs
-from the copy of the source in `src/`; the developer's code is in
-`apps/music-store/`, and a later change switches the shop to the built
-images and removes `src/`. The platform engineer owns the deploy, and the
-developer owns `apps/music-store/`. The catalog password and the chat's model key are not in git.
+cluster. It is the store, cart, orders, and chat, from the images the
+platform engineer builds from `apps/music-store/`. The platform engineer
+owns the build and the deploy, and the developer owns
+`apps/music-store/`. The catalog password and the chat's model key are not in git.
 They are GitHub secrets, which the platform engineer Terraform writes
 into Secret Store; ESO in the cluster makes the Secrets `store-db` and
 `metal-oracle-model` from them (decision 38).
@@ -509,7 +508,7 @@ VKS cluster. Argo CD then syncs `gitops/music-store-apps/` as the
 platform engineer. The Application `music-store-apps` deploys the
 containers onto the cluster. It depends on the cluster and the catalog,
 so it retries until those exist. The developer writes only the code in
-`gitops/music-store-apps/src/`.
+`apps/music-store/`.
 
 Argo CD syncs `gitops/platform-tools/` into the `platform-tools`
 namespace: the VKS cluster `platform-tools` and its ESO addon. Then
@@ -645,7 +644,7 @@ terraform/runner/              The self-hosted runner for the workflows. Not a p
 gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
 gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster
 apps/music-store/              The developer's code: store, cart, order, chat. The platform engineer builds it into images
-gitops/music-store-apps/       The shop's containers, deployed into the VKS cluster by the platform engineer; src/ is the copy the shop runs until the switch to the images
+gitops/music-store-apps/       The shop's containers, deployed into the VKS cluster by the platform engineer, from the built images
 gitops/platform-tools-builds/  The image build: Tekton pipeline, tasks, and the Dockerfile template, in the platform tools cluster
 gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
 tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad

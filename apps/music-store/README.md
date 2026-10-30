@@ -22,6 +22,3 @@ sets the new image tags.
 The Dockerfile is the platform engineer's, not part of these directories:
 [Dockerfile](../../gitops/platform-tools-builds/dockerfiles/python/Dockerfile).
 It runs `python app.py`.
-
-Until the shop switches to the images, it still runs from the copy in
-`gitops/music-store-apps/src/`.
