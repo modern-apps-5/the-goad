@@ -39,6 +39,8 @@ not been changed to match. Fix these when Video 1 is rewritten.
   not built. `scripts/pen-test` shows the default deny and the WAF
   stopping an attacker pod inside the cluster, and the Grafana board
   "Pen test" shows the same five checks all the time.
+  [security-architecture.md](security-architecture.md) has the layers
+  this scene shows.
 
 The commands that exist today are the Terraform roots (cloud admin, then
 platform engineer, from a machine or the GitHub workflows), `git push`

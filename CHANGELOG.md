@@ -3,6 +3,19 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Security architecture)
+
+### Added
+
+- `docs/security-architecture.md`: the music store's security layers
+  (vDefend, the Antrea tiers, the Avi WAF), who owns each, how each
+  reaches the cluster, what the pen test proves, and what is not covered.
+  Linked from the README and the walkthrough script.
+
+### Changed
+
+- The README lists the security admin as a built persona.
+
 ## 2026-10-30 (Pen test board colors)
 
 ### Changed

@@ -6,8 +6,8 @@ this GitHub repository directly. The lab's Gitea server holds only the
 Terraform state.
 
 The demo shows VMware Cloud Foundation across an application's life,
-through four personas. Three of them are built so far: the cloud admin,
-the platform engineer, and the developer.
+through four personas: the cloud admin, the platform engineer, the
+developer, and the security admin.
 
 | Persona | Tool | What it builds | Where |
 |---|---|---|---|
@@ -23,6 +23,7 @@ the platform engineer, and the developer.
 | Platform engineer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-apps](gitops/music-store-apps) |
 | Platform engineer | Argo CD, GitHub workflow `music-store-images` | The build of the shop's images: Tekton on the platform tools cluster, and a pull request with the new image tags | [gitops/platform-tools-builds](gitops/platform-tools-builds), [.github/workflows/music-store-images.yml](.github/workflows/music-store-images.yml) |
 | Developer | Code | The shop's source: store, cart, orders, and chat | [apps/music-store](apps/music-store) |
+| Security admin | Terraform | The vDefend guardrails for the music store, pushed into its VKS cluster through Antrea. [docs/security-architecture.md](docs/security-architecture.md) shows every layer of the shop's security | [terraform/security-admin](terraform/security-admin) |
 | (incident demo) | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system) |
 
 The music-store application, manifests and source, is in
@@ -699,6 +700,7 @@ into a VKS cluster has its own `ManagedEntity` and Application in
 | [docs/master-design-v5.md](docs/master-design-v5.md) | Design V5, transcribed from the current plan |
 | [docs/walkthrough-script.md](docs/walkthrough-script.md) | The five-video script, including the unfinished beats |
 | [docs/execution-plan.md](docs/execution-plan.md) | Suggested order of work |
+| [docs/security-architecture.md](docs/security-architecture.md) | The music store's security layers: who owns each, how it reaches the cluster, what traffic it decides |
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
