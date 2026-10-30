@@ -1,0 +1,68 @@
+# Layer 2 of the music store's network policy (decision 49): the shop's
+# service-to-service calls, in Antrea's application tier. The developer
+# owns these rules.
+#
+# Antrea evaluates the security admin's vDefend tiers first
+# (terraform/security-admin), then this, then the platform engineer's
+# default deny in the baseline tier (gitops/music-store-platform). A flow
+# not allowed here or by vDefend is dropped.
+#
+# A namespaced Antrea NetworkPolicy, not a ClusterNetworkPolicy, so the
+# developer needs no cluster-wide rights. Its podSelectors only match pods
+# in this namespace. Ingress only: the default deny covers ingress, so the
+# calls out to the users VM and the catalog need no rule.
+#
+# The ports are the Services' in services.yaml and workloads.yaml.
+apiVersion: crd.antrea.io/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: music-store-service-to-service
+spec:
+  tier: application
+  priority: 10
+  # appliedTo is per rule; Antrea refuses it at both levels.
+  ingress:
+    - name: store-to-cart
+      action: Allow
+      enableLogging: true
+      appliedTo:
+        - podSelector:
+            matchLabels:
+              service-name: cart
+      from:
+        - podSelector:
+            matchLabels:
+              service-name: store
+      ports:
+        - protocol: TCP
+          port: 5002
+    - name: store-cart-and-chat-to-order
+      action: Allow
+      enableLogging: true
+      appliedTo:
+        - podSelector:
+            matchLabels:
+              service-name: order
+      from:
+        - podSelector:
+            matchExpressions:
+              - key: service-name
+                operator: In
+                values: [store, cart, chat]
+      ports:
+        - protocol: TCP
+          port: 5001
+    - name: store-to-chat
+      action: Allow
+      enableLogging: true
+      appliedTo:
+        - podSelector:
+            matchLabels:
+              service-name: chat
+      from:
+        - podSelector:
+            matchLabels:
+              service-name: store
+      ports:
+        - protocol: TCP
+          port: 5005

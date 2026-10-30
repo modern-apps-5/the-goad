@@ -16,6 +16,11 @@
 # users-service. The Job shop-endpoints in gitops/music-store
 # writes the addresses. This directory does not contain Endpoints.
 #
+# network-policy.yaml is the developer's layer of the shop's network policy
+# (decision 49): the calls between the shop's services. The platform
+# engineer's default deny drops anything else, so a new call between
+# services needs a rule there.
+#
 # store-db (the catalog password) and metal-oracle-model (the chat model's
 # URL, API key and name) come from Secret Store through ESO, in
 # external-secrets.yaml. No value is in git. Until ESO has written them the
@@ -35,6 +40,7 @@ resources:
   - httproute-metal-store-frontend.yaml
   - metal-store-waf-l7rule.yaml
   - external-secrets.yaml
+  - network-policy.yaml
 
 # The images the workflow music-store-images.yml builds from
 # apps/music-store. Its pull request sets newTag; merging it deploys.
