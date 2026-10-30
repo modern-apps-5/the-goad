@@ -3,6 +3,19 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Deploy key KV in base64, cert-manager for Tekton)
+
+### Fixed
+
+- `terraform/platform-engineer/secrets.tf`: the KV
+  `platform-tools-git-deploy-key` holds the deploy key base64 encoded, and
+  the `ExternalSecret` `git-deploy-key` decodes it. Secret Store does not
+  escape a value with newlines, and OpenBao refused the write with
+  `error parsing JSON`.
+- `gitops/platform-tools/cert-manager.yaml`: the cert-manager addon on the
+  platform tools cluster. The Tekton operator's chart makes cert-manager
+  Certificates and failed to install without it.
+
 ## 2026-10-30 (The platform engineer builds the music store's images)
 
 ### Added
