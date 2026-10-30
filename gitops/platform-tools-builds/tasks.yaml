@@ -43,6 +43,10 @@ spec:
 # BuildKit runs inside the step, started by buildctl-daemonless.sh, and
 # exits with it. It runs privileged as root: the rootless image needs
 # unprivileged user namespaces, which Ubuntu 24.04 nodes restrict.
+#
+# Harbor's CA is in two places. buildkitd.toml covers registry requests,
+# but not the bearer token request to Harbor's /service/token, which
+# failed with x509 until the CA was also in SSL_CERT_FILE.
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
@@ -89,6 +93,8 @@ spec:
       script: |
         #!/bin/sh
         set -eu
+        cat /etc/ssl/certs/ca-certificates.crt /etc/buildkit/ca.crt > /tmp/ca-bundle.crt
+        export SSL_CERT_FILE=/tmp/ca-bundle.crt
         buildctl-daemonless.sh build \
           --frontend dockerfile.v0 \
           --local context="$(workspaces.source.path)/$(params.context)" \
