@@ -1,0 +1,98 @@
+# One commit in, four images out: depot.kube-system.svc/music-store/<service>:<tag>
+# for store, cart, order and chat. Every service is built from the same
+# Dockerfile, dockerfiles/python, the platform engineer's template for a
+# Python service. The developer's code is the build context:
+# apps/music-store/<service>.
+#
+# The four builds run side by side after the clone. They share the clone
+# through the source workspace, a volume the PipelineRun claims.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: music-store-images
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  params:
+    - name: repo-url
+      description: SSH URL of the repository.
+    - name: revision
+      description: The commit to build.
+    - name: tag
+      description: Tag of every image.
+    - name: registry
+      description: Repository prefix the images are pushed under.
+      default: depot.kube-system.svc/music-store
+  workspaces:
+    - name: source
+    - name: git-ssh
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+      workspaces:
+        - name: output
+          workspace: source
+        - name: ssh-directory
+          workspace: git-ssh
+    - name: build-store
+      runAfter: [clone]
+      taskRef:
+        name: buildkit
+      params:
+        - name: context
+          value: apps/music-store/store
+        - name: dockerfile
+          value: gitops/platform-tools-builds/dockerfiles/python
+        - name: image
+          value: $(params.registry)/store:$(params.tag)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-cart
+      runAfter: [clone]
+      taskRef:
+        name: buildkit
+      params:
+        - name: context
+          value: apps/music-store/cart
+        - name: dockerfile
+          value: gitops/platform-tools-builds/dockerfiles/python
+        - name: image
+          value: $(params.registry)/cart:$(params.tag)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-order
+      runAfter: [clone]
+      taskRef:
+        name: buildkit
+      params:
+        - name: context
+          value: apps/music-store/order
+        - name: dockerfile
+          value: gitops/platform-tools-builds/dockerfiles/python
+        - name: image
+          value: $(params.registry)/order:$(params.tag)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-chat
+      runAfter: [clone]
+      taskRef:
+        name: buildkit
+      params:
+        - name: context
+          value: apps/music-store/chat
+        - name: dockerfile
+          value: gitops/platform-tools-builds/dockerfiles/python
+        - name: image
+          value: $(params.registry)/chat:$(params.tag)
+      workspaces:
+        - name: source
+          workspace: source

@@ -315,3 +315,53 @@ resource "kubectl_manifest" "platform_tools_apps_application" {
 
   depends_on = [kubectl_manifest.platform_tools_cluster_entity]
 }
+
+# The music store's image builds (decision 48): Tekton's TektonConfig, the
+# Pipeline and its Tasks, and the login the workflow
+# music-store-images.yml starts them with, in the namespace
+# music-store-builds of the platform tools cluster. BuildKit needs a
+# privileged container, so the namespace is Pod Security privileged.
+
+locals {
+  platform_tools_builds_patches = [for name, kv in { "harbor-push" = "harbor_push", "git-deploy-key" = "git_deploy_key" } : {
+    target = { kind = "ExternalSecret", name = name }
+    patch = yamlencode({
+      apiVersion = "external-secrets.io/v1"
+      kind       = "ExternalSecret"
+      metadata   = { name = name }
+      spec       = { dataFrom = [{ extract = { key = "${local.platform_tools_namespace}/${local.platform_tools_kv[kv]}" } }] }
+    })
+  }]
+}
+
+resource "kubectl_manifest" "platform_tools_builds_application" {
+  provider = kubectl.platform
+
+  validate_schema = false
+  yaml_body = yamlencode({
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "Application"
+    metadata   = { name = "platform-tools-builds", namespace = local.platform_namespace }
+    spec = {
+      project = "default"
+      source = {
+        repoURL        = var.gitops_repo.url
+        targetRevision = var.gitops_repo.revision
+        path           = "gitops/platform-tools-builds"
+        kustomize      = { patches = local.platform_tools_builds_patches }
+      }
+      destination = { name = "platform-tools-cluster", namespace = "music-store-builds" }
+      syncPolicy = merge(local.retry_sync_policy, {
+        syncOptions = ["CreateNamespace=true"]
+        managedNamespaceMetadata = {
+          labels = {
+            "pod-security.kubernetes.io/enforce" = "privileged"
+            "pod-security.kubernetes.io/warn"    = "privileged"
+          }
+        }
+      })
+    }
+  })
+
+  depends_on = [kubectl_manifest.platform_tools_cluster_entity]
+}

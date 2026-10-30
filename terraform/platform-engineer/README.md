@@ -13,8 +13,8 @@ account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
 | `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM, catalog, and VKS cluster, and `platform-tools` for the VKS cluster of the incident demo's tools. |
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
-| `secrets.tf` | `KeyValueSecret`s in Secret Store (decision 38). In `music-store`: the catalog password and the chat's model key, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY`. In `platform-tools`: Grafana's and Zammad's passwords, from `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD` and `INCIDENT_ZAMMAD_ADMIN_PASSWORD`, and the blackbox exporter's Qwen check, from `INCIDENT_QWEN_API_KEY`. Empty values skip them. |
-| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform` and `music-store-apps`; the platform tools cluster's registration and the Application `platform-tools-apps`; and the patches that put the generated namespace and cluster names into the manifests. |
+| `secrets.tf` | `KeyValueSecret`s in Secret Store (decision 38). In `music-store`: the catalog password and the chat's model key, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY`. In `platform-tools`: Grafana's and Zammad's passwords, from `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD` and `INCIDENT_ZAMMAD_ADMIN_PASSWORD`, and the blackbox exporter's Qwen check, from `INCIDENT_QWEN_API_KEY`. Empty values skip them. In `platform-tools`, for the image build: `platform-tools-harbor-push`, the registry robot's login, from `MUSIC_STORE_HARBOR_ROBOT_SECRET` (variable `music_store_robot_secret`), and `platform-tools-git-deploy-key`, the key the build clones the repository with. |
+| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform` and `music-store-apps`; the platform tools cluster's registration and the Applications `platform-tools-apps` and `platform-tools-builds`; and the patches that put the generated namespace and cluster names into the manifests. |
 | `tanzu.tf` | On Tanzu Platform, org `Goad`: the space `metal-music-app-agentic-system` and the user-provided services the incident apps bind, `goad-qwen`, `k8s-mcp-cluster`, `sc-incident-response-agent-orch` and one `sc-*` per sidecar tool (decision 40). The provider logs in with `CF_ACCESS_TOKEN`, a token for `goad-deployer` that the `cf-token` action gets. |
 
 It uses the org's default project and default VPC. It does not create the
@@ -88,7 +88,10 @@ The platform tools cluster has the same kind of handoff: a `ManagedEntity`
 named `platform-tools-cluster`, for the cluster that
 `gitops/platform-tools/cluster.yaml` names, and the Application
 `platform-tools-apps`, which syncs `gitops/platform-tools-apps/` into its
-namespace `incident-tools` (decision 42).
+namespace `incident-tools` (decision 42). A second Application,
+`platform-tools-builds`, syncs `gitops/platform-tools-builds/` into the
+namespace `music-store-builds` of the same cluster: the Tekton pipeline
+that builds the music store's images (decision 48).
 
 Argo CD reads the repository with a read-only deploy key. The private
 half stays in `.secrets/`, which git ignores.

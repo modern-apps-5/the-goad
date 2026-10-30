@@ -13,10 +13,12 @@ apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: platform-tools
-  # external-secrets.yaml installs ESO on clusters with the second label.
+  # external-secrets.yaml installs ESO on clusters with the second label,
+  # and tekton.yaml the Tekton operator on clusters with the third.
   labels:
     addons.kubernetes.vmware.com/platform-observability: enabled
     addons.kubernetes.vmware.com/external-secrets: enabled
+    addons.kubernetes.vmware.com/tekton-operator: enabled
 spec:
   # serviceDomain must be set: the helm-controller addon release new
   # clusters get (1.5.5) reads it in its template and fails without it, and

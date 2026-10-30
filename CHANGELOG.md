@@ -3,6 +3,32 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (The platform engineer builds the music store's images)
+
+### Added
+
+- `gitops/platform-tools/tekton.yaml`: the VKS addon `tekton-operator` on
+  the platform tools cluster, which gets the label
+  `addons.kubernetes.vmware.com/tekton-operator: enabled` (decision 48).
+- `gitops/platform-tools-builds/`, synced by the new Application
+  `platform-tools-builds` into namespace `music-store-builds` (Pod
+  Security privileged): the TektonConfig, the Tasks `git-clone` and
+  `buildkit`, the Pipeline `music-store-images`, the Harbor CA, the
+  `ExternalSecret`s `harbor-push` and `git-deploy-key`, the ServiceAccount
+  `pipeline-starter`, and the Dockerfile template `dockerfiles/python`.
+- `terraform/platform-engineer/secrets.tf`: the KVs
+  `platform-tools-harbor-push` and `platform-tools-git-deploy-key`.
+  `platform-engineer` now reads `MUSIC_STORE_HARBOR_ROBOT_SECRET` too.
+- `.github/workflows/music-store-images.yml`: on a push to main under
+  `apps/music-store/`, starts the Pipeline, waits, and opens a pull request
+  with the new image tags.
+- `scripts/music-store-build-kubeconfig.sh`: stores `pipeline-starter`'s
+  kubeconfig as the GitHub secret `MUSIC_STORE_BUILD_KUBECONFIG`.
+- `apps/music-store/`: the shop's code, copied from
+  `gitops/music-store-apps/src/`, with the covers in `store/static/covers/`.
+  The running shop still uses `src/` until the first images are built; the
+  next change switches it to the images and removes `src/`.
+
 ## 2026-10-30 (Harbor: proxy cache for Broadcom's content registry, and the music store's project)
 
 ### Added

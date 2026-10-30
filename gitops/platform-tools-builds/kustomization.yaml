@@ -1,0 +1,26 @@
+# The music store's image builds on the platform tools cluster (decision
+# 48). Argo CD syncs this directory with the Application
+# platform-tools-builds into the namespace music-store-builds. The
+# platform engineer owns all of it: the Tekton install, the Pipeline, the
+# Dockerfile the services are built from, and the push login.
+#
+# The workflow .github/workflows/music-store-images.yml starts a
+# PipelineRun for each change under apps/music-store, with the
+# ServiceAccount pipeline-starter. The Pipeline clones the commit, builds
+# one image per service with BuildKit, and pushes it to the Harbor project
+# music-store.
+#
+# The namespace is Pod Security privileged, set by the Application:
+# BuildKit needs a privileged container.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: music-store-builds
+
+resources:
+  - tekton-config.yaml
+  - harbor.yaml
+  - git.yaml
+  - tasks.yaml
+  - pipeline.yaml
+  - starter.yaml

@@ -1,0 +1,63 @@
+# What BuildKit needs to pull from and push to the Supervisor's Harbor.
+#
+# Inside VKS, Harbor is depot.kube-system.svc: the name the Supervisor
+# registers it under, which nodes and pods resolve and nodes trust. A pod
+# does not trust it, so BuildKit gets Harbor's CA from harbor-ca, with a
+# buildkitd.toml that points at it.
+#
+# harbor-push is the push login of robot$music-store+builder, which can
+# push and pull only in the project music-store (decision 47). Terraform
+# writes the KV platform-tools-harbor-push from the GitHub secret
+# MUSIC_STORE_HARBOR_ROBOT_SECRET (terraform/platform-engineer/secrets.tf).
+# SUPERVISOR_NAMESPACE is a placeholder that the Application patches.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harbor-ca
+data:
+  buildkitd.toml: |
+    [registry."depot.kube-system.svc"]
+      ca = ["/etc/buildkit/ca.crt"]
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIDLDCCAhSgAwIBAgIUOFehfKLcC5eTOQOiNpKywsv5zOYwDQYJKoZIhvcNAQEL
+    BQAwFDESMBAGA1UEAxMJSGFyYm9yIENBMB4XDTI2MDkxNjE2MjEwNloXDTM2MDkx
+    MzE2MjEwNlowFDESMBAGA1UEAxMJSGFyYm9yIENBMIIBIjANBgkqhkiG9w0BAQEF
+    AAOCAQ8AMIIBCgKCAQEAp1xx04I+CESSxsJjHEnkerisyiRHf7iqrSyVI4Klxd9G
+    is2/cpOxzd6nIpSbXIAR4a7J2Jh2+KTNtFaOsEajEDK1vJK5pdCrckvhIksqd9LI
+    ePqxrGLWMUTdFgm9Z9V+tKaG/295JpMTHrgmdgRNRvSoaskL3qZGyTAMyUejloTo
+    U3wLZX+wkA3BLqBcFJtrOFwiDYqagsnMkUiCRKBQFUUpeBz5Pzc4tsxfROiosJfC
+    Vnn2AKQwZQ7nL6cp2xWneiMhQf5y7oKiyTj03tMSzEVaKn0yZ3TzehB8t9mrxyZg
+    GPTo7lDmtGX03SJeGhZUoma3wSyxNn8FLcsQPtXggQIDAQABo3YwdDAOBgNVHQ8B
+    Af8EBAMCAgQwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMA8GA1UdEwEB
+    /wQFMAMBAf8wHQYDVR0OBBYEFNsN9z1um0lOSJIGGO8YzgkEcek3MBMGA1UdEQQM
+    MAqCCGhhcmJvcmNhMA0GCSqGSIb3DQEBCwUAA4IBAQAxGro0B3YNbkQOGSZe2qo9
+    jSlISSil0jf6/1Y+NkHoQnNXII3/CcFVTT4Cnb8YUQzBrXInpT0Rn5KScSVsdI5p
+    2SR5qHkQyxfjnX8aDG7U50gqzfgUplflwNGA7avQFngJNixTCbLyf86yFPfDt1qM
+    az2B1cklJQDLchCNdcSnt/7+7nHejpCgHzgSFEYyGdtjVD3DzOcl6kL84f5AX8aQ
+    l3m7/cssO6iGTs3+TS7lSp3Z2X7JaDZjRl5NicDuZ0UvCZxfwwUMFwATfKyuBlp1
+    v0TRbdAblA5VdNrPSFhaMsBWL/sQP6EhtPTEHUHgQjiRo7c0mjqq2l8r1tkdUVWp
+    -----END CERTIFICATE-----
+    
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: harbor-push
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: secret-store
+  target:
+    name: harbor-push
+    template:
+      engineVersion: v2
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: '{"auths":{"depot.kube-system.svc":{"auth":"{{ printf "%s:%s" .username .password | b64enc }}"}}}'
+  dataFrom:
+    - extract:
+        key: SUPERVISOR_NAMESPACE/platform-tools-harbor-push
