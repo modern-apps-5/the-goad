@@ -3,6 +3,21 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (The shop runs from its images)
+
+### Changed
+
+- `gitops/music-store-apps/workloads.yaml`: store, cart, order and chat
+  run `depot.kube-system.svc/music-store/<service>`, with no install at
+  start and no source ConfigMaps. `kustomization.yaml` sets the tag in
+  `images:`, first `ff4cf83e2310`; the workflow `music-store-images`
+  opens a pull request with each new tag.
+
+### Removed
+
+- `gitops/music-store-apps/src/` and `covers/`: the code and the covers
+  are in `apps/music-store/` and baked into the images (decision 48).
+
 ## 2026-10-30 (BuildKit trusts Harbor for its token)
 
 ### Fixed

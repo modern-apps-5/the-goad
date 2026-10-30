@@ -1418,3 +1418,9 @@ deploy key now also reaches the platform tools cluster.
 
 Look again if: the runner gets a way to build itself, or Tekton gets a
 listener the lab can reach.
+
+Update, 2026-10-30: the shop runs from the images. The first build was
+`ff4cf83e2310`. `gitops/music-store-apps/src/` and `covers/` are removed,
+and `kustomization.yaml` sets the tag in `images:`. Decision 45's cost,
+a code change being a deploy and a `pip install` at every start, is gone.
+

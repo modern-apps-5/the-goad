@@ -67,7 +67,7 @@ Each directory belongs to one owner and one Application.
 | `platform-tools/` | platform engineer | `platform-tools` | The VKS cluster `platform-tools`, its ESO addon, and its Tekton addon. |
 | `platform-tools-apps/` | platform engineer | `platform-tools-apps` | Inside the platform tools cluster, namespace `incident-tools`: Zammad, Grafana with its boards and topology panel, Prometheus and the blackbox exporter, and their `ExternalSecret`s. |
 | `platform-tools-builds/` | platform engineer | `platform-tools-builds` | Inside the platform tools cluster, namespace `music-store-builds`: the Tekton pipeline and tasks that build the music store's images from `apps/music-store/`, the registry and Git credentials, and the Dockerfile template `dockerfiles/python`. |
-| `music-store-apps/` | platform engineer; the developer's code is in `apps/music-store/` | `music-store-apps` | The shop's containers, the copy of the source they run from in `src/` until the shop switches to the built images, the `ExternalSecret`s `store-db` and `metal-oracle-model`, and the HTTPRoute and WAF L7Rule, in namespace `music-store` of the VKS cluster; and the Gateway `metal-store`, in namespace `default`. |
+| `music-store-apps/` | platform engineer; the developer's code is in `apps/music-store/` | `music-store-apps` | The shop's containers, from the images built from `apps/music-store/` (their tag in `kustomization.yaml`), the `ExternalSecret`s `store-db` and `metal-oracle-model`, and the HTTPRoute and WAF L7Rule, in namespace `music-store` of the VKS cluster; and the Gateway `metal-store`, in namespace `default`. |
 
 Directories do not nest across owners. An Application syncs one
 directory and does not recurse.
