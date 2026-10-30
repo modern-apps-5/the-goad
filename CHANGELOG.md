@@ -3,6 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Pen test board colors)
+
+### Changed
+
+- The board "Pen test" colors a check by what happened to the traffic:
+  violet blocked as intended, green allowed as intended, red wrong. The
+  paths around Avi end at a wall for the default deny, and run on to the
+  store, in red, only when open.
+
 ## 2026-10-30 (Pen test board)
 
 ### Added

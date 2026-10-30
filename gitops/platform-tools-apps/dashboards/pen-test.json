@@ -134,6 +134,32 @@
           "format": "time_series",
           "legendFormat": "clean_path",
           "editorMode": "code"
+        },
+        {
+          "refId": "I",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"pod\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "pod_through",
+          "editorMode": "code"
+        },
+        {
+          "refId": "J",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"service\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "service_through",
+          "editorMode": "code"
         }
       ],
       "fieldConfig": {
@@ -157,8 +183,8 @@
                     "type": "value",
                     "options": {
                       "1": {
-                        "text": "✕ Pod IP: dropped by default deny",
-                        "color": "#3dd68c",
+                        "text": "⛔ Pod IP: dropped by default deny",
+                        "color": "#a78bfa",
                         "index": 0
                       },
                       "0": {
@@ -191,8 +217,8 @@
                     "type": "value",
                     "options": {
                       "1": {
-                        "text": "✕ Service: dropped",
-                        "color": "#3dd68c",
+                        "text": "⛔ Service: dropped",
+                        "color": "#a78bfa",
                         "index": 0
                       },
                       "0": {
@@ -225,12 +251,12 @@
                     "type": "value",
                     "options": {
                       "1": {
-                        "text": "SQLi 403",
-                        "color": "#3dd68c",
+                        "text": "⛔ SQLi 403",
+                        "color": "#a78bfa",
                         "index": 0
                       },
                       "0": {
-                        "text": "SQLi PASSED",
+                        "text": "⚠ SQLi got in",
                         "color": "#ff5d73",
                         "index": 1
                       }
@@ -259,12 +285,12 @@
                     "type": "value",
                     "options": {
                       "1": {
-                        "text": "PHP 403",
-                        "color": "#3dd68c",
+                        "text": "⛔ PHP 403",
+                        "color": "#a78bfa",
                         "index": 0
                       },
                       "0": {
-                        "text": "PHP PASSED",
+                        "text": "⚠ PHP got in",
                         "color": "#ff5d73",
                         "index": 1
                       }
@@ -293,12 +319,12 @@
                     "type": "value",
                     "options": {
                       "1": {
-                        "text": "Clean 200",
+                        "text": "✓ Clean 200",
                         "color": "#3dd68c",
                         "index": 0
                       },
                       "0": {
-                        "text": "Clean FAIL",
+                        "text": "⚠ Clean failed",
                         "color": "#ff5d73",
                         "index": 1
                       }
@@ -328,7 +354,7 @@
                     "options": {
                       "1": {
                         "text": "dropped",
-                        "color": "#475569",
+                        "color": "#a78bfa",
                         "index": 0
                       },
                       "0": {
@@ -362,7 +388,75 @@
                     "options": {
                       "1": {
                         "text": "dropped",
-                        "color": "#475569",
+                        "color": "#a78bfa",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "open",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pod_through"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "dropped",
+                        "color": "transparent",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "open",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service_through"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "dropped",
+                        "color": "transparent",
                         "index": 0
                       },
                       "0": {
@@ -474,11 +568,11 @@
                 "valign": "middle",
                 "size": 12,
                 "color": {
-                  "fixed": "#94a3b8"
+                  "fixed": "#a78bfa"
                 },
                 "text": {
                   "mode": "fixed",
-                  "fixed": "Layer 3 · platform default deny (Antrea baseline)"
+                  "fixed": "◀ the wall: layer 3, platform default deny (Antrea baseline)"
                 }
               },
               "background": {
@@ -498,7 +592,7 @@
               "placement": {
                 "left": 900,
                 "top": 520,
-                "width": 440,
+                "width": 450,
                 "height": 24
               }
             },
@@ -598,14 +692,14 @@
                   }
                 },
                 {
-                  "targetName": "Store pod",
+                  "targetName": "Default deny",
                   "source": {
                     "x": 1,
                     "y": 0
                   },
                   "target": {
                     "x": -1,
-                    "y": 0
+                    "y": 0.5555555555555556
                   },
                   "path": "straight",
                   "direction": "forward",
@@ -744,10 +838,94 @@
               },
               "connections": [
                 {
-                  "targetName": "Store pod",
+                  "targetName": "Default deny",
                   "source": {
                     "x": 1,
                     "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": -0.5833333333333334
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "service_path"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "name": "Default deny",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 16,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#a78bfa"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#a78bfa"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 868,
+                "top": 200,
+                "width": 24,
+                "height": 360
+              },
+              "connections": [
+                {
+                  "targetName": "Store pod",
+                  "source": {
+                    "x": 1,
+                    "y": 0.5555555555555556
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "pod_through"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                },
+                {
+                  "targetName": "Store pod",
+                  "source": {
+                    "x": 1,
+                    "y": -0.5833333333333334
                   },
                   "target": {
                     "x": -0.5,
@@ -757,7 +935,7 @@
                   "direction": "forward",
                   "color": {
                     "fixed": "#4c8dff",
-                    "field": "service_path"
+                    "field": "service_through"
                   },
                   "size": {
                     "fixed": 3,
@@ -805,6 +983,117 @@
                 "height": 90
               },
               "connections": []
+            },
+            {
+              "type": "text",
+              "name": "Legend blocked",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "blocked as intended"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#a78bfa"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 13
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 20,
+                "top": 10,
+                "width": 160,
+                "height": 26
+              }
+            },
+            {
+              "type": "text",
+              "name": "Legend allowed",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "allowed as intended"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#3dd68c"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 13
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 190,
+                "top": 10,
+                "width": 160,
+                "height": 26
+              }
+            },
+            {
+              "type": "text",
+              "name": "Legend wrong",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "got through: wrong"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#ff5d73"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 13
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 360,
+                "top": 10,
+                "width": 160,
+                "height": 26
+              }
             },
             {
               "type": "text",
@@ -1065,7 +1354,7 @@
     {
       "id": 2,
       "type": "state-timeline",
-      "title": "History: commit the before-and-after toggle and watch the checks turn",
+      "title": "History: violet blocked, green allowed, red wrong",
       "datasource": {
         "type": "prometheus",
         "uid": "goad-prometheus"
@@ -1146,32 +1435,19 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#ff5d73",
-                "value": null
-              },
-              {
-                "color": "#3dd68c",
-                "value": 1
-              }
-            ]
+            "mode": "fixed"
           },
           "mappings": [
             {
               "type": "value",
               "options": {
                 "1": {
-                  "text": "PASS",
-                  "color": "#3dd68c",
+                  "text": "blocked",
+                  "color": "#a78bfa",
                   "index": 0
                 },
                 "0": {
-                  "text": "FAIL",
+                  "text": "OPEN",
                   "color": "#ff5d73",
                   "index": 1
                 }
@@ -1183,7 +1459,42 @@
             "lineWidth": 0
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5 · Clean request"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "allowed",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "down",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showValue": "never",
