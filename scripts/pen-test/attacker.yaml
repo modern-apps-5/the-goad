@@ -1,0 +1,69 @@
+# The attacker pod for the security demo (scripts/pen-test/README.md): a
+# pod in namespace music-store, with no shop labels, so no allow rule
+# matches it. run.sh applies this and puts connectivity-check.sh in the
+# ConfigMap pen-test-script.
+#
+# The Role lets it look up the store pod's IP, nothing more.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pen-test
+  namespace: music-store
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pen-test
+  namespace: music-store
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pen-test
+  namespace: music-store
+subjects:
+  - kind: ServiceAccount
+    name: pen-test
+    namespace: music-store
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pen-test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: attacker
+  namespace: music-store
+  labels:
+    app: pen-test
+spec:
+  serviceAccountName: pen-test
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: attacker
+      # bash, curl and kubectl; the same image the repository's Jobs use.
+      image: alpine/k8s:1.34.1
+      command: ["sleep", "infinity"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: script
+          mountPath: /scripts
+          readOnly: true
+  volumes:
+    - name: script
+      configMap:
+        name: pen-test-script
+        defaultMode: 0555

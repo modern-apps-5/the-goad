@@ -3,6 +3,13 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Pen test for the security demo)
+
+### Added
+
+- `scripts/pen-test`: an attacker pod in `music-store` that checks the
+  shop is reachable only through the Avi WAF.
+
 ## 2026-10-30 (The shop's network policy)
 
 ### Added
