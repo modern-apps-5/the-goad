@@ -11,5 +11,6 @@ resources:
   - catalog.yaml
   - external-secrets.yaml
   - cert-manager.yaml
+  - antrea-nsx.yaml
   - users-vm.yaml
   - shop-endpoints.yaml

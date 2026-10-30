@@ -65,6 +65,9 @@ spec:
     metadata:
       labels:
         app: cart-service
+        app-name: music-store
+        service-name: cart
+        env: prod
     spec:
       securityContext:
         runAsNonRoot: true
@@ -114,6 +117,9 @@ spec:
     metadata:
       labels:
         app: order-service
+        app-name: music-store
+        service-name: order
+        env: prod
     spec:
       securityContext:
         runAsNonRoot: true
@@ -163,6 +169,9 @@ spec:
     metadata:
       labels:
         app: chat-service
+        app-name: music-store
+        service-name: chat
+        env: prod
     spec:
       securityContext:
         runAsNonRoot: true
@@ -242,6 +251,9 @@ spec:
     metadata:
       labels:
         app: music-store-1
+        app-name: music-store
+        service-name: store
+        env: prod
     spec:
       securityContext:
         runAsNonRoot: true
