@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Two workers for the platform tools cluster)
+
+### Changed
+
+- `gitops/platform-tools/cluster.yaml`: the worker pool goes from 1 to 2
+  `best-effort-large` nodes. The one worker had all 3920m of its CPU
+  requested, and Tekton's pods stayed Pending.
+
 ## 2026-10-30 (Deploy key KV in base64, cert-manager for Tekton)
 
 ### Fixed
