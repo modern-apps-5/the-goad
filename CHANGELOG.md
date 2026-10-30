@@ -3,6 +3,22 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Pen test board)
+
+### Added
+
+- `gitops/music-store-platform/pen-test.yaml`: a blackbox exporter in
+  namespace `pen-test` that runs the pen test's five checks every 30
+  seconds, and a Role that lets the Prometheus agent find the store pod.
+- `gitops/platform-tools-apps/dashboards/pen-test.json`: the board "Pen
+  test", a canvas of the attacker's paths to the store and their history.
+- `pen_test_pass` in `gitops/platform-tools-apps/rules.yml`.
+
+### Changed
+
+- The Prometheus agent on the music store cluster has its own service
+  account, `prometheus-agent`, and scrapes the pen test.
+
 ## 2026-10-30 (Pen test for the security demo)
 
 ### Added

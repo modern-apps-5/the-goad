@@ -9,6 +9,8 @@
 # network-policy.yaml is the shop's default deny and the monitoring allow,
 # cluster-scoped (decision 49). The front end is reachable only once the
 # security admin's vDefend rule is applied (terraform/security-admin).
+# pen-test.yaml is the always-on pen test in its own namespace, pen-test,
+# for the board "Pen test".
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -17,6 +19,7 @@ resources:
   - platform-tools.yaml
   - gateway-cert.yaml
   - network-policy.yaml
+  - pen-test.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -30,3 +33,7 @@ configMapGenerator:
     namespace: platform-tools
     files:
       - blackbox.yml
+  - name: pen-test-blackbox-config
+    namespace: pen-test
+    files:
+      - blackbox.yml=pen-test-blackbox.yml

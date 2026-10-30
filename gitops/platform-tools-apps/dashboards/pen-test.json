@@ -1,0 +1,1201 @@
+{
+  "title": "Pen test",
+  "uid": "goad-pen-test",
+  "tags": [
+    "goad",
+    "security"
+  ],
+  "editable": true,
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "type": "canvas",
+      "title": "Can a pod in the cluster reach the shop around the WAF?",
+      "description": "Five probes every 30 seconds from namespace pen-test of the music store cluster (gitops/music-store-platform/pen-test.yaml). Green: the check came out as decision 49 wants.",
+      "transparent": true,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 19,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"pod\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "pod",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"service\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "service",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"sqli\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "sqli",
+          "editorMode": "code"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"phpi\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "phpi",
+          "editorMode": "code"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"clean\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "clean",
+          "editorMode": "code"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"pod\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "pod_path",
+          "editorMode": "code"
+        },
+        {
+          "refId": "G",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"service\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "service_path",
+          "editorMode": "code"
+        },
+        {
+          "refId": "H",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"clean\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "clean_path",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pod"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "✕ Pod IP: dropped by default deny",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "⚠ Pod IP: OPEN, around Avi",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "✕ Service: dropped",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "⚠ Service: OPEN",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sqli"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "SQLi 403",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "SQLi PASSED",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phpi"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "PHP 403",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "PHP PASSED",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "clean"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "Clean 200",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "Clean FAIL",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pod_path"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "dropped",
+                        "color": "#475569",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "open",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service_path"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "dropped",
+                        "color": "#475569",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "open",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "clean_path"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "open",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "down",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "inlineEditing": false,
+        "showAdvancedTypes": true,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "type": "frame",
+          "name": "Element root",
+          "elements": [
+            {
+              "type": "rectangle",
+              "name": "Namespace",
+              "config": {
+                "align": "left",
+                "valign": "top",
+                "size": 14,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "  namespace music-store"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4c8dff"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 880,
+                "top": 20,
+                "width": 480,
+                "height": 560
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "Layer 3",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#94a3b8"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Layer 3 · platform default deny (Antrea baseline)"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 900,
+                "top": 520,
+                "width": 440,
+                "height": 24
+              }
+            },
+            {
+              "type": "text",
+              "name": "Layer 1",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#94a3b8"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Layer 1 · vDefend: only Avi service engines reach :5000"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 900,
+                "top": 545,
+                "width": 440,
+                "height": 24
+              }
+            },
+            {
+              "type": "rectangle",
+              "name": "Attacker",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 16,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Attacker pod · ns pen-test"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#111827"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#ff5d73"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 20,
+                "top": 230,
+                "width": 210,
+                "height": 100
+              },
+              "connections": [
+                {
+                  "targetName": "Avi WAF",
+                  "source": {
+                    "x": 1,
+                    "y": 0.6
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                },
+                {
+                  "targetName": "Store pod",
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "pod_path"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                },
+                {
+                  "targetName": "Service",
+                  "source": {
+                    "x": 1,
+                    "y": -0.6
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "service_path"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "name": "Avi WAF",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 16,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Avi WAF · music.goad.gpu.set.lab"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#111827"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#f5a524"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 500,
+                "top": 50,
+                "width": 260,
+                "height": 90
+              },
+              "connections": [
+                {
+                  "targetName": "Store pod",
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -0.5,
+                    "y": 1
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "clean_path"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "name": "Service",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 16,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Service music-store-1-service :5000"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#111827"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4c8dff"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 500,
+                "top": 440,
+                "width": 260,
+                "height": 90
+              },
+              "connections": [
+                {
+                  "targetName": "Store pod",
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -0.5,
+                    "y": -1
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "service_path"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "name": "Store pod",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 16,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Store pod · service-name=store :5000"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#111827"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4c8dff"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 990,
+                "top": 235,
+                "width": 260,
+                "height": 90
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "Sends",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#94a3b8"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "sends SQLi, PHP injection, clean GET"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 200,
+                "top": 60,
+                "width": 280,
+                "height": 24
+              }
+            },
+            {
+              "type": "metric-value",
+              "name": "Check sqli",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 14,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "sqli",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "sqli",
+                  "fixed": "#475569"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 20
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 470,
+                "top": 150,
+                "width": 104,
+                "height": 40
+              }
+            },
+            {
+              "type": "metric-value",
+              "name": "Check phpi",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 14,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "phpi",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "phpi",
+                  "fixed": "#475569"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 20
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 578,
+                "top": 150,
+                "width": 104,
+                "height": 40
+              }
+            },
+            {
+              "type": "metric-value",
+              "name": "Check clean",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 14,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "clean",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "clean",
+                  "fixed": "#475569"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 20
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 686,
+                "top": 150,
+                "width": 104,
+                "height": 40
+              }
+            },
+            {
+              "type": "metric-value",
+              "name": "Check pod",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 14,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "pod",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "pod",
+                  "fixed": "#475569"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 20
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 470,
+                "top": 300,
+                "width": 320,
+                "height": 44
+              }
+            },
+            {
+              "type": "metric-value",
+              "name": "Check service",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 14,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "service",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "service",
+                  "fixed": "#475569"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 20
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 500,
+                "top": 540,
+                "width": 260,
+                "height": 40
+              }
+            }
+          ],
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "border": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "left": 0,
+            "top": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "state-timeline",
+      "title": "History: commit the before-and-after toggle and watch the checks turn",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "goad-prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"pod\"}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "legendFormat": "1 · Pod IP",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"service\"}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "legendFormat": "2 · Service",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"sqli\"}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "legendFormat": "3 · SQL injection",
+          "editorMode": "code"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"phpi\"}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "legendFormat": "4 · PHP injection",
+          "editorMode": "code"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"clean\"}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "legendFormat": "5 · Clean request",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff5d73",
+                "value": null
+              },
+              {
+                "color": "#3dd68c",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "PASS",
+                  "color": "#3dd68c",
+                  "index": 0
+                },
+                "0": {
+                  "text": "FAIL",
+                  "color": "#ff5d73",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

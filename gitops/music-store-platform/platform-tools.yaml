@@ -89,6 +89,9 @@ spec:
       labels:
         app: prometheus-agent
     spec:
+      # Its own account, so the pen test can let it list the store's pods
+      # (pen-test.yaml).
+      serviceAccountName: prometheus-agent
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
@@ -126,6 +129,12 @@ spec:
             name: prometheus-agent-config
         - name: wal
           emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-agent
+  namespace: platform-tools
 ---
 apiVersion: v1
 kind: ServiceAccount
