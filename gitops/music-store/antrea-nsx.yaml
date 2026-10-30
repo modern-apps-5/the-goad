@@ -1,0 +1,21 @@
+# Turns on Antrea's NSX integration on the VKS cluster music-store. NSX
+# registers the cluster as an Antrea container cluster, and the security
+# admin's vDefend policy (terraform/security-admin) reaches the cluster as
+# Antrea ClusterNetworkPolicies through the ccp-adapter (decision 49).
+#
+# VKS makes an AddonConfig named <cluster>-antrea for every cluster. This
+# file is that same object with values added; the addon fills in the
+# definition and the cluster name. The Supervisor handles the NSX side, so
+# no address or credential is set here.
+#
+# Wave 0, with the cluster, so a new build comes up with the integration on.
+apiVersion: addons.kubernetes.vmware.com/v1alpha1
+kind: AddonConfig
+metadata:
+  name: music-store-antrea
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  values:
+    antreaNSX:
+      enable: true

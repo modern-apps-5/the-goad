@@ -22,8 +22,8 @@ Each directory belongs to one owner and one Application.
      the address Job, wave 2 Private AI Services, wave 3 model
      `qwen-14b-xlarge`.
    - `music-store/` — Application `music-store`. Wave 0 is the catalog,
-     the VKS cluster `music-store`, its ESO and cert-manager addons, and
-     the users VM, wave 1 the catalog address, wave 2 catalog init, which
+     the VKS cluster `music-store`, its ESO and cert-manager addons,
+     Antrea's NSX integration, and the users VM, wave 1 the catalog address, wave 2 catalog init, which
      reads the password from Secret Store, wave 3 the Job
      `shop-endpoints`, which writes `users-service` and
      `postgres-service` into the VKS cluster. Argo CD holds wave 3 until
@@ -47,7 +47,11 @@ Each directory belongs to one owner and one Application.
      pipeline and tasks that build the music store's images, the
      registry and Git credentials, and the Dockerfile template. It
      retries until Tekton exists.
-4. The incident apps: the `platform-engineer` workflow makes their Cloud
+4. Security admin Terraform: `terraform/security-admin`, once the
+   cluster `music-store` is up with Antrea's NSX integration. It puts
+   the vDefend policy in NSX, which pushes it into the cluster
+   (decision 49).
+5. The incident apps: the `platform-engineer` workflow makes their Cloud
    Foundry space, the `cloud-admin` workflow's job
    `agentminder-registration` makes their AgentMinder clients in it, and
    `tanzu-apps` pushes them. See
@@ -62,7 +66,7 @@ Each directory belongs to one owner and one Application.
 | Folder | Owner | Application | What it deploys |
 |---|---|---|---|
 | `private-ai/` | platform engineer | `private-ai` | DSM database, Private AI Services, and the Qwen model. |
-| `music-store/` | platform engineer | `music-store` | The VKS cluster `music-store`, the DSM catalog, the ESO and cert-manager addons for the cluster, the users VM, and the Job `shop-endpoints` that writes the users VM's and the catalog's addresses into the VKS cluster. |
+| `music-store/` | platform engineer | `music-store` | The VKS cluster `music-store`, the DSM catalog, the ESO and cert-manager addons for the cluster, Antrea's NSX integration, the users VM, and the Job `shop-endpoints` that writes the users VM's and the catalog's addresses into the VKS cluster. |
 | `music-store-platform/` | platform engineer | `music-store-platform` | Inside the VKS cluster: the `ClusterSecretStore` `secret-store` for Secret Store, the Gateway's certificate, and in namespace `platform-tools` what the platform tools cluster needs there: a Prometheus agent and blackbox exporter that write to its Prometheus, and the service account `goad-k8s-mcp`. |
 | `platform-tools/` | platform engineer | `platform-tools` | The VKS cluster `platform-tools`, its ESO addon, and its Tekton addon. |
 | `platform-tools-apps/` | platform engineer | `platform-tools-apps` | Inside the platform tools cluster, namespace `incident-tools`: Zammad, Grafana with its boards and topology panel, Prometheus and the blackbox exporter, and their `ExternalSecret`s. |

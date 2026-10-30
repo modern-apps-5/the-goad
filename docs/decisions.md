@@ -1424,3 +1424,45 @@ Update, 2026-10-30: the shop runs from the images. The first build was
 and `kustomization.yaml` sets the tag in `images:`. Decision 45's cost,
 a code change being a deploy and a `pip install` at every start, is gone.
 
+## 49. The security admin is a persona, with vDefend in its own Terraform root
+
+Decision 39 left the security admin persona unbuilt. It is built now,
+for a layered network policy on the music store (issues #70 to #73).
+Each team owns one layer of the music store's policy,
+works in its own tool, and cannot override another team's intent:
+
+| Layer | Owner | Where | Antrea tier |
+|---|---|---|---|
+| 1. Guardrails | security admin | `terraform/security-admin`, vDefend in NSX | `nsx-category-application` (4) |
+| 2. Service to service | developer | `gitops/music-store-apps`, a namespaced Antrea NetworkPolicy | `application` (250) |
+| 3. Default deny | platform engineer | `gitops/music-store-platform` | `baseline` (253) |
+
+Antrea evaluates every vDefend tier before every native tier, and the
+first matching rule decides. So layer 1 holds allow rules only: a
+catch-all drop there would decide every flow before the developer's
+layer is reached.
+
+The security admin gets a Terraform root and a workflow,
+`security-admin.yml`, the same as the other personas (decision 25). It
+runs after the platform engineer's: NSX pushes the policy into the
+cluster only once the cluster is registered as an Antrea container
+cluster. The platform engineer turns that on with the Antrea addon's
+`antreaNSX.enable` (`gitops/music-store/antrea-nsx.yaml`); the Supervisor
+handles the NSX side.
+
+Why vDefend in Terraform and not in NSX by hand: the demo shows the
+security admin changing policy as code, and a plan shows drift. The
+`vmware/nsxt` provider has the Antrea container cluster resources since
+3.11.0, so no custom build is needed.
+
+Why the pods carry `app-name`, `service-name` and `env`: the NSX groups
+and the Antrea selectors match on them. They are added to the pod
+templates only; the Deployment selectors are immutable.
+
+Cost: the security admin's workflow needs an NSX login, a new GitHub
+secret. As with decision 25, the split is for the story: each workflow
+could read the other personas' secrets.
+
+Look again if: the security admin should own the default deny as well,
+or vDefend policy moves to a Supervisor-side API that VCF Automation
+exposes.

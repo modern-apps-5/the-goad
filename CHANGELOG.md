@@ -3,6 +3,16 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Antrea NSX integration on the music store cluster)
+
+### Added
+
+- `gitops/music-store/antrea-nsx.yaml`: the cluster's Antrea AddonConfig
+  with `antreaNSX.enable`, so NSX registers it as a container cluster for
+  the security admin's vDefend policy (decision 49).
+- `gitops/music-store-apps/workloads.yaml`: the pods carry `app-name`,
+  `service-name` and `env`, which the NSX groups and Antrea rules match.
+
 ## 2026-10-30 (The shop runs from its images)
 
 ### Changed
