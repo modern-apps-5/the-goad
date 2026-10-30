@@ -3,6 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (BuildKit trusts Harbor for its token)
+
+### Fixed
+
+- `gitops/platform-tools-builds/tasks.yaml`: the `buildkit` step adds
+  Harbor's CA to a bundle in `SSL_CERT_FILE`. The first build failed on
+  `Post "https://depot.kube-system.svc/service/token": x509`, because
+  `buildkitd.toml`'s `ca` does not cover the token request.
+
 ## 2026-10-30 (Two workers for the platform tools cluster)
 
 ### Changed
