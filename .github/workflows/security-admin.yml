@@ -1,0 +1,61 @@
+# The security admin's Terraform root, on the lab's self-hosted runner.
+# GitHub's own runners cannot reach NSX Manager or the lab's Gitea server.
+#
+# It runs only when a person starts it: Actions, this workflow, Run workflow.
+# It plans. It applies only if "apply" is ticked, and only on main. A pull
+# request or a push starts nothing, for now: see decision 25.
+#
+# One workflow for each persona (decisions 25 and 49). Run it after the
+# platform engineer's, once the VKS cluster music-store is up with Antrea's
+# NSX integration.
+name: security-admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply after the plan. Only on main.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One run of this root at a time. Gitea locks the state as well, but a queued
+# run is easier to read than a lock error.
+concurrency:
+  group: security-admin
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  # Token of the shared Gitea user goad-terraform. The http backend reads it
+  # from here, so there is no backend.hcl.
+  TF_HTTP_PASSWORD: ${{ secrets.GITEA_STATE_TOKEN }}
+  APPLY: ${{ github.ref == 'refs/heads/main' && inputs.apply }}
+
+jobs:
+  terraform:
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/security-admin
+    env:
+      TF_VAR_nsx_password: ${{ secrets.SECURITY_ADMIN_NSX_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "~1.15"
+          terraform_wrapper: false
+      - run: terraform init
+      - name: Plan
+        run: |
+          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
+          { echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply
+        if: env.APPLY == 'true'
+        run: terraform apply -no-color -lock-timeout=5m tfplan
