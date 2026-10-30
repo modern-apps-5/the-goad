@@ -1304,3 +1304,61 @@ Look again if: the lab gets a registry. Then the code moves out of
 `gitops/`, CI builds images, and the platform engineer bumps the image
 tag. Look again too if the developer gets a deploy of their own, for
 example a `cf push` of the shop to Tanzu Platform.
+
+## 46. Broadcom's content registry is proxied through the Supervisor's Harbor
+
+The cloud admin's `terraform/cloud-admin/org` makes a proxy cache project,
+`tanzu-platform-content`, in the Supervisor's Harbor (`harbor.tf`). It
+proxies all of `tanzu-platform-content.packages.broadcom.com`, the
+registry behind the Bitnami images Tanzu Hub lists, not one image. The
+project is public: anything in the lab pulls without a login, by the
+registry's own path with `10.47.7.12/tanzu-platform-content/` in front.
+
+Why: Broadcom's registry needs a login for every pull. With the proxy,
+only Harbor holds it, and the cloud admin owns it. Builds and clusters
+need no Broadcom credential, and an image is fetched once and then served
+from the lab. VKS clusters already trust the Supervisor's Harbor.
+
+Why the cloud admin: the Broadcom entitlement and the Supervisor's Harbor
+are provider scope, like the org's quota and networking. The platform
+engineer's build pipeline consumes the project and does not manage it.
+
+Why `docker-registry` as Harbor's registry type: Broadcom's registry is
+Artifactory, but it serves the plain Docker Registry v2 API with bearer
+tokens, which the generic type covers.
+
+Cost: Harbor's admin password and the Broadcom token become cloud-admin
+secrets (`HARBOR_ADMIN_PASSWORD`, `BROADCOM_REGISTRY_USERNAME`,
+`BROADCOM_REGISTRY_TOKEN`). A Broadcom token expires, and an expired one
+fails every pull Harbor has not cached yet. Anyone on the lab network can
+pull Broadcom's entitled images from Harbor without a login.
+
+Look again if: the lab gets a DNS name for Harbor, or the project has to
+be private. Then the clusters and builds need a pull secret.
+
+## 47. The cloud admin makes the music store's Harbor project and push login
+
+`terraform/cloud-admin/org/harbor.tf` makes a public Harbor project,
+`music-store`, and a project robot account, `robot$music-store+builder`,
+that can only push and pull its repositories. The platform engineer's
+build pushes the music store's images with it (issue #62), and the music
+store's VKS cluster pulls them with no login.
+
+Why the cloud admin: Harbor's admin login stays with the cloud admin, as
+with the proxy cache in decision 46. The platform engineer gets a login
+that reaches one project and nothing else.
+
+Why a shared secret: the robot's secret is a team value in the GitHub
+secret `MUSIC_STORE_HARBOR_ROBOT_SECRET`, set on the robot by Terraform
+and read by the platform engineer's workflow, the same way the org
+stages share `CLOUD_ADMIN_PASSWORD`. Terraform sets it write-only
+(`secret_wo`), so it is never in state. Handing a generated secret to
+the platform engineer would need a GitHub token with secret write access
+in the cloud admin's workflow, a new credential for one value.
+
+Why public: VKS trusts the Supervisor's Harbor already, so a public
+project needs no pull secret and no CA in the cluster.
+
+Cost: Terraform cannot see the secret, so a change to it needs
+`music_store_robot_secret_version` raised by one. Anyone on the lab
+network can pull the music store's images.

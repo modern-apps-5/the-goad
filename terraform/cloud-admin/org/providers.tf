@@ -48,3 +48,13 @@ provider "terracurl" {
     Authorization = "Bearer ${local.vcfa_token}"
   }
 }
+
+# The Supervisor's Harbor (harbor.tf), as its local admin user. Its
+# certificate is signed by Harbor's own CA, which the runner does not
+# trust, so allow_unverified_ssl covers it too.
+provider "harbor" {
+  url      = var.harbor_url
+  username = var.harbor_admin_username
+  password = var.harbor_admin_password
+  insecure = var.allow_unverified_ssl
+}

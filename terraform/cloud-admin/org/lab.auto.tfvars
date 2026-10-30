@@ -52,3 +52,7 @@ dsm_infrastructure_policy_names = ["dsm-infra-xscl5"]
 ops_url = "https://ops01.gpu.set.lab"
 
 vidb_hostname = "vidb.gpu.set.lab"
+
+# The Supervisor's Harbor: the harbor-nginx LoadBalancer in the Supervisor
+# Namespace svc-harbor-qxi0v. No DNS name points at it.
+harbor_url = "https://10.47.7.12"

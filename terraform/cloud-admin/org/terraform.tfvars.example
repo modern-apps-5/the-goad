@@ -17,3 +17,22 @@ cloud_admin_password = "CHANGE-ME"
 # Password of the VCF Operations local administrator (admin). Terraform
 # creates the org's VCF SSO client through VCF Operations.
 ops_password = "CHANGE-ME"
+
+# Password of the Supervisor's Harbor local administrator (admin). The
+# Harbor Supervisor Service sets it. Terraform creates the proxy cache in
+# harbor.tf with it.
+harbor_admin_password = "CHANGE-ME"
+
+# A Broadcom registry token for tanzu-platform-content.packages.broadcom.com,
+# and the support portal email it was made for. Harbor's proxy cache logs
+# in with them. The token expires: make a new one before it does.
+broadcom_registry_username = "CHANGE-ME"
+broadcom_registry_token    = "CHANGE-ME"
+
+# Secret of the Harbor robot account robot$music-store+builder, which the
+# platform engineer's build workflow pushes the music store's images with.
+# The team's shared value: 8 to 128 characters, with an upper case letter,
+# a lower case letter and a digit. Terraform cannot see it in state: after
+# a change, set music_store_robot_secret_version one higher in
+# lab.auto.tfvars.
+music_store_robot_secret = "CHANGE-ME"
