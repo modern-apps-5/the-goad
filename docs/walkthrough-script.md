@@ -32,9 +32,12 @@ not been changed to match. Fix these when Video 1 is rewritten.
 - **Scene 3, Cloud Admin.** The namespace shown is the platform
   engineer's work, not the cloud admin's. No GPU is allocated, so "GPU
   tenancy" cannot be said.
-- **Scene 4.** Of the security admin's part, only Avi's WAF on the shop's
-  route is built (decision 43), and AgentMinder's policies on the
-  incident agents' tools.
+- **Scene 4.** Of the security admin's part, Avi's WAF on the shop's
+  route is built (decision 43), AgentMinder's policies on the incident
+  agents' tools, and the vDefend guardrails that reach the shop's cluster
+  through Antrea (decision 49). vDefend DFW for the users VM and SSP are
+  not built. `scripts/pen-test` shows the default deny and the WAF
+  stopping an attacker pod inside the cluster.
 
 The commands that exist today are the Terraform roots (cloud admin, then
 platform engineer, from a machine or the GitHub workflows), `git push`
