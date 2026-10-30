@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (No image build for Markdown)
+
+### Changed
+
+- `.github/workflows/music-store-images.yml`: a push that changes only
+  Markdown under `apps/music-store` no longer builds images. The README
+  edit in #74 built `02e625f06606`, the same code as `ff4cf83e2310`.
+
 ## 2026-10-30 (Antrea NSX integration on the music store cluster)
 
 ### Added
