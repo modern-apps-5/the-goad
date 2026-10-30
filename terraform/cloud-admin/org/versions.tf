@@ -21,5 +21,9 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.13"
     }
+    harbor = {
+      source  = "goharbor/harbor"
+      version = "~> 3.12"
+    }
   }
 }

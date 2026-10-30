@@ -61,6 +61,11 @@ jobs:
       # The VCF Operations administrator. Terraform makes the org's VCF SSO
       # client through VCF Operations.
       TF_VAR_ops_password: ${{ secrets.OPS_ADMIN_PASSWORD }}
+      # The Supervisor's Harbor administrator, and the Broadcom registry
+      # token its proxy cache logs in with (harbor.tf).
+      TF_VAR_harbor_admin_password: ${{ secrets.HARBOR_ADMIN_PASSWORD }}
+      TF_VAR_broadcom_registry_username: ${{ secrets.BROADCOM_REGISTRY_USERNAME }}
+      TF_VAR_broadcom_registry_token: ${{ secrets.BROADCOM_REGISTRY_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4

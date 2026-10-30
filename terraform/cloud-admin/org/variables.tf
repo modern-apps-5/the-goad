@@ -144,3 +144,32 @@ variable "ops_password" {
   description = "Password for ops_username."
   sensitive   = true
 }
+
+variable "harbor_url" {
+  type        = string
+  description = "URL of the Supervisor's Harbor, the address of its harbor-nginx LoadBalancer, for example https://10.0.0.10."
+}
+
+variable "harbor_admin_username" {
+  type        = string
+  description = "Harbor's local administrator."
+  default     = "admin"
+}
+
+variable "harbor_admin_password" {
+  type        = string
+  description = "Password for harbor_admin_username."
+  sensitive   = true
+}
+
+variable "broadcom_registry_username" {
+  type        = string
+  description = "User of the Broadcom registry token: the Broadcom support portal email it was made for."
+  sensitive   = true
+}
+
+variable "broadcom_registry_token" {
+  type        = string
+  description = "Broadcom registry token for tanzu-platform-content.packages.broadcom.com. Harbor's proxy cache logs in with it."
+  sensitive   = true
+}

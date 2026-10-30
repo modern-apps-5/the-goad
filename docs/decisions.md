@@ -1304,3 +1304,34 @@ Look again if: the lab gets a registry. Then the code moves out of
 `gitops/`, CI builds images, and the platform engineer bumps the image
 tag. Look again too if the developer gets a deploy of their own, for
 example a `cf push` of the shop to Tanzu Platform.
+
+## 46. Broadcom's content registry is proxied through the Supervisor's Harbor
+
+The cloud admin's `terraform/cloud-admin/org` makes a proxy cache project,
+`tanzu-platform-content`, in the Supervisor's Harbor (`harbor.tf`). It
+proxies all of `tanzu-platform-content.packages.broadcom.com`, the
+registry behind the Bitnami images Tanzu Hub lists, not one image. The
+project is public: anything in the lab pulls without a login, by the
+registry's own path with `10.47.7.12/tanzu-platform-content/` in front.
+
+Why: Broadcom's registry needs a login for every pull. With the proxy,
+only Harbor holds it, and the cloud admin owns it. Builds and clusters
+need no Broadcom credential, and an image is fetched once and then served
+from the lab. VKS clusters already trust the Supervisor's Harbor.
+
+Why the cloud admin: the Broadcom entitlement and the Supervisor's Harbor
+are provider scope, like the org's quota and networking. The platform
+engineer's build pipeline consumes the project and does not manage it.
+
+Why `docker-registry` as Harbor's registry type: Broadcom's registry is
+Artifactory, but it serves the plain Docker Registry v2 API with bearer
+tokens, which the generic type covers.
+
+Cost: Harbor's admin password and the Broadcom token become cloud-admin
+secrets (`HARBOR_ADMIN_PASSWORD`, `BROADCOM_REGISTRY_USERNAME`,
+`BROADCOM_REGISTRY_TOKEN`). A Broadcom token expires, and an expired one
+fails every pull Harbor has not cached yet. Anyone on the lab network can
+pull Broadcom's entitled images from Harbor without a login.
+
+Look again if: the lab gets a DNS name for Harbor, or the project has to
+be private. Then the clusters and builds need a pull secret.

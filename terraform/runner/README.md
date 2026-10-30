@@ -130,6 +130,8 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 | `VCFA_ADMIN_PASSWORD` | `vcfa_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
 | `CLOUD_ADMIN_PASSWORD` | `cloud_admin_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
 | `OPS_ADMIN_PASSWORD` | `ops_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
+| `HARBOR_ADMIN_PASSWORD` | `harbor_admin_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
+| `BROADCOM_REGISTRY_USERNAME`, `BROADCOM_REGISTRY_TOKEN` | `broadcom_registry_username` and `broadcom_registry_token` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
 | `SSP_REGISTRY_USERNAME`, `SSP_REGISTRY_PASSWORD` | `ssp_registry_username` and `ssp_registry_password` in `terraform/cloud-admin/agentminder/terraform.tfvars` | `cloud-admin` |
 | `PLATFORM_ENGINEER_VCFA_TOKEN` | `vcfa_api_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `PAIS_ADMIN_PASSWORD_HASH` | `pais_admin_password_hash` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |

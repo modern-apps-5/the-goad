@@ -3,6 +3,21 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (Harbor proxy cache for Broadcom's content registry)
+
+### Added
+
+- `terraform/cloud-admin/org/harbor.tf`: a public proxy cache project,
+  `tanzu-platform-content`, in the Supervisor's Harbor at
+  `https://10.47.7.12`, for `tanzu-platform-content.packages.broadcom.com`
+  (decision 46). Pull
+  `10.47.7.12/tanzu-platform-content/containers/photon-5/python:3.14.10-photon-5-r1`
+  with no login.
+- New `cloud-admin` secrets: `HARBOR_ADMIN_PASSWORD`,
+  `BROADCOM_REGISTRY_USERNAME` and `BROADCOM_REGISTRY_TOKEN`. Add them to
+  GitHub and to `terraform/cloud-admin/org/terraform.tfvars` before the
+  next `cloud-admin` run.
+
 ## 2026-10-28 (README names where Argo CD reads from)
 
 ### Fixed

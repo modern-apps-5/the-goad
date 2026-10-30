@@ -299,6 +299,9 @@ The lab must already have:
   infrastructure policy and PostgreSQL 16 enabled.
 - Private AI Services installed as a Supervisor Service, with the Qwen
   model and the engine image in the Supervisor's Harbor.
+- A public proxy cache project, `tanzu-platform-content`, in the
+  Supervisor's Harbor, for Broadcom's Tanzu Platform content registry
+  and its Bitnami images.
 - The Argo CD Supervisor Service, and Secret Store (the vault injector) on
   the Supervisor.
 - The VKS addons `external-secrets` and `cert-manager` in the Supervisor's
@@ -327,12 +330,16 @@ Two files hold the inputs:
 
 - `lab.auto.tfvars`, in git: everything about the lab that is not
   secret. The region, the Distributed VLAN Connection, the zone and its
-  limits, VM classes, storage, and the DSM infrastructure policy. For a
+  limits, VM classes, storage, the DSM infrastructure policy, and the
+  Harbor address. For a
   different lab, change this file and commit it.
 - `terraform.tfvars`, not in git: `vcfa_password`, the provider
   administrator's password, `cloud_admin_password`, which Terraform sets
-  for the org's one local user `cloud-admin`, and `ops_password`, the
-  VCF Operations administrator's password. If the demo is already built,
+  for the org's one local user `cloud-admin`, `ops_password`, the
+  VCF Operations administrator's password, `harbor_admin_password`, the
+  Supervisor's Harbor administrator's password, and
+  `broadcom_registry_username` and `broadcom_registry_token`, the
+  Broadcom registry login of the Harbor proxy cache. If the demo is already built,
   copy the team's file.
 
 ```sh
