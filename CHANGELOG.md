@@ -3,6 +3,16 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-10-30 (The shop's network policy)
+
+### Added
+
+- `gitops/music-store-apps/network-policy.yaml`: the calls between the
+  shop's services, an Antrea NetworkPolicy in the application tier.
+- `gitops/music-store-platform/network-policy.yaml`: the default deny for
+  namespace `music-store`, and an allow for the monitoring probes from
+  `platform-tools` (decision 49).
+
 ## 2026-10-30 (Security admin: vDefend guardrails)
 
 ### Added

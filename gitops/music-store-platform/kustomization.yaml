@@ -6,6 +6,9 @@
 # platform-tools.yaml names its own namespace, platform-tools: what the
 # platform tools cluster needs in this one (decision 42). gateway-cert.yaml
 # is the shop Gateway's certificate, in namespace default.
+# network-policy.yaml is the shop's default deny and the monitoring allow,
+# cluster-scoped (decision 49). The front end is reachable only once the
+# security admin's vDefend rule is applied (terraform/security-admin).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -13,6 +16,7 @@ resources:
   - secret-store.yaml
   - platform-tools.yaml
   - gateway-cert.yaml
+  - network-policy.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

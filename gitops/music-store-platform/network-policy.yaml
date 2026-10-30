@@ -1,0 +1,54 @@
+# Layer 3 of the music store's network policy (decision 49): the platform
+# engineer's default deny, and what the platform's own tools need to keep
+# reaching the shop.
+#
+# Antrea evaluates the security admin's vDefend tiers first, then the
+# native tiers, platform (200) before the developer's application (250),
+# and baseline (253) last. The default deny is in baseline so it never
+# shadows another layer. Logging is on, so every drop shows in the Antrea
+# policy log on the node.
+#
+# A node always reaches its own pods, whatever the policy, so kubelet
+# probes are not affected.
+#
+# Cluster-scoped, so no namespace is set.
+apiVersion: crd.antrea.io/v1beta1
+kind: ClusterNetworkPolicy
+metadata:
+  name: music-store-platform-monitoring
+spec:
+  tier: platform
+  priority: 10
+  appliedTo:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: music-store
+  ingress:
+    # The Prometheus agent and blackbox exporter in platform-tools probe
+    # the shop (prometheus-agent.yml).
+    - name: platform-tools-probes
+      action: Allow
+      from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: platform-tools
+      ports:
+        - protocol: TCP
+          port: 5000
+          endPort: 5005
+---
+apiVersion: crd.antrea.io/v1beta1
+kind: ClusterNetworkPolicy
+metadata:
+  name: music-store-default-deny
+spec:
+  tier: baseline
+  priority: 10
+  appliedTo:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: music-store
+  ingress:
+    - name: default-deny-ingress
+      action: Drop
+      enableLogging: true
