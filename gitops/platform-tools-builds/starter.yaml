@@ -1,0 +1,47 @@
+# The login the workflow .github/workflows/music-store-images.yml starts
+# builds with. It can create and read PipelineRuns and read their
+# TaskRuns, pods and logs in this namespace, and nothing else.
+#
+# The token is a long-lived ServiceAccount token, made here in the
+# cluster. scripts/music-store-build-kubeconfig.sh turns it into a
+# kubeconfig and stores it as the GitHub secret
+# MUSIC_STORE_BUILD_KUBECONFIG.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline-starter
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pipeline-starter-token
+  annotations:
+    kubernetes.io/service-account.name: pipeline-starter
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pipeline-starter
+rules:
+  - apiGroups: [tekton.dev]
+    resources: [pipelineruns]
+    verbs: [create, get, list, watch]
+  - apiGroups: [tekton.dev]
+    resources: [taskruns]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods, pods/log]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipeline-starter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pipeline-starter
+subjects:
+  - kind: ServiceAccount
+    name: pipeline-starter

@@ -132,7 +132,8 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 | `OPS_ADMIN_PASSWORD` | `ops_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
 | `HARBOR_ADMIN_PASSWORD` | `harbor_admin_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
 | `BROADCOM_REGISTRY_USERNAME`, `BROADCOM_REGISTRY_TOKEN` | `broadcom_registry_username` and `broadcom_registry_token` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
-| `MUSIC_STORE_HARBOR_ROBOT_SECRET` | `music_store_robot_secret` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` sets it on the Harbor robot account `robot$music-store+builder`; the platform engineer's image build will push with it |
+| `MUSIC_STORE_HARBOR_ROBOT_SECRET` | `music_store_robot_secret` in `terraform/cloud-admin/org/terraform.tfvars` and `terraform/platform-engineer/terraform.tfvars` | `cloud-admin` sets it on the Harbor robot account `robot$music-store+builder`; `platform-engineer` writes it into the KV the image builds push with |
+| `MUSIC_STORE_BUILD_KUBECONFIG` | Only in GitHub: `scripts/music-store-build-kubeconfig.sh` makes it from the ServiceAccount `pipeline-starter` | `music-store-images` |
 | `SSP_REGISTRY_USERNAME`, `SSP_REGISTRY_PASSWORD` | `ssp_registry_username` and `ssp_registry_password` in `terraform/cloud-admin/agentminder/terraform.tfvars` | `cloud-admin` |
 | `PLATFORM_ENGINEER_VCFA_TOKEN` | `vcfa_api_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `PAIS_ADMIN_PASSWORD_HASH` | `pais_admin_password_hash` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |

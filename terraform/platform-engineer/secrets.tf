@@ -104,9 +104,11 @@ provider "kubectl" {
 
 locals {
   platform_tools_kv = {
-    grafana = "${local.platform_tools_cluster_name}-grafana"
-    zammad  = "${local.platform_tools_cluster_name}-zammad"
-    qwen    = "${local.platform_tools_cluster_name}-qwen"
+    grafana        = "${local.platform_tools_cluster_name}-grafana"
+    zammad         = "${local.platform_tools_cluster_name}-zammad"
+    qwen           = "${local.platform_tools_cluster_name}-qwen"
+    harbor_push    = "${local.platform_tools_cluster_name}-harbor-push"
+    git_deploy_key = "${local.platform_tools_cluster_name}-git-deploy-key"
   }
 }
 
@@ -176,6 +178,61 @@ resource "kubectl_manifest" "platform_tools_qwen_kv" {
         { key = "base-url", value = var.music_store_chat.base_url },
         { key = "api-key", value = var.incident_qwen_api_key },
       ]
+    }
+  })
+}
+
+# --- The music store's image builds (decision 48) ---
+#
+# Both are read by ESO in the namespace music-store-builds
+# (gitops/platform-tools-builds).
+#
+# The push login of the Harbor robot account robot$music-store+builder.
+# terraform/cloud-admin/org sets the same secret on the robot, from the
+# same GitHub secret, MUSIC_STORE_HARBOR_ROBOT_SECRET (decision 47).
+resource "kubectl_manifest" "platform_tools_harbor_push_kv" {
+  count    = nonsensitive(try(length(var.music_store_robot_secret), 0) == 0) ? 0 : 1
+  provider = kubectl.platform_tools
+
+  validate_schema  = false
+  sensitive_fields = ["spec.data"]
+  ignore_fields    = ["spec.data"]
+  yaml_body = yamlencode({
+    apiVersion = "secretstore.vmware.com/v1alpha1"
+    kind       = "KeyValueSecret"
+    metadata = {
+      name      = local.platform_tools_kv.harbor_push
+      namespace = local.namespace_names["platform-tools"]
+    }
+    spec = {
+      name = local.platform_tools_kv.harbor_push
+      data = [
+        { key = "username", value = var.music_store_robot_username },
+        { key = "password", value = var.music_store_robot_secret },
+      ]
+    }
+  })
+}
+
+# The read-only deploy key Argo CD reads the repository with (gitops.tf),
+# for the Pipeline's clone.
+resource "kubectl_manifest" "platform_tools_git_deploy_key_kv" {
+  count    = var.gitops_repo_ssh_key_file == null ? 0 : 1
+  provider = kubectl.platform_tools
+
+  validate_schema  = false
+  sensitive_fields = ["spec.data"]
+  ignore_fields    = ["spec.data"]
+  yaml_body = yamlencode({
+    apiVersion = "secretstore.vmware.com/v1alpha1"
+    kind       = "KeyValueSecret"
+    metadata = {
+      name      = local.platform_tools_kv.git_deploy_key
+      namespace = local.namespace_names["platform-tools"]
+    }
+    spec = {
+      name = local.platform_tools_kv.git_deploy_key
+      data = [{ key = "ssh-privatekey", value = file(var.gitops_repo_ssh_key_file) }]
     }
   })
 }

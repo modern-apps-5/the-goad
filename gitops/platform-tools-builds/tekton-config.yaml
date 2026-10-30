@@ -1,0 +1,19 @@
+# Tekton Pipelines only (profile lite), installed by the operator from
+# gitops/platform-tools/tekton.yaml into tekton-pipelines. The addon sets
+# autoInstallComponents to false, so nothing is installed without this.
+# Cluster scoped: kustomize leaves its namespace alone.
+apiVersion: operator.tekton.dev/v1alpha1
+kind: TektonConfig
+metadata:
+  name: config
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  profile: lite
+  targetNamespace: tekton-pipelines
+  pruner:
+    disabled: false
+    keep: 20
+    resources:
+      - pipelinerun
+    schedule: "0 * * * *"

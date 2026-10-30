@@ -1317,7 +1317,10 @@ registry's own path with `10.47.7.12/tanzu-platform-content/` in front.
 Why: Broadcom's registry needs a login for every pull. With the proxy,
 only Harbor holds it, and the cloud admin owns it. Builds and clusters
 need no Broadcom credential, and an image is fetched once and then served
-from the lab. VKS clusters already trust the Supervisor's Harbor.
+from the lab. Inside VKS, the same project is
+`depot.kube-system.svc/tanzu-platform-content/`: VKS nodes and pods
+resolve and trust the Supervisor's Harbor by that name, not by its
+address.
 
 Why the cloud admin: the Broadcom entitlement and the Supervisor's Harbor
 are provider scope, like the org's quota and networking. The platform
@@ -1357,8 +1360,61 @@ the platform engineer would need a GitHub token with secret write access
 in the cloud admin's workflow, a new credential for one value.
 
 Why public: VKS trusts the Supervisor's Harbor already, so a public
-project needs no pull secret and no CA in the cluster.
+project needs no pull secret and no CA in the cluster. The trust is for
+the name the Supervisor registers Harbor under, `depot.kube-system.svc`
+(its ClusterRegistryConfig and ClusterDomainResolutionEntry). A pull by
+the address `10.47.7.12` fails with `x509: certificate signed by unknown
+authority`, checked on the platform tools cluster on 2026-10-30. So images
+in VKS are named `depot.kube-system.svc/music-store/<service>`.
 
 Cost: Terraform cannot see the secret, so a change to it needs
 `music_store_robot_secret_version` raised by one. Anyone on the lab
 network can pull the music store's images.
+
+## 48. The platform engineer builds the music store's images with Tekton
+
+The developer writes the shop's code in `apps/music-store/<service>/` and
+nothing else. The platform engineer owns everything from there to the
+running shop, a golden path:
+
+- The Dockerfile: one template for a Python service,
+  `gitops/platform-tools-builds/dockerfiles/python`, `FROM` Bitnami's
+  Python on Photon 5 through the Harbor proxy cache (decision 46). Every
+  service is built from it, with its own directory as the context.
+- The build: Tekton, from the VKS addon `tekton-operator`, on the
+  platform tools cluster. The Pipeline `music-store-images` clones one
+  commit with the read-only deploy key, then builds the four images with
+  BuildKit and pushes them as `robot$music-store+builder`
+  (decision 47), tagged with the commit.
+- The trigger: the workflow `music-store-images.yml`, on a push to main
+  that changes `apps/music-store/`. It starts a PipelineRun as the
+  ServiceAccount `pipeline-starter`, waits, and shows the result and the
+  logs in GitHub.
+- The deploy: the workflow then opens a pull request that sets the new
+  tag in `gitops/music-store-apps/kustomization.yaml`. Merging it is the
+  deploy. Building is not deploying.
+
+Why Tekton on a VKS cluster: the runner is a vSphere Pod with no
+capabilities and no Docker daemon, so it cannot build. GitHub's own
+runners cannot reach Harbor. Tekton comes with VKS as an addon, and the
+platform tools cluster is already the platform engineer's.
+
+Why the workflow starts the build: GitHub cannot reach the lab, so a
+webhook is not possible, and a PipelineRun started from the workflow
+reports back to GitHub. Tekton Triggers would need an exposed listener
+and would leave GitHub blind to the result.
+
+Why BuildKit runs privileged: rootless BuildKit needs unprivileged user
+namespaces, which the Ubuntu 24.04 nodes restrict. The namespace
+`music-store-builds` is Pod Security privileged for it, and holds nothing
+else.
+
+Cost: `pipeline-starter`'s token is a long-lived ServiceAccount token, in
+the GitHub secret `MUSIC_STORE_BUILD_KUBECONFIG`
+(`scripts/music-store-build-kubeconfig.sh`). It can only start and read
+PipelineRuns in one namespace. The workflow's pull request needs the
+repository setting that lets GitHub Actions create pull requests. The
+deploy key now also reaches the platform tools cluster.
+
+Look again if: the runner gets a way to build itself, or Tekton gets a
+listener the lab can reach.

@@ -1,0 +1,96 @@
+# The two steps of every build: clone one commit, and build and push one
+# image with BuildKit. pipeline.yaml puts them together.
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-clone
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  description: Clone one commit of a repository over SSH, with a deploy key and pinned host keys.
+  params:
+    - name: url
+      description: SSH URL of the repository.
+    - name: revision
+      description: The commit to check out.
+  workspaces:
+    - name: output
+      description: Where the commit is checked out.
+    - name: ssh-directory
+      description: ssh-privatekey and known_hosts.
+      readOnly: true
+  steps:
+    - name: clone
+      image: alpine/git:2.52.0
+      env:
+        - name: HOME
+          value: /tmp
+      script: |
+        #!/bin/sh
+        set -eu
+        mkdir -p /tmp/.ssh
+        cp "$(workspaces.ssh-directory.path)/ssh-privatekey" /tmp/.ssh/id
+        cp "$(workspaces.ssh-directory.path)/known_hosts" /tmp/.ssh/known_hosts
+        chmod 600 /tmp/.ssh/id
+        export GIT_SSH_COMMAND="ssh -i /tmp/.ssh/id -o UserKnownHostsFile=/tmp/.ssh/known_hosts -o StrictHostKeyChecking=yes"
+        cd "$(workspaces.output.path)"
+        git init -q .
+        git remote add origin "$(params.url)"
+        git fetch -q --depth 1 origin "$(params.revision)"
+        git checkout -q FETCH_HEAD
+        git log -1 --format='%H %s'
+---
+# BuildKit runs inside the step, started by buildctl-daemonless.sh, and
+# exits with it. It runs privileged as root: the rootless image needs
+# unprivileged user namespaces, which Ubuntu 24.04 nodes restrict.
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildkit
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  description: Build one image from a Dockerfile with BuildKit and push it.
+  params:
+    - name: context
+      description: Build context, relative to the source workspace.
+    - name: dockerfile
+      description: Directory of the Dockerfile, relative to the source workspace.
+    - name: image
+      description: Image to push, with its tag.
+  workspaces:
+    - name: source
+      readOnly: true
+  volumes:
+    - name: harbor-ca
+      configMap:
+        name: harbor-ca
+    - name: harbor-push
+      secret:
+        secretName: harbor-push
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+  steps:
+    - name: build
+      image: moby/buildkit:v0.33.1
+      securityContext:
+        privileged: true
+      env:
+        - name: BUILDKITD_FLAGS
+          value: --config /etc/buildkit/buildkitd.toml
+        - name: DOCKER_CONFIG
+          value: /etc/harbor-push
+      volumeMounts:
+        - name: harbor-ca
+          mountPath: /etc/buildkit
+        - name: harbor-push
+          mountPath: /etc/harbor-push
+      script: |
+        #!/bin/sh
+        set -eu
+        buildctl-daemonless.sh build \
+          --frontend dockerfile.v0 \
+          --local context="$(workspaces.source.path)/$(params.context)" \
+          --local dockerfile="$(workspaces.source.path)/$(params.dockerfile)" \
+          --output type=image,name="$(params.image)",push=true

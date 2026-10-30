@@ -1,0 +1,170 @@
+# The platform engineer's image build for the music store (decision 48).
+# The developer only changes code under apps/music-store; this builds it.
+#
+# On a push to main that changes apps/music-store or the Dockerfile
+# template, it starts the Tekton Pipeline music-store-images on the
+# platform tools cluster (gitops/platform-tools-builds), waits for it, and
+# shows the result here. The Pipeline pushes one image per service to the
+# Harbor project music-store, tagged with the commit.
+#
+# Then it opens a pull request that sets the new tag in
+# gitops/music-store-apps/kustomization.yaml. Merging that pull request is
+# the deploy: Argo CD syncs the shop to the new images. Building is not
+# deploying.
+#
+# The runner reaches the cluster with the ServiceAccount pipeline-starter,
+# whose kubeconfig is the GitHub secret MUSIC_STORE_BUILD_KUBECONFIG
+# (scripts/music-store-build-kubeconfig.sh). It can only start and read
+# PipelineRuns in music-store-builds.
+name: music-store-images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/music-store/**
+      - gitops/platform-tools-builds/dockerfiles/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: music-store-images
+  cancel-in-progress: false
+
+env:
+  NAMESPACE: music-store-builds
+  KUSTOMIZATION: gitops/music-store-apps/kustomization.yaml
+
+jobs:
+  build:
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.34.1
+      - name: Write the kubeconfig
+        env:
+          BUILD_KUBECONFIG: ${{ secrets.MUSIC_STORE_BUILD_KUBECONFIG }}
+        run: |
+          umask 077
+          printf '%s\n' "$BUILD_KUBECONFIG" > "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Start the PipelineRun
+        id: start
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_SHA::12}"
+          run=$(kubectl create -o name -f - <<EOF
+          apiVersion: tekton.dev/v1
+          kind: PipelineRun
+          metadata:
+            generateName: music-store-images-
+            namespace: ${NAMESPACE}
+          spec:
+            pipelineRef:
+              name: music-store-images
+            params:
+              - name: repo-url
+                value: git@github.com:${GITHUB_REPOSITORY}.git
+              - name: revision
+                value: ${GITHUB_SHA}
+              - name: tag
+                value: ${tag}
+            workspaces:
+              - name: source
+                volumeClaimTemplate:
+                  spec:
+                    accessModes: [ReadWriteOnce]
+                    storageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
+                    resources:
+                      requests:
+                        storage: 1Gi
+              - name: git-ssh
+                projected:
+                  sources:
+                    - secret:
+                        name: git-deploy-key
+                    - configMap:
+                        name: github-known-hosts
+          EOF
+          )
+          echo "run=${run#*/}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "Started ${run#*/} for ${GITHUB_SHA}, tag ${tag}."
+
+      - name: Wait for the build
+        env:
+          RUN: ${{ steps.start.outputs.run }}
+        run: |
+          set -euo pipefail
+          while :; do
+            status=$(kubectl -n "$NAMESPACE" get pipelinerun "$RUN" \
+              -o jsonpath='{.status.conditions[?(@.type=="Succeeded")].status}')
+            case "$status" in
+              True) break ;;
+              False)
+                kubectl -n "$NAMESPACE" get pipelinerun "$RUN" \
+                  -o jsonpath='{.status.conditions[?(@.type=="Succeeded")].message}{"\n"}'
+                kubectl -n "$NAMESPACE" get taskruns -l "tekton.dev/pipelineRun=$RUN"
+                for pod in $(kubectl -n "$NAMESPACE" get pods -l "tekton.dev/pipelineRun=$RUN" -o name); do
+                  echo "::group::${pod#*/}"
+                  kubectl -n "$NAMESPACE" logs "$pod" --all-containers --prefix --tail=80 || true
+                  echo "::endgroup::"
+                done
+                exit 1 ;;
+            esac
+            sleep 15
+          done
+          kubectl -n "$NAMESPACE" get taskruns -l "tekton.dev/pipelineRun=$RUN"
+          {
+            echo "## music-store images"
+            for s in store cart order chat; do
+              echo "- \`depot.kube-system.svc/music-store/$s:${{ steps.start.outputs.tag }}\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open the deploy pull request
+        env:
+          TAG: ${{ steps.start.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'EOF'
+          import os, re, sys
+          path, tag = os.environ["KUSTOMIZATION"], os.environ["TAG"]
+          text = open(path).read()
+          new, n = re.subn(
+              r"(name: depot\.kube-system\.svc/music-store/(?:store|cart|order|chat)\n\s+newTag: )\S+",
+              lambda m: m.group(1) + tag, text)
+          if n == 0:
+              print(f"::notice::{path} does not use the music-store images yet: no pull request.")
+              sys.exit(0)
+          open(path, "w").write(new)
+          EOF
+          if git diff --quiet; then
+            echo "No tag to change."
+            exit 0
+          fi
+          branch="music-store-images/${TAG}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -qam "Deploy the music store images ${TAG}."
+          git push -q origin "$branch"
+          jq -n --arg head "$branch" --arg tag "$TAG" --arg sha "$GITHUB_SHA" '{
+            title: "Deploy the music store images \($tag)",
+            head: $head, base: "main",
+            body: "Sets every music store image to `\($tag)`, built from \($sha) by the Tekton Pipeline music-store-images.\n\nMerging this deploys it: Argo CD syncs `gitops/music-store-apps`."
+          }' | curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" -d @- | jq -r .html_url

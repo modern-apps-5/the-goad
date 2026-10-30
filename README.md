@@ -21,13 +21,15 @@ the platform engineer, and the developer.
 | Platform engineer | Argo CD | Inside the shop's VKS cluster: the ESO store, the Gateway certificate, and what the platform tools cluster watches it with | [gitops/music-store-platform](gitops/music-store-platform) |
 | Platform engineer | Argo CD | The platform tools VKS cluster, and in it the incident demo's Zammad, Grafana and Prometheus | [gitops/platform-tools](gitops/platform-tools), [gitops/platform-tools-apps](gitops/platform-tools-apps) |
 | Platform engineer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-apps](gitops/music-store-apps) |
-| Developer | Code | The shop's source: store, cart, orders, and chat | [gitops/music-store-apps/src](gitops/music-store-apps/src) |
+| Platform engineer | Argo CD, GitHub workflow `music-store-images` | The build of the shop's images: Tekton on the platform tools cluster, and a pull request with the new image tags | [gitops/platform-tools-builds](gitops/platform-tools-builds), [.github/workflows/music-store-images.yml](.github/workflows/music-store-images.yml) |
+| Developer | Code | The shop's source: store, cart, orders, and chat | [apps/music-store](apps/music-store) |
 | (incident demo) | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system) |
 
 The music-store application, manifests and source, is in
 [gitops/music-store-apps](gitops/music-store-apps). The developer
-writes the application code in `src/`. The developer does not deploy
-it. The platform engineer deploys all of the music store with Argo CD:
+writes the application code in [apps/music-store](apps/music-store). The
+developer does not build or deploy it. The platform engineer builds the
+images (see below). The platform engineer deploys all of the music store with Argo CD:
 the VKS cluster `music-store`, the catalog database, the users VM, and
 the containers on that cluster (decision 45).
 
@@ -41,9 +43,11 @@ shop login is `admin` / `admin`. The catalog Service is
 
 [gitops/music-store-apps](gitops/music-store-apps) is the application
 and its deploy. It goes into the namespace `music-store` of the VKS
-cluster. It is the store, cart, orders, and chat, run from the source in
-`src/`. The platform engineer owns the deploy, and the developer owns
-`src/`. The catalog password and the chat's model key are not in git.
+cluster. It is the store, cart, orders, and chat. For now the shop runs
+from the copy of the source in `src/`; the developer's code is in
+`apps/music-store/`, and a later change switches the shop to the built
+images and removes `src/`. The platform engineer owns the deploy, and the
+developer owns `apps/music-store/`. The catalog password and the chat's model key are not in git.
 They are GitHub secrets, which the platform engineer Terraform writes
 into Secret Store; ESO in the cluster makes the Secrets `store-db` and
 `metal-oracle-model` from them (decision 38).
@@ -107,7 +111,7 @@ flowchart TD
         kv_secrets["KeyValueSecrets in Secret Store, in music-store and platform-tools"]
         handoff["Per namespace: ManagedEntity, then Application"]
         dev_handoff["For the shop cluster: ManagedEntity music-store-cluster, then Applications music-store-platform and music-store-apps"]
-        tools_handoff["For the tools: ManagedEntity platform-tools-cluster, then Application platform-tools-apps"]
+        tools_handoff["For the tools: ManagedEntity platform-tools-cluster, then Applications platform-tools-apps and platform-tools-builds"]
         images["Content library goad-images, with the Ubuntu image"]
         cf_space["Tanzu Platform: space metal-music-app-agentic-system and its services"]
         namespaces --> argocd --> role --> handoff --> dev_handoff
@@ -162,6 +166,10 @@ flowchart TD
         tools_apps["Zammad, Grafana, Prometheus and the blackbox exporter, in namespace incident-tools"]
     end
 
+    subgraph platform_tools_builds["Argo CD: gitops/platform-tools-builds"]
+        tools_builds["Tekton pipeline for the music store's images, in namespace music-store-builds"]
+    end
+
     cloud_admin --> org_config
     org_config -->|"cluster agentminder"| agentminder
     org_config -->|"Service Engine Group, and the svc.platform_engineer API token"| platform_engineer
@@ -176,6 +184,7 @@ flowchart TD
     music_store_platform -.->|"ClusterSecretStore and certificate"| music_store_apps
     handoff -->|"Application platform-tools"| platform_tools
     tools_handoff -->|"Application platform-tools-apps"| platform_tools_apps
+    tools_handoff -->|"Application platform-tools-builds"| platform_tools_builds
     platform_tools -.->|"the cluster"| platform_tools_apps
     pais_secret -.->|"login for admin"| pais_wave2
     kv_secrets -.->|"passwords and keys"| shop_wave2
@@ -505,7 +514,14 @@ so it retries until those exist. The developer writes only the code in
 Argo CD syncs `gitops/platform-tools/` into the `platform-tools`
 namespace: the VKS cluster `platform-tools` and its ESO addon. Then
 `platform-tools-apps` puts Zammad, Grafana, Prometheus and the blackbox
-exporter in it, in namespace `incident-tools`.
+exporter in it, in namespace `incident-tools`. `platform-tools/` also
+installs the Tekton addon. The Application `platform-tools-builds` syncs
+`gitops/platform-tools-builds/` into the namespace `music-store-builds`
+of that cluster: the pipeline that builds the music store's images from
+`apps/music-store/`, with the Dockerfile template the platform engineer
+owns. The workflow `music-store-images.yml` starts a PipelineRun and
+opens a pull request with the new image tags
+(`depot.kube-system.svc/music-store/<service>:<commit>`, decision 48).
 
 ### 5. Cloud admin: register the incident agents in AgentMinder
 
@@ -628,11 +644,13 @@ terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
 gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
 gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster
-gitops/music-store-apps/       The shop's containers, deployed into the VKS cluster by the platform engineer; the developer owns src/
+apps/music-store/              The developer's code: store, cart, order, chat. The platform engineer builds it into images
+gitops/music-store-apps/       The shop's containers, deployed into the VKS cluster by the platform engineer; src/ is the copy the shop runs until the switch to the images
+gitops/platform-tools-builds/  The image build: Tekton pipeline, tasks, and the Dockerfile template, in the platform tools cluster
 gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
 tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
 scripts/                       What a person runs by hand: setup once, the SDK mirror, and the incident walk
-.github/workflows/             One Terraform workflow for each persona, and tanzu-apps.yml
+.github/workflows/             One Terraform workflow for each persona, tanzu-apps.yml, and music-store-images.yml
 .github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer
 .github/actions/cf-token/      Gets a Tanzu Platform token for goad-deployer, for Terraform
 docs/                          Design, script, plan, decisions

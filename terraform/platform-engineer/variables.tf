@@ -259,3 +259,18 @@ variable "incident_sidecar_token" {
   description = "Bearer token between each diagnostic agent and its AgentMinder sidecar. GitHub secret INCIDENT_SIDECAR_TOKEN; tanzu-apps.yml sets the same value as AGENTMINDER_SIDECAR_TOKEN."
   sensitive   = true
 }
+
+# --- The music store's image builds ---
+
+variable "music_store_robot_username" {
+  type        = string
+  description = "Harbor robot account the music store's images are pushed with. terraform/cloud-admin/org makes it: its output music_store_registry."
+  default     = "robot$music-store+builder"
+}
+
+variable "music_store_robot_secret" {
+  type        = string
+  description = "Secret of music_store_robot_username. GitHub secret MUSIC_STORE_HARBOR_ROBOT_SECRET, the same value terraform/cloud-admin/org sets on the robot. Empty skips the KV."
+  sensitive   = true
+  default     = ""
+}
