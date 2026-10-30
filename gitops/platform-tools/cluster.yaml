@@ -46,9 +46,11 @@ spec:
           run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
     workers:
       machineDeployments:
+        # Two workers: one ran out of CPU requests (3920m of 3920m) once
+        # Tekton and the image builds joined the incident tools.
         - class: node-pool
           name: workers
-          replicas: 1
+          replicas: 2
           metadata:
             annotations:
               run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
