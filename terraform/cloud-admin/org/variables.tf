@@ -173,3 +173,16 @@ variable "broadcom_registry_token" {
   description = "Broadcom registry token for tanzu-platform-content.packages.broadcom.com. Harbor's proxy cache logs in with it."
   sensitive   = true
 }
+
+variable "music_store_robot_secret" {
+  type        = string
+  description = "Secret of the Harbor robot account robot$music-store+builder: 8 to 128 characters, with an upper case letter, a lower case letter and a digit."
+  sensitive   = true
+  ephemeral   = true
+}
+
+variable "music_store_robot_secret_version" {
+  type        = number
+  description = "Raise by one to make Terraform set a new music_store_robot_secret on the robot account. Terraform cannot see the secret itself."
+  default     = 1
+}

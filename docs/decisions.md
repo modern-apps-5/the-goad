@@ -1335,3 +1335,30 @@ pull Broadcom's entitled images from Harbor without a login.
 
 Look again if: the lab gets a DNS name for Harbor, or the project has to
 be private. Then the clusters and builds need a pull secret.
+
+## 47. The cloud admin makes the music store's Harbor project and push login
+
+`terraform/cloud-admin/org/harbor.tf` makes a public Harbor project,
+`music-store`, and a project robot account, `robot$music-store+builder`,
+that can only push and pull its repositories. The platform engineer's
+build pushes the music store's images with it (issue #62), and the music
+store's VKS cluster pulls them with no login.
+
+Why the cloud admin: Harbor's admin login stays with the cloud admin, as
+with the proxy cache in decision 46. The platform engineer gets a login
+that reaches one project and nothing else.
+
+Why a shared secret: the robot's secret is a team value in the GitHub
+secret `MUSIC_STORE_HARBOR_ROBOT_SECRET`, set on the robot by Terraform
+and read by the platform engineer's workflow, the same way the org
+stages share `CLOUD_ADMIN_PASSWORD`. Terraform sets it write-only
+(`secret_wo`), so it is never in state. Handing a generated secret to
+the platform engineer would need a GitHub token with secret write access
+in the cloud admin's workflow, a new credential for one value.
+
+Why public: VKS trusts the Supervisor's Harbor already, so a public
+project needs no pull secret and no CA in the cluster.
+
+Cost: Terraform cannot see the secret, so a change to it needs
+`music_store_robot_secret_version` raised by one. Anyone on the lab
+network can pull the music store's images.

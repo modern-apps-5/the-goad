@@ -32,3 +32,11 @@ output "storage_policy_names" {
 output "cloud_admin_username" {
   value = vcfa_org_local_user.cloud_admin.username
 }
+
+output "music_store_registry" {
+  description = "Where the platform engineer pushes the music store's images, and the robot account to push with. The secret is the GitHub secret MUSIC_STORE_HARBOR_ROBOT_SECRET."
+  value = {
+    repository = "${trimprefix(var.harbor_url, "https://")}/${harbor_project.music_store.name}"
+    username   = harbor_robot_account.music_store_builder.full_name
+  }
+}

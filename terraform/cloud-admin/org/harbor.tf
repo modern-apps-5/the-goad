@@ -27,3 +27,43 @@ resource "harbor_project" "tanzu_platform_content" {
   public      = true
   registry_id = harbor_registry.tanzu_platform_content.registry_id
 }
+
+# The music store's images. The platform engineer's build workflow pushes
+# them with the robot account below, and the music store's VKS cluster
+# pulls them with no login: the project is public, and VKS trusts the
+# Supervisor's Harbor already. See decision 47.
+resource "harbor_project" "music_store" {
+  name   = "music-store"
+  public = true
+}
+
+# The platform engineer's push login for music-store, and nothing else.
+# Harbor names it robot$music-store+builder.
+#
+# Its secret is the team's shared value, set here and read by the
+# platform engineer's workflow from the same GitHub secret. It is
+# write-only, so it is never in state. To change it, change the value and
+# raise music_store_robot_secret_version.
+resource "harbor_robot_account" "music_store_builder" {
+  name        = "builder"
+  description = "The platform engineer's image builds. Managed by terraform/cloud-admin/org."
+  level       = "project"
+  duration    = -1
+
+  secret_wo         = var.music_store_robot_secret
+  secret_wo_version = var.music_store_robot_secret_version
+
+  permissions {
+    kind      = "project"
+    namespace = harbor_project.music_store.name
+
+    access {
+      action   = "push"
+      resource = "repository"
+    }
+    access {
+      action   = "pull"
+      resource = "repository"
+    }
+  }
+}

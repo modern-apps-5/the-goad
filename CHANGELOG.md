@@ -3,7 +3,7 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
-## 2026-10-30 (Harbor proxy cache for Broadcom's content registry)
+## 2026-10-30 (Harbor: proxy cache for Broadcom's content registry, and the music store's project)
 
 ### Added
 
@@ -17,6 +17,10 @@ What changed in this repository, newest first. The reasons are in
   `BROADCOM_REGISTRY_USERNAME` and `BROADCOM_REGISTRY_TOKEN`. Add them to
   GitHub and to `terraform/cloud-admin/org/terraform.tfvars` before the
   next `cloud-admin` run.
+- `terraform/cloud-admin/org/harbor.tf`: a public Harbor project,
+  `music-store`, and the robot account `robot$music-store+builder`, which
+  can push and pull only there (decision 47). Its secret is the new
+  `cloud-admin` secret `MUSIC_STORE_HARBOR_ROBOT_SECRET`.
 
 ## 2026-10-28 (README names where Argo CD reads from)
 

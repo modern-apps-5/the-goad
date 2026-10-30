@@ -28,3 +28,11 @@ harbor_admin_password = "CHANGE-ME"
 # in with them. The token expires: make a new one before it does.
 broadcom_registry_username = "CHANGE-ME"
 broadcom_registry_token    = "CHANGE-ME"
+
+# Secret of the Harbor robot account robot$music-store+builder, which the
+# platform engineer's build workflow pushes the music store's images with.
+# The team's shared value: 8 to 128 characters, with an upper case letter,
+# a lower case letter and a digit. Terraform cannot see it in state: after
+# a change, set music_store_robot_secret_version one higher in
+# lab.auto.tfvars.
+music_store_robot_secret = "CHANGE-ME"

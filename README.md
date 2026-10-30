@@ -302,6 +302,8 @@ The lab must already have:
 - A public proxy cache project, `tanzu-platform-content`, in the
   Supervisor's Harbor, for Broadcom's Tanzu Platform content registry
   and its Bitnami images.
+- A public Harbor project, `music-store`, for the music store's images,
+  and a robot account the platform engineer pushes them with.
 - The Argo CD Supervisor Service, and Secret Store (the vault injector) on
   the Supervisor.
 - The VKS addons `external-secrets` and `cert-manager` in the Supervisor's
@@ -339,7 +341,9 @@ Two files hold the inputs:
   VCF Operations administrator's password, `harbor_admin_password`, the
   Supervisor's Harbor administrator's password, and
   `broadcom_registry_username` and `broadcom_registry_token`, the
-  Broadcom registry login of the Harbor proxy cache. If the demo is already built,
+  Broadcom registry login of the Harbor proxy cache, and
+  `music_store_robot_secret`, the secret of the music store's Harbor
+  robot account. If the demo is already built,
   copy the team's file.
 
 ```sh

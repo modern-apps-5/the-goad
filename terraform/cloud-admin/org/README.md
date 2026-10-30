@@ -18,7 +18,7 @@ exist in the lab. This root starts at the org and attaches it to them.
 | `quota.tf` | The org's region quota: CPU and memory per zone, VM classes, storage. |
 | `networking.tf` | The org's networking settings, its connection to the Distributed VLAN Connection, and the Avi load balancer setting. |
 | `dsm.tf` | The org's DSM data service policy for PostgreSQL. Skipped until `dsm_infrastructure_policy_names` is set. |
-| `harbor.tf` | A public proxy cache project, `tanzu-platform-content`, in the Supervisor's Harbor, for Broadcom's Tanzu Platform content registry. |
+| `harbor.tf` | In the Supervisor's Harbor: a public proxy cache project, `tanzu-platform-content`, for Broadcom's Tanzu Platform content registry, and a public project, `music-store`, with the robot account `robot$music-store+builder` that the platform engineer pushes the music store's images with. |
 | `oidc.tf` | VCF SSO for the org: its OIDC client in the VCF Identity Broker, then the org's OIDC setting. Skipped when `vcf_sso` is false. |
 
 The outputs are what the platform engineer needs: the org to log in to,
@@ -44,7 +44,8 @@ administrator), `cloud_admin_password` (the team's shared password for
 `cloud-admin`), `ops_password` (VCF Operations administrator),
 `harbor_admin_password` (the Supervisor's Harbor administrator), and
 `broadcom_registry_username` and `broadcom_registry_token` (a Broadcom
-registry token for the Harbor proxy cache). The
+registry token for the Harbor proxy cache), and `music_store_robot_secret`
+(the secret of the music store's Harbor robot account). The
 inputs for VCF SSO are `ops_url`, `vidb_hostname`, and `vcf_sso`
 (default `true`). `cloud_admin_username` defaults to `cloud-admin`.
 
