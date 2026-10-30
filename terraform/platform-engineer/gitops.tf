@@ -322,14 +322,21 @@ resource "kubectl_manifest" "platform_tools_apps_application" {
 # music-store-builds of the platform tools cluster. BuildKit needs a
 # privileged container, so the namespace is Pod Security privileged.
 
+# The deploy key's KV is base64 (secrets.tf), so ESO decodes it. The
+# patch replaces dataFrom whole, so the strategy is set here, not in git.
 locals {
-  platform_tools_builds_patches = [for name, kv in { "harbor-push" = "harbor_push", "git-deploy-key" = "git_deploy_key" } : {
+  platform_tools_builds_extract = {
+    "harbor-push"    = { key = "${local.platform_tools_namespace}/${local.platform_tools_kv.harbor_push}" }
+    "git-deploy-key" = { key = "${local.platform_tools_namespace}/${local.platform_tools_kv.git_deploy_key}", decodingStrategy = "Base64" }
+  }
+
+  platform_tools_builds_patches = [for name, extract in local.platform_tools_builds_extract : {
     target = { kind = "ExternalSecret", name = name }
     patch = yamlencode({
       apiVersion = "external-secrets.io/v1"
       kind       = "ExternalSecret"
       metadata   = { name = name }
-      spec       = { dataFrom = [{ extract = { key = "${local.platform_tools_namespace}/${local.platform_tools_kv[kv]}" } }] }
+      spec       = { dataFrom = [{ extract = extract }] }
     })
   }]
 }

@@ -216,6 +216,10 @@ resource "kubectl_manifest" "platform_tools_harbor_push_kv" {
 
 # The read-only deploy key Argo CD reads the repository with (gitops.tf),
 # for the Pipeline's clone.
+#
+# Base64, on one line: Secret Store does not escape a value when it
+# writes it to OpenBao, so the key's newlines fail the write with
+# "error parsing JSON". ESO decodes it (decodingStrategy in gitops.tf).
 resource "kubectl_manifest" "platform_tools_git_deploy_key_kv" {
   count    = var.gitops_repo_ssh_key_file == null ? 0 : 1
   provider = kubectl.platform_tools
@@ -232,7 +236,7 @@ resource "kubectl_manifest" "platform_tools_git_deploy_key_kv" {
     }
     spec = {
       name = local.platform_tools_kv.git_deploy_key
-      data = [{ key = "ssh-privatekey", value = file(var.gitops_repo_ssh_key_file) }]
+      data = [{ key = "ssh-privatekey", value = base64encode(file(var.gitops_repo_ssh_key_file)) }]
     }
   })
 }
