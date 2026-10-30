@@ -2,7 +2,7 @@
 # The developer only changes code under apps/music-store; this builds it.
 #
 # On a push to main that changes apps/music-store or the Dockerfile
-# template, it starts the Tekton Pipeline music-store-images on the
+# template, except Markdown, which is not in an image, it starts the Tekton Pipeline music-store-images on the
 # platform tools cluster (gitops/platform-tools-builds), waits for it, and
 # shows the result here. The Pipeline pushes one image per service to the
 # Harbor project music-store, tagged with the commit.
@@ -24,6 +24,7 @@ on:
     paths:
       - apps/music-store/**
       - gitops/platform-tools-builds/dockerfiles/**
+      - "!**/*.md"
   workflow_dispatch:
 
 permissions:
