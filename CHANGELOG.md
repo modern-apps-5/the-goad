@@ -4,6 +4,18 @@ What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
 
+
+## 2026-11-02 (Pen test dashboard: the WAF too)
+
+### Changed
+
+- `demos/pen-test-dashboard/flip.sh` takes a layer: `deny` (the
+  default), `waf`, or `all`. `waf` takes the Avi WAF out through the
+  Application `music-store-apps`: it deletes the L7Rule `metal-store-waf`
+  and the HTTPRoute filter that names it. This replaces the commit and
+  revert the guide used to show every attack getting through.
+- The demo guides no longer say which persona runs them.
+
 ## 2026-11-02 (Two pen test demos)
 
 ### Changed
