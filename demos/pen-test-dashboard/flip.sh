@@ -2,14 +2,14 @@
 # Turn the music store's default deny off and on, to show the board "Pen
 # test" change in a demo.
 #
-#   demos/pen-test/flip.sh <context> off      drop the default deny
-#   demos/pen-test/flip.sh <context> on       put it back
-#   demos/pen-test/flip.sh <context> status   what is set, and the checks
+#   demos/pen-test-dashboard/flip.sh <context> off      drop the default deny
+#   demos/pen-test-dashboard/flip.sh <context> on       put it back
+#   demos/pen-test-dashboard/flip.sh <context> status   what is set, and the checks
 #
-#   demos/pen-test/flip.sh goad:platform-9pq9n:default-project off
+#   demos/pen-test-dashboard/flip.sh goad:platform-9pq9n:default-project off
 #
 # <context> is your vcf context for the Supervisor Namespace where Argo CD
-# runs, the one named platform-<suffix>. demos/pen-test/README.md says how
+# runs, the one named platform-<suffix>. demos/pen-test-dashboard/README.md says how
 # to make it.
 #
 # The default deny is the ClusterNetworkPolicy music-store-default-deny in
@@ -46,7 +46,7 @@ APP=music-store-platform
 POLICY=music-store-default-deny
 PROMETHEUS=${PROMETHEUS:-http://prometheus.goad.gpu.set.lab}
 NAMESPACE=${NAMESPACE:-$(kubectl config view -o jsonpath="{.contexts[?(@.name==\"$CONTEXT\")].context.namespace}")}
-[[ -n $NAMESPACE ]] || { echo "Context $CONTEXT has no namespace. Use the context of the platform-<suffix> namespace (see demos/pen-test/README.md), or set NAMESPACE" >&2; exit 2; }
+[[ -n $NAMESPACE ]] || { echo "Context $CONTEXT has no namespace. Use the context of the platform-<suffix> namespace (see demos/pen-test-dashboard/README.md), or set NAMESPACE" >&2; exit 2; }
 
 k() { kubectl --context "$CONTEXT" -n "$NAMESPACE" "$@"; }
 

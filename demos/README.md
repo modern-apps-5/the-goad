@@ -6,7 +6,8 @@ the demo, and the scripts and manifests it runs.
 
 | Demo | What it shows |
 |---|---|
-| [pen-test](pen-test) | The music store's security layers: an attacker in the cluster blocked by the Antrea default deny and the Avi WAF, and the board "Pen test" changing when the default deny is turned off and on |
+| [pen-test-dashboard](pen-test-dashboard) | The music store's security layers on the Grafana board "Pen test": turn the Antrea default deny off, two attacks get through, turn it back on |
+| [pen-test-manual](pen-test-manual) | The same layers by hand: an attacker pod next to the store, its five attacks blocked by the default deny and the Avi WAF, with the results in the terminal |
 
 ## What a demo folder holds
 

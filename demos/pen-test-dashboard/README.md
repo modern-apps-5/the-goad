@@ -1,7 +1,12 @@
-# Pen test: the shop is reachable only through the Avi WAF
+# Pen test on the dashboard: turn the default deny off and on
 
-This demo shows the music store's security layers stopping an attacker
-inside the cluster (decision 49,
+One of two pen test demos. This one is watched on the Grafana board "Pen
+test": you turn the music store's default deny off, two attacks get
+through on the board, and you turn it back on. The other,
+[pen-test-manual](../pen-test-manual), starts an attacker pod by hand and
+prints the same checks in a terminal.
+
+What the checks show (decision 49,
 [docs/security-architecture.md](../../docs/security-architecture.md)):
 
 - The Antrea default deny in `gitops/music-store-platform` drops traffic
@@ -10,16 +15,16 @@ inside the cluster (decision 49,
   `metal-store-waf` in `gitops/music-store-apps`, answers 403 to SQL and
   PHP injection, and lets a clean request through.
 
-The Grafana board "Pen test" shows five attacks all the time. During the
-demo you turn the default deny off, the board shows two attacks getting
-through, and you turn it back on.
+Personas: the platform engineer runs the flip; the policies on the board
+are the security admin's, the developer's and the platform engineer's.
 
 | File | What it is |
 |---|---|
 | `flip.sh` | Turns the default deny off and on through Argo CD, and waits until the board shows it. |
-| `run.sh` | Starts an attacker pod in the shop's namespace and runs the five checks by hand. |
-| `connectivity-check.sh` | The five checks. Runs inside the attacker pod. |
-| `attacker.yaml` | The attacker pod, on `alpine/k8s`, and a Role that lets it look up the store pod's IP. |
+
+The checks run all the time, from a blackbox exporter in namespace
+`pen-test` (`gitops/music-store-platform/pen-test.yaml`), every 30
+seconds. Nothing has to be started for the board.
 
 ## The five checks
 
@@ -78,7 +83,7 @@ logged in as yourself.
 3. Check it:
 
    ```bash
-   demos/pen-test/flip.sh "$ARGO_CONTEXT" status
+   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" status
    ```
 
    It prints the Application's state, whether the default deny is
@@ -109,7 +114,7 @@ two paths around Avi end at a wall while the default deny is on.
 2. Turn the default deny off:
 
    ```bash
-   demos/pen-test/flip.sh "$ARGO_CONTEXT" off
+   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" off
    ```
 
    ```
@@ -125,7 +130,7 @@ two paths around Avi end at a wall while the default deny is on.
 3. Turn it back on:
 
    ```bash
-   demos/pen-test/flip.sh "$ARGO_CONTEXT" on
+   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" on
    ```
 
    Within a minute the paths are blocked again. The board's history keeps
@@ -150,47 +155,13 @@ changes.
 Run `on` if you did not, and check:
 
 ```bash
-demos/pen-test/flip.sh "$ARGO_CONTEXT" status
+demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" status
 ```
 
 The patch is drift from the platform engineer's Terraform, which owns the
 Application. A `terraform apply` of `terraform/platform-engineer` while
 the default deny is off removes the patch and turns the policy back on.
 Its plan shows the patch as a change.
-
-## Run the checks by hand
-
-`run.sh` runs the same five checks from an attacker pod that you start,
-and prints the result in the terminal. It needs `kubectl` on the VKS
-cluster `music-store`. Get that context from the Supervisor Namespace
-of the shop, `music-store-<suffix>`:
-
-```bash
-vcf context use goad:music-store-<suffix>:default-project
-vcf cluster kubeconfig get music-store
-kubectl config use-context <the context it adds>
-demos/pen-test/run.sh
-```
-
-The shop's name resolves through DNS. If the cluster cannot resolve it,
-give the Gateway's address:
-
-```bash
-VIP=$(dig +short @172.21.0.90 music.goad.gpu.set.lab A) demos/pen-test/run.sh
-```
-
-The drops show in the Antrea policy log on the node that runs the store:
-
-```bash
-kubectl exec -n kube-system <antrea-agent-pod> -c antrea-agent -- \
-  tail -f /var/log/antrea/networkpolicy/np.log
-```
-
-Remove the pod afterwards. It stays until you do:
-
-```bash
-demos/pen-test/run.sh --delete
-```
 
 ## Both layers out, in git
 
@@ -217,4 +188,5 @@ in git and put them back:
   `prometheus.goad.gpu.set.lab`. The flip still works; watch the board.
 - **Checks 1 and 2 look blocked with the policy off**: they pass when no
   connection opens, so a probe that fails for another reason, such as
-  DNS, looks like a drop. Run `run.sh` to see the real answer.
+  DNS, looks like a drop. Run [pen-test-manual](../pen-test-manual) to
+  see the real answer.
