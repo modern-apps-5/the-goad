@@ -39,16 +39,14 @@ that adds a minute.
   `*.goad.gpu.set.lab`.
 - A VCF Automation user in the org `goad` who is in the platform
   engineers' group, `ans-platform-engineer@set.lab`. That group is admin
-  in Argo CD and in the project that holds the namespaces. Log in as
-  yourself, not as a service account, so the screens show a person.
+  in Argo CD and in the project that holds the namespaces.
 - Read access to the GitHub repository `modern-apps-5/the-goad`.
 
 ### Open Argo CD
 
 In VCF Automation, open the namespace `platform-<suffix>`, not
 `platform-tools-<suffix>`, and its GitOps tab. Click the button on the
-Argo CD instance to open Argo CD. Accept its certificate once before you
-record, so the warning page is not in the video.
+Argo CD instance to open Argo CD.
 
 ### Check the lab
 
@@ -80,19 +78,14 @@ Open these tabs, in this order, logged in:
 4. VCF Automation, `https://auto.gpu.set.lab`, org `goad`.
 5. The shop, `https://music.goad.gpu.set.lab`.
 
-Zoom the browser to 125%, hide the bookmarks bar, and close other tabs.
-
-The VCF Automation menu names below are as of 2026-11. Do one dry run
-before you record and fix any label that moved.
-
 ## Run the demo
 
 Each step has:
 
 - **Go to**: the screen and the clicks.
-- **Show**: what to point at, slowly, so it reads with no sound.
-- **Say**: the platform engineer's line, first person. Reword it freely.
-- **Why it matters**: who it helps. Say it, or keep it for questions.
+- **Show**: what to point at.
+- **Say**: the platform engineer's line, first person.
+- **Why it matters**: who it helps.
 - **Caption**: the text on screen if the video is played muted.
 
 ### 1. Everything is green (0:00)
