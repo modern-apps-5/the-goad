@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Run the security demo's pen test from inside the VKS cluster music-store.
 #
-#   scripts/pen-test/run.sh            start the attacker pod if needed, run the check
-#   scripts/pen-test/run.sh --delete   remove the attacker pod and what it needs
+#   demos/pen-test/run.sh            start the attacker pod if needed, run the check
+#   demos/pen-test/run.sh --delete   remove the attacker pod and what it needs
 #
 # Extra environment is passed to the check, for example:
-#   VIP=10.47.7.95 scripts/pen-test/run.sh
+#   VIP=10.47.7.95 demos/pen-test/run.sh
 #
 # Needs kubectl with the current context on the VKS cluster music-store.
 set -euo pipefail

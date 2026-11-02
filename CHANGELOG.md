@@ -3,6 +3,23 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+
+## 2026-11-02 (Demos folder, pen test flip)
+
+### Added
+
+- `demos/`: one folder for each demo, with a run guide from nothing to
+  the end of the demo. `demos/README.md` says what a demo folder holds.
+- `demos/pen-test/flip.sh`: turns the music store's default deny off
+  and on for a demo, through a kustomize patch on the Argo CD Application
+  `music-store-platform`, and waits until the board "Pen test" shows it.
+
+### Changed
+
+- `scripts/pen-test` is now `demos/pen-test`, and its README is the
+  demo's run guide: the presenter's own vcf context for the Argo CD
+  namespace, the steps, the reset, and troubleshooting.
+
 ## 2026-10-30 (Pen test board colors)
 
 ### Changed
