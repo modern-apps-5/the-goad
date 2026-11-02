@@ -33,6 +33,12 @@ seconds. Nothing has to be started for the board.
 | 4 | Through Avi, PHP injection | HTTP 403 | WAF |
 | 5 | Through Avi, clean request | HTTP 200 | vDefend allows Avi to the store |
 
+Each check on the board shows the HTTP status code it got. A check that
+gets through when it should not is red and shows its code, so with the
+policy or the WAF off the attacks read HTTP 200, like the clean request.
+Checks 1 and 2 are HTTP GETs to the store for this reason; no answer is
+code 0.
+
 ## Before the demo
 
 ### What you need

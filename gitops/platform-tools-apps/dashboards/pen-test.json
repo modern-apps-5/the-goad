@@ -160,6 +160,71 @@
           "format": "time_series",
           "legendFormat": "service_through",
           "editorMode": "code"
+        },
+        {
+          "refId": "K",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_status_code{pen_test=\"pod\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "pod_code",
+          "editorMode": "code"
+        },
+        {
+          "refId": "L",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_status_code{pen_test=\"service\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "service_code",
+          "editorMode": "code"
+        },
+        {
+          "refId": "M",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_status_code{pen_test=\"sqli\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "sqli_code",
+          "editorMode": "code"
+        },
+        {
+          "refId": "N",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_status_code{pen_test=\"phpi\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "phpi_code",
+          "editorMode": "code"
+        },
+        {
+          "refId": "O",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_status_code{pen_test=\"clean\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "clean_code",
+          "editorMode": "code"
         }
       ],
       "fieldConfig": {
@@ -507,6 +572,176 @@
                 "value": {
                   "mode": "fixed"
                 }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pod_code"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "⛔ Pod IP: dropped by default deny",
+                        "color": "#a78bfa",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "prefix:⚠ Pod IP: OPEN, around Avi, HTTP "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service_code"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "⛔ Service: dropped",
+                        "color": "#a78bfa",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "prefix:⚠ Service: OPEN, HTTP "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sqli_code"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "403": {
+                        "text": "⛔ SQLi 403",
+                        "color": "#a78bfa",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "⚠ SQLi no answer",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "prefix:⚠ SQLi "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phpi_code"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "403": {
+                        "text": "⛔ PHP 403",
+                        "color": "#a78bfa",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "⚠ PHP no answer",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "prefix:⚠ PHP "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "clean_code"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "200": {
+                        "text": "✓ Clean 200",
+                        "color": "#3dd68c",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "⚠ Clean no answer",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "prefix:⚠ Clean "
+              },
+              {
+                "id": "decimals",
+                "value": 0
               }
             ]
           }
@@ -1143,7 +1378,7 @@
                 },
                 "text": {
                   "mode": "field",
-                  "field": "sqli",
+                  "field": "sqli_code",
                   "fixed": ""
                 }
               },
@@ -1182,7 +1417,7 @@
                 },
                 "text": {
                   "mode": "field",
-                  "field": "phpi",
+                  "field": "phpi_code",
                   "fixed": ""
                 }
               },
@@ -1221,7 +1456,7 @@
                 },
                 "text": {
                   "mode": "field",
-                  "field": "clean",
+                  "field": "clean_code",
                   "fixed": ""
                 }
               },
@@ -1260,7 +1495,7 @@
                 },
                 "text": {
                   "mode": "field",
-                  "field": "pod",
+                  "field": "pod_code",
                   "fixed": ""
                 }
               },
@@ -1299,7 +1534,7 @@
                 },
                 "text": {
                   "mode": "field",
-                  "field": "service",
+                  "field": "service_code",
                   "fixed": ""
                 }
               },

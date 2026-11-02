@@ -5,6 +5,18 @@ What changed in this repository, newest first. The reasons are in
 
 
 
+## 2026-11-02 (Pen test dashboard: status codes)
+
+### Changed
+
+- The board "Pen test" shows the HTTP status code on each check, from
+  the new recorded series `pen_test_status_code`. An attack that gets
+  through shows its code in red, such as `⚠ SQLi 200`.
+- Checks 1 and 2 (pod IP and Service, around Avi) are HTTP GETs in
+  place of TCP connects, module `pen_test_around` in place of
+  `pen_test_tcp`, so they have a status code too. They pass on code 0,
+  no answer.
+
 ## 2026-11-02 (Pen test dashboard: the WAF too)
 
 ### Changed
