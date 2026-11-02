@@ -1,20 +1,17 @@
 # Platform engineer: the platform, from the UI
 
-A five-minute walk through the screens, told by the platform engineer.
-No terminal on camera. The platform engineer's work is code: Terraform in
-`terraform/platform-engineer` and the manifests in `gitops/`, applied by a
-GitHub workflow and Argo CD. This demo is the other side of that code:
-what it built, where to see it, and why it helps the people who use it.
+A five-minute recording in the browser. You play the platform engineer
+and show the platform that is already running: what it is, where it is
+defined, and who it helps. You click through Argo CD, GitHub and VCF
+Automation. You open no terminal on camera and change nothing.
 
-The story in one line: I describe the platform once, in git, and VCF
+The message to land: I describe the platform once, in git, and VCF
 builds it and keeps it that way. App teams get Kubernetes clusters,
-databases, VMs and a private AI model without a ticket, and without
-knowing how any of it is wired.
+databases, VMs and a private AI model without a ticket.
 
-Write the video so it works with the sound off. Each step has a caption
-for the screen, so another presenter can talk over it, or nobody at all.
-The steps do not depend on the rest of the GOAD story, and they need no
-other persona on camera.
+Each step has a caption, so the video works with the sound off or with
+another presenter talking over it. The demo stands alone: it needs no
+other part of the GOAD story and no other persona.
 
 ## The shape of the video
 
