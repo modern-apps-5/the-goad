@@ -1,8 +1,8 @@
-# Pen test on the dashboard: turn the default deny off and on
+# Pen test on the dashboard: turn the security layers off and on
 
 One of two pen test demos. This one is watched on the Grafana board "Pen
-test": you turn the music store's default deny off, two attacks get
-through on the board, and you turn it back on. The other,
+test": you take the music store's security layers out one at a time, the
+attacks each one stopped get through on the board, and you put them back. The other,
 [pen-test-manual](../pen-test-manual), starts an attacker pod by hand and
 prints the same checks in a terminal.
 
@@ -15,12 +15,9 @@ What the checks show (decision 49,
   `metal-store-waf` in `gitops/music-store-apps`, answers 403 to SQL and
   PHP injection, and lets a clean request through.
 
-Personas: the platform engineer runs the flip; the policies on the board
-are the security admin's, the developer's and the platform engineer's.
-
 | File | What it is |
 |---|---|
-| `flip.sh` | Turns the default deny off and on through Argo CD, and waits until the board shows it. |
+| `flip.sh` | Turns the default deny, the WAF, or both off and on through Argo CD, and waits until the board shows it. |
 
 The checks run all the time, from a blackbox exporter in namespace
 `pen-test` (`gitops/music-store-platform/pen-test.yaml`), every 30
@@ -49,8 +46,8 @@ seconds. Nothing has to be started for the board.
 
 ### Make your vcf context
 
-`flip.sh` patches the Argo CD Application `music-store-platform`. Argo
-CD's Applications are in the platform engineer's Supervisor Namespace,
+`flip.sh` patches the Argo CD Applications `music-store-platform` (the
+default deny) and `music-store-apps` (the WAF). Argo CD's Applications are in the platform engineer's Supervisor Namespace,
 named `platform-<suffix>`. You need a vcf context for that namespace,
 logged in as yourself.
 
@@ -86,13 +83,13 @@ logged in as yourself.
    demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" status
    ```
 
-   It prints the Application's state, whether the default deny is
-   there, and the five checks. All five must be `1` before the demo
-   starts:
+   It prints whether each layer is there, the state of its
+   Application, and the five checks. Both layers must be present and all
+   five checks `1` before the demo starts:
 
    ```
-   Argo CD:        Synced, Healthy
-   Default deny:   present
+   Default deny:   present; Application music-store-platform Synced, Healthy
+   Avi WAF:        present; Application music-store-apps Synced, Healthy
    Pen test:       clean=1 phpi=1 pod=1 service=1 sqli=1
    ```
 
@@ -111,70 +108,80 @@ two paths around Avi end at a wall while the default deny is on.
    blocked, the attacks through Avi stopped by the WAF, and the clean
    request let through.
 
-2. Turn the default deny off:
+2. Take the default deny out:
 
    ```bash
-   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" off
+   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" off deny
    ```
 
    ```
-   Patched Application music-store-platform to drop music-store-default-deny.
-   Argo CD pruning the policy. done (6s)
-   Pen test checks 1 and 2 failing........ done (41s)
+   Default deny: patched Application music-store-platform to take it out.
+   Default deny: Argo CD taking it out. done (6s)
+   Default deny: pen test checks pod service failing........ done (41s)
    ```
 
-   Within a minute the board's two paths around Avi turn red and run on
-   to the store. The WAF paths do not change: the WAF is a separate
-   layer.
+   The board's two paths around Avi turn red and run on to the store.
+   The WAF paths do not change: the WAF is a separate layer.
 
-3. Turn it back on:
+3. Take the WAF out too:
 
    ```bash
-   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" on
+   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" off waf
    ```
 
-   Within a minute the paths are blocked again. The board's history keeps
-   the gap, which shows when the policy was out.
+   ```
+   Avi WAF: patched Application music-store-apps to take it out.
+   Avi WAF: Argo CD taking it out. done (6s)
+   Avi WAF: pen test checks sqli phpi failing.............. done (72s)
+   ```
 
-Each step takes about a minute: a few seconds for Argo CD, then up to two
-30-second rounds of the checks. The script prints a dot every 5 seconds
-while it waits.
+   The SQL and PHP injections now reach the store and turn red. Every
+   attack gets through; only the clean request is as it should be.
+
+4. Put both back:
+
+   ```bash
+   demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" on all
+   ```
+
+   Within a minute every path is as in step 1. The board's history keeps
+   the gap, which shows when each layer was out.
+
+Each layer takes about a minute to show: a few seconds for Argo CD, then
+up to two or three 30-second rounds of the checks. The script prints a
+dot every 5 seconds while it waits. For a shorter demo, take one layer
+out and put it back (`off deny`, then `on deny`), or both at once
+(`off all`, then `on all`).
 
 ### How the flip works
 
-Argo CD syncs the default deny with self-heal on, so deleting the policy
-with `kubectl` would be undone within seconds. Argo CD is not paused.
-`off` adds a kustomize patch to the Application `music-store-platform`
-that deletes `music-store-default-deny` from what Argo CD renders, and
-Argo CD prunes it. `on` removes the patch, and Argo CD creates the policy
-again. The Application stays Synced throughout, and nothing else in it
-changes.
+Argo CD syncs both layers with self-heal on, so deleting them with
+`kubectl` would be undone within seconds. Argo CD is not paused. `off`
+adds kustomize patches to the layer's Application that take the layer
+out of what Argo CD renders:
+
+| Layer | Application | Patches |
+|---|---|---|
+| `deny` | `music-store-platform` | Delete the ClusterNetworkPolicy `music-store-default-deny` |
+| `waf` | `music-store-apps` | Delete the L7Rule `metal-store-waf`, and remove the HTTPRoute filter that names it |
+
+Argo CD prunes or updates the resources. `on` removes the patches, and
+Argo CD puts the layer back. The Applications stay Synced throughout, and
+nothing else in them changes.
 
 ## After the demo
 
-Run `on` if you did not, and check:
+Put both layers back if you did not, and check:
 
 ```bash
+demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" on all
 demos/pen-test-dashboard/flip.sh "$ARGO_CONTEXT" status
 ```
 
-The patch is drift from the platform engineer's Terraform, which owns the
-Application. A `terraform apply` of `terraform/platform-engineer` while
-the default deny is off removes the patch and turns the policy back on.
-Its plan shows the patch as a change.
-
-## Both layers out, in git
-
-To show every attack getting through, the WAF too, take both layers out
-in git and put them back:
-
-1. Commit a change that removes `network-policy.yaml` from
-   `gitops/music-store-platform/kustomization.yaml` and
-   `metal-store-waf-l7rule.yaml` from
-   `gitops/music-store-apps/kustomization.yaml`. Once Argo CD syncs, all
-   five checks connect, and the WAF checks answer 200.
-2. Revert that commit. Once Argo CD syncs, the checks give the table
-   above.
+The patches are drift from the platform engineer's Terraform, which owns
+the Applications. A `terraform apply` of `terraform/platform-engineer`
+while a layer is off removes the patches and puts the layer back. Its
+plan shows the patches as a change.
 
 ## Troubleshooting
 

@@ -1,70 +1,108 @@
 #!/usr/bin/env bash
-# Turn the music store's default deny off and on, to show the board "Pen
-# test" change in a demo.
+# Turn the music store's security layers off and on, to show the board
+# "Pen test" change in a demo.
 #
-#   demos/pen-test-dashboard/flip.sh <context> off      drop the default deny
-#   demos/pen-test-dashboard/flip.sh <context> on       put it back
-#   demos/pen-test-dashboard/flip.sh <context> status   what is set, and the checks
+#   demos/pen-test-dashboard/flip.sh <context> off [layer]   take the layer out
+#   demos/pen-test-dashboard/flip.sh <context> on [layer]    put it back
+#   demos/pen-test-dashboard/flip.sh <context> status        what is set, and the checks
 #
 #   demos/pen-test-dashboard/flip.sh goad:platform-9pq9n:default-project off
+#   demos/pen-test-dashboard/flip.sh goad:platform-9pq9n:default-project off all
 #
 # <context> is your vcf context for the Supervisor Namespace where Argo CD
-# runs, the one named platform-<suffix>. demos/pen-test-dashboard/README.md says how
-# to make it.
+# runs, the one named platform-<suffix>. demos/pen-test-dashboard/README.md
+# says how to make it.
 #
-# The default deny is the ClusterNetworkPolicy music-store-default-deny in
-# gitops/music-store-platform/network-policy.yaml (layer 3, decision 49).
-# Argo CD syncs it with self-heal on, so deleting it with kubectl would be
-# undone within seconds. Argo CD is not paused. Instead, "off" adds a
-# kustomize patch to the Application music-store-platform that deletes
-# the policy from the rendered manifests, and Argo CD prunes it. "on"
-# removes the patch, and Argo CD creates the policy again. The Application
-# stays Synced throughout, and nothing else in it changes.
+# [layer] is one of:
 #
-# With the default deny off, pen test checks 1 and 2 (the store pod and its
-# Service, around Avi) reach the store and turn red. The WAF checks do not
-# change. The script waits for Argo CD, then for the checks, which the
-# blackbox exporter runs every 30 seconds.
+#   deny  the default deny, the ClusterNetworkPolicy music-store-default-deny
+#         in gitops/music-store-platform (layer 3, decision 49). Off: pen
+#         test checks 1 and 2, around Avi, reach the store. The default.
+#   waf   the Avi WAF, the L7Rule metal-store-waf and the HTTPRoute filter
+#         that attaches it, in gitops/music-store-apps (decision 43). Off:
+#         checks 3 and 4, the injections through Avi, answer 200.
+#   all   both.
 #
-# The patch is drift from the platform engineer's Terraform, which owns the
-# Application. A platform engineer apply while it is off turns the default
-# deny back on. Run "on" after the demo.
+# Argo CD syncs these with self-heal on, so deleting them with kubectl
+# would be undone within seconds. Argo CD is not paused. Instead, "off"
+# adds kustomize patches to the layer's Application that take the layer
+# out of the rendered manifests, and Argo CD prunes or updates them. "on"
+# removes the patches, and Argo CD puts the layer back. The Applications
+# stay Synced throughout, and nothing else in them changes.
+#
+# The script waits for Argo CD, then for the checks, which the blackbox
+# exporter runs every 30 seconds.
+#
+# The patches are drift from the platform engineer's Terraform, which owns
+# the Applications. A platform engineer apply while a layer is off puts it
+# back. Run "on all" after the demo.
 #
 # Needs kubectl, curl and jq, and the right to patch Argo CD Applications
-# in that namespace, which the platform engineers' group has. The
-# namespace is the context's own; set NAMESPACE only for a context that
-# points elsewhere.
+# in that namespace. The namespace is the context's own; set NAMESPACE
+# only for a context that points elsewhere.
 set -euo pipefail
 
-usage() { echo "usage: $0 <context> off|on|status" >&2; exit 2; }
+usage() { echo "usage: $0 <context> off|on [deny|waf|all] | status" >&2; exit 2; }
 CONTEXT=${1:-}
 ACTION=${2:-}
+LAYER=${3:-deny}
 [[ -n $CONTEXT ]] || usage
 case $ACTION in off | on | status) ;; *) usage ;; esac
+case $LAYER in deny | waf | all) ;; *) usage ;; esac
 
-APP=music-store-platform
-POLICY=music-store-default-deny
 PROMETHEUS=${PROMETHEUS:-http://prometheus.goad.gpu.set.lab}
 NAMESPACE=${NAMESPACE:-$(kubectl config view -o jsonpath="{.contexts[?(@.name==\"$CONTEXT\")].context.namespace}")}
 [[ -n $NAMESPACE ]] || { echo "Context $CONTEXT has no namespace. Use the context of the platform-<suffix> namespace (see demos/pen-test-dashboard/README.md), or set NAMESPACE" >&2; exit 2; }
 
 k() { kubectl --context "$CONTEXT" -n "$NAMESPACE" "$@"; }
 
-app_json() { k get application "$APP" -o json; }
-
-# The index of our patch in the Application's kustomize patches, or empty.
-patch_index() {
-  app_json | jq -r --arg name "$POLICY" '
-    [.spec.source.kustomize.patches // [] | to_entries[]
-      | select(.value.target.kind == "ClusterNetworkPolicy" and .value.target.name == $name)
-      | .key][0] // empty'
+# Each layer: its name, its Application, the resource whose presence says
+# whether it is on, the pen test checks it decides, and the patches that
+# take it out. The patches are found again by their targets.
+layer_name() { case $1 in deny) echo "Default deny" ;; waf) echo "Avi WAF" ;; esac; }
+layer_app() { case $1 in deny) echo music-store-platform ;; waf) echo music-store-apps ;; esac; }
+layer_marker() { case $1 in deny) echo ClusterNetworkPolicy/music-store-default-deny ;; waf) echo L7Rule/metal-store-waf ;; esac; }
+layer_checks() { case $1 in deny) echo "pod service" ;; waf) echo "sqli phpi" ;; esac; }
+layer_patches() {
+  case $1 in
+    deny)
+      jq -cn '[{
+        target: {group: "crd.antrea.io", kind: "ClusterNetworkPolicy", name: "music-store-default-deny"},
+        patch: "$patch: delete\napiVersion: crd.antrea.io/v1beta1\nkind: ClusterNetworkPolicy\nmetadata:\n  name: music-store-default-deny\n"
+      }]'
+      ;;
+    waf)
+      # The route names the L7Rule in an ExtensionRef filter, so the filter
+      # goes with it.
+      jq -cn '[{
+        target: {group: "ako.vmware.com", kind: "L7Rule", name: "metal-store-waf"},
+        patch: "$patch: delete\napiVersion: ako.vmware.com/v1alpha2\nkind: L7Rule\nmetadata:\n  name: metal-store-waf\n"
+      }, {
+        target: {group: "gateway.networking.k8s.io", kind: "HTTPRoute", name: "metal-store-frontend"},
+        patch: "- op: remove\n  path: /spec/rules/0/filters\n"
+      }]'
+      ;;
+  esac
 }
 
-# "present" when Argo CD lists the policy as one of the Application's
-# resources, "absent" when not.
-policy_state() {
-  app_json | jq -r --arg name "$POLICY" '
-    if any(.status.resources[]?; .kind == "ClusterNetworkPolicy" and .name == $name)
+layers() { if [[ $1 == all ]]; then echo deny waf; else echo "$1"; fi; }
+
+app_json() { k get application "$(layer_app "$1")" -o json; }
+
+# The indexes of the layer's patches in its Application, highest first.
+patch_indexes() {
+  app_json "$1" | jq -r --argjson ours "$(layer_patches "$1")" '
+    [.spec.source.kustomize.patches // [] | to_entries[]
+      | select(.value.target as $t | any($ours[]; .target == $t))
+      | .key] | sort | reverse | .[]'
+}
+
+# "present" when Argo CD lists the layer's marker resource, else "absent".
+layer_state() {
+  local kind=${2:-} name
+  kind=$(layer_marker "$1"); name=${kind#*/}; kind=${kind%/*}
+  app_json "$1" | jq -r --arg kind "$kind" --arg name "$name" '
+    if any(.status.resources[]?; .kind == $kind and .name == $name)
     then "present" else "absent" end'
 }
 
@@ -74,22 +112,37 @@ checks() {
     jq -r '.data.result[] | "\(.metric.pen_test)=\(.value[1])"' | sort | tr '\n' ' '
 }
 
-show_status() {
-  local app idx
-  app=$(app_json)
-  idx=$(patch_index)
-  echo "Argo CD:        $(jq -r '"\(.status.sync.status), \(.status.health.status)"' <<<"$app")"
-  echo "Default deny:   $(policy_state)$([[ -n $idx ]] && echo ', turned off by flip.sh')"
-  echo "Pen test:       $(checks || echo 'Prometheus not reachable')"
-  echo "                (1 = pass; pod and service fail while the default deny is off)"
+# "pass" or "fail" when every check the layer decides is that, else "mixed".
+checks_state() {
+  local c n want=() got
+  c=" $(checks) "
+  for n in $(layer_checks "$1"); do
+    case $c in *" $n=1 "*) want+=(pass) ;; *" $n=0 "*) want+=(fail) ;; *) want+=(none) ;; esac
+  done
+  got=$(printf '%s\n' "${want[@]}" | sort -u)
+  [[ $got == pass || $got == fail ]] && echo "$got" || echo mixed
 }
 
-# Waits until fn prints want, for up to limit seconds.
+show_status() {
+  local l app
+  for l in deny waf; do
+    app=$(app_json "$l")
+    printf '%-15s %s; Application %s %s, %s%s\n' "$(layer_name "$l"):" "$(layer_state "$l")" \
+      "$(layer_app "$l")" \
+      "$(jq -r .status.sync.status <<<"$app")" "$(jq -r .status.health.status <<<"$app")" \
+      "$([[ -n $(patch_indexes "$l") ]] && echo ', turned off by flip.sh')"
+  done
+  echo "Pen test:       $(checks || echo 'Prometheus not reachable')"
+  echo "                (1 = pass; pod and service fail while the default deny is off,"
+  echo "                sqli and phpi while the WAF is off)"
+}
+
+# Waits until "fn arg" prints want, for up to limit seconds.
 wait_for() {
-  local what=$1 want=$2 limit=$3 fn=$4 start=$SECONDS got
+  local what=$1 want=$2 limit=$3 fn=$4 arg=$5 start=$SECONDS got
   printf '%s' "$what"
   while :; do
-    got=$($fn 2>/dev/null || true)
+    got=$($fn "$arg" 2>/dev/null || true)
     if [[ $got == "$want" ]]; then echo " done ($((SECONDS - start))s)"; return 0; fi
     if ((SECONDS - start >= limit)); then echo " still $got after ${limit}s"; return 1; fi
     printf '.'
@@ -97,52 +150,52 @@ wait_for() {
   done
 }
 
-# "pass" or "fail" for the two checks around Avi, "mixed" between.
-around_avi() {
-  local c
-  c=$(checks)
-  case $c in
-    *pod=1*service=1* | *service=1*pod=1*) echo pass ;;
-    *pod=0*service=0* | *service=0*pod=0*) echo fail ;;
-    *) echo mixed ;;
-  esac
+turn_off() {
+  local l=$1 patch
+  if [[ -n $(patch_indexes "$l") ]]; then
+    echo "$(layer_name "$l") is already off."
+    return
+  fi
+  patch=$(layer_patches "$l" | jq -c '[.[] | {op: "add", path: "/spec/source/kustomize/patches/-", value: .}]')
+  k patch application "$(layer_app "$l")" --type json -p "$patch" >/dev/null
+  echo "$(layer_name "$l"): patched Application $(layer_app "$l") to take it out."
+}
+
+turn_on() {
+  local l=$1 idx patch='[]'
+  idx=$(patch_indexes "$l")
+  if [[ -z $idx ]]; then
+    echo "$(layer_name "$l") is already on."
+    return
+  fi
+  # Highest index first, so each remove leaves the others in place. The
+  # test ops stop the patch if the list moved since the read.
+  for i in $idx; do
+    patch=$(app_json "$l" | jq -c --argjson p "$patch" --argjson i "$i" \
+      '$p + [{op: "test", path: "/spec/source/kustomize/patches/\($i)", value: .spec.source.kustomize.patches[$i]},
+             {op: "remove", path: "/spec/source/kustomize/patches/\($i)"}]')
+  done
+  k patch application "$(layer_app "$l")" --type json -p "$patch" >/dev/null
+  echo "$(layer_name "$l"): removed the patches; Argo CD puts it back."
 }
 
 case $ACTION in
   status)
     show_status
     ;;
-  off)
-    if [[ -n $(patch_index) ]]; then
-      echo "The default deny is already off."
-    else
-      patch=$(jq -cn --arg name "$POLICY" '[{
-        op: "add", path: "/spec/source/kustomize/patches/-",
-        value: {
-          target: {group: "crd.antrea.io", kind: "ClusterNetworkPolicy", name: $name},
-          patch: "$patch: delete\napiVersion: crd.antrea.io/v1beta1\nkind: ClusterNetworkPolicy\nmetadata:\n  name: \($name)\n"
-        }}]')
-      k patch application "$APP" --type json -p "$patch" >/dev/null
-      echo "Patched Application $APP to drop $POLICY."
-    fi
-    wait_for "Argo CD pruning the policy" absent 180 policy_state
-    wait_for "Pen test checks 1 and 2 failing" fail 120 around_avi
-    show_status
-    ;;
-  on)
-    idx=$(patch_index)
-    if [[ -z $idx ]]; then
-      echo "The default deny is already on."
-    else
-      # The test op stops the remove if the patches moved since the read.
-      patch=$(jq -cn --argjson i "$idx" --arg name "$POLICY" '[
-        {op: "test", path: "/spec/source/kustomize/patches/\($i)/target/name", value: $name},
-        {op: "remove", path: "/spec/source/kustomize/patches/\($i)"}]')
-      k patch application "$APP" --type json -p "$patch" >/dev/null
-      echo "Removed the patch; Argo CD puts $POLICY back."
-    fi
-    wait_for "Argo CD creating the policy" present 180 policy_state
-    wait_for "Pen test checks 1 and 2 passing" pass 120 around_avi
+  off | on)
+    for l in $(layers "$LAYER"); do
+      if [[ $ACTION == off ]]; then turn_off "$l"; else turn_on "$l"; fi
+    done
+    for l in $(layers "$LAYER"); do
+      if [[ $ACTION == off ]]; then
+        wait_for "$(layer_name "$l"): Argo CD taking it out" absent 180 layer_state "$l"
+        wait_for "$(layer_name "$l"): pen test checks $(layer_checks "$l") failing" fail 180 checks_state "$l"
+      else
+        wait_for "$(layer_name "$l"): Argo CD putting it back" present 180 layer_state "$l"
+        wait_for "$(layer_name "$l"): pen test checks $(layer_checks "$l") passing" pass 180 checks_state "$l"
+      fi
+    done
     show_status
     ;;
 esac

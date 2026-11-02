@@ -15,9 +15,6 @@ What it shows (decision 49,
   `metal-store-waf` in `gitops/music-store-apps`, answers 403 to SQL and
   PHP injection, and lets a clean request through.
 
-Personas: the platform engineer runs it; the policies it tests are the
-security admin's, the developer's and the platform engineer's.
-
 | File | What it is |
 |---|---|
 | `run.sh` | Puts the checks in a ConfigMap, starts the attacker pod, and runs the checks in it. `--delete` removes it all. |
