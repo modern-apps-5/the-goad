@@ -3,7 +3,6 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
-
 ## 2026-11-02 (Demos folder, pen test flip)
 
 ### Added
@@ -19,6 +18,19 @@ What changed in this repository, newest first. The reasons are in
 - `scripts/pen-test` is now `demos/pen-test`, and its README is the
   demo's run guide: the presenter's own vcf context for the Argo CD
   namespace, the steps, the reset, and troubleshooting.
+
+## 2026-10-30 (Security architecture)
+
+### Added
+
+- `docs/security-architecture.md`: the music store's security layers
+  (vDefend, the Antrea tiers, the Avi WAF), who owns each, how each
+  reaches the cluster, what the pen test proves, and what is not covered.
+  Linked from the README and the walkthrough script.
+
+### Changed
+
+- The README lists the security admin as a built persona.
 
 ## 2026-10-30 (Pen test board colors)
 
