@@ -7,7 +7,8 @@ Automation. You open no terminal on camera and change nothing.
 
 The message to land: I describe the platform once, in git, and VCF
 builds it and keeps it that way. App teams get Kubernetes clusters,
-databases, VMs and a private AI model without a ticket.
+databases, VMs and a private AI model without a ticket, and a golden
+path that takes their code to production.
 
 Each step has a caption, so the video works with the sound off or with
 another presenter talking over it. The demo stands alone: it needs no
@@ -24,7 +25,7 @@ other part of the GOAD story and no other persona.
 | 2:10 | 5. One Application, a whole environment | Argo CD, `music-store` |
 | 3:00 | 6. Clusters, a VM and a database, from one API | VCF Automation, namespace `music-store-<suffix>` |
 | 3:50 | 7. A private model for the app teams | VCF Automation, namespace `private-ai-<suffix>` |
-| 4:15 | 8. The app on top | Argo CD `music-store-apps`, then the shop |
+| 4:15 | 8. The golden path for the app | Argo CD `platform-tools-builds` and `music-store-apps`, then the shop |
 | 4:45 | 9. What I did not do | Argo CD, Applications |
 
 About 30 to 45 seconds a step. Step 9 has an optional self-heal shot
@@ -41,24 +42,12 @@ that adds a minute.
   in Argo CD and in the project that holds the namespaces. Log in as
   yourself, not as a service account, so the screens show a person.
 - Read access to the GitHub repository `modern-apps-5/the-goad`.
-- For step 4, the Argo CD address. Ask a teammate, or find it once with
-  the `vcf` CLI and `kubectl`, as in the next section.
 
-### Find the Argo CD address
+### Open Argo CD
 
-Argo CD has a load balancer address and no host name. Find it from a
-vcf context for the platform engineer's namespace, `platform-<suffix>`,
-made with your own login:
-
-```bash
-vcf context create goad --endpoint https://auto.gpu.set.lab --type cci \
-  --tenant-name goad --api-token <your API token>
-vcf context list | grep ':platform-'      # pick platform-<suffix>, not platform-tools-<suffix>
-kubectl --context <that context> get svc argocd-server \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}{"\n"}'
-```
-
-Open `https://<that address>` once and accept its certificate before you
+In VCF Automation, open the namespace `platform-<suffix>`, not
+`platform-tools-<suffix>`, and its GitOps tab. Click the button on the
+Argo CD instance to open Argo CD. Accept its certificate once before you
 record, so the warning page is not in the video.
 
 ### Check the lab
@@ -83,7 +72,8 @@ you record. See Troubleshooting.
 
 Open these tabs, in this order, logged in:
 
-1. Argo CD, Applications, tile view.
+1. Argo CD, Applications, tile view, opened from VCF Automation as in
+   Open Argo CD.
 2. GitHub: `modern-apps-5/the-goad`, the folder `gitops/`.
 3. GitHub: Actions, the latest green run of the `platform-engineer`
    workflow.
@@ -168,12 +158,14 @@ sets.*
 
 ### 4. Argo CD is a service, not a project (1:30)
 
-**Go to**: VCF Automation, namespace `platform-<suffix>`. Show the Argo
-CD instance. Then tab 1, log out of Argo CD, and log in again with "VCF
+**Go to**: VCF Automation, namespace `platform-<suffix>`, the GitOps
+tab. Then go to tab 1 and log out of Argo CD. Back in VCF Automation,
+click the button on the Argo CD instance, and log in with "VCF
 Automation".
 
-**Show**: the instance and its Ready state. On the Argo CD login page,
-the "VCF Automation" button, then the same user landing in Argo CD.
+**Show**: the instance and its Ready state, and the button that opens
+it. On the Argo CD login page, the "VCF Automation" button, then the
+same user landing in Argo CD.
 
 **Say**: "Argo CD comes with VCF as a Supervisor Service. I asked for an
 instance in one small manifest. I don't install it, patch it or build a
@@ -254,25 +246,30 @@ private model. Security and compliance keep the data in house.
 **Caption**: *A private AI model, deployed the same way as everything
 else.*
 
-### 8. The app on top (4:15)
+### 8. The golden path for the app (4:15)
 
-**Go to**: Argo CD, the Application `music-store-apps`, tree view. Then
-tab 5, the shop.
+**Go to**: Argo CD, the Application `platform-tools-builds`, tree view.
+Then the Application `music-store-apps`, tree view. Then tab 5, the
+shop.
 
-**Show**: in Argo CD, the shop's Deployments and their pods, all Healthy,
-and the Gateway and HTTPRoute. In the shop, browse the catalog and open
-the chat.
+**Show**: in `platform-tools-builds`, the Tekton pipeline that builds the
+shop's images. In `music-store-apps`, the shop's Deployments and their
+pods, all Healthy, and the Gateway and HTTPRoute. In the shop, browse
+the catalog and open the chat.
 
-**Say**: "And this is why the platform exists. The developers write the
-shop's code. We build their images and deploy them onto the cluster,
-and they get a database, a users service, a model for the chat, a
-certificate and a web firewall in front. They didn't have to ask for any
-of it one piece at a time."
+**Say**: "And this is why the platform exists. The deploy is mine too:
+it's a golden path. The developers write the shop's code. My pipeline
+builds their images, and Argo CD deploys them onto the cluster. They get
+a database, a users service, a model for the chat, a certificate and a
+web firewall in front, without asking for any of it one piece at a
+time."
 
-**Why it matters**: the developer's path to production is a commit.
-Everything under the app is ready, and the same every time.
+**Why it matters**: the developer's path to production is a commit. The
+build, the deploy and everything under the app are owned by the platform
+team, and the same for every app.
 
-**Caption**: *Developers ship code. The platform provides the rest.*
+**Caption**: *Developers ship code. The golden path takes it to
+production.*
 
 ### 9. What I did not do (4:45)
 
