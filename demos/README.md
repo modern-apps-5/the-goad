@@ -8,7 +8,7 @@ the demo, and the scripts and manifests it runs.
 |---|---|
 | [pen-test-dashboard](pen-test-dashboard) | The music store's security layers on the Grafana board "Pen test": take the Antrea default deny and the Avi WAF out, the attacks get through, put them back |
 | [pen-test-manual](pen-test-manual) | The same layers by hand: an attacker pod next to the store, its five attacks blocked by the default deny and the Avi WAF, with the results in the terminal |
-| [platform-engineer-ui](platform-engineer-ui) | A five-minute UI walk, in the platform engineer's voice, through what their Terraform and Argo CD built in VCF Automation and Argo CD, and why it helps the app teams. Written to work muted |
+| [platform-engineer-ui](platform-engineer-ui) | A six-minute UI walk as the platform engineer, starting in VCF Automation: the namespaces, cluster, database, VM and private AI model behind the music store, the Terraform and Argo CD that set them up, and the golden path to production |
 
 ## What a demo folder holds
 

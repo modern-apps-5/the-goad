@@ -1,309 +1,213 @@
 # Platform engineer: the platform, from the UI
 
-A five-minute recording in the browser. You play the platform engineer
-and show the platform that is already running: what it is, where it is
-defined, and who it helps. You click through Argo CD, GitHub and VCF
-Automation. You open no terminal on camera and change nothing.
+A six-minute browser demo, as the platform engineer. Start in VCF
+Automation, show what you set up for the music store, how you set it up,
+and the golden path to production. No terminal, no changes.
 
-The message to land: I describe the platform once, in git, and VCF
-builds it and keeps it that way. App teams get Kubernetes clusters,
-databases, VMs and a private AI model without a ticket, and a golden
-path that takes their code to production.
+The point: the platform engineer lets the developers focus on code. They
+own the delivery of that code and consume the infrastructure services it
+needs. VCF runs those services.
 
-Each step has a caption, so the video works with the sound off or with
-another presenter talking over it. The demo stands alone: it needs no
-other part of the GOAD story and no other persona.
-
-## The shape of the video
+## Steps
 
 | Time | Step | Screen |
 |---|---|---|
-| 0:00 | 1. Everything is green | Argo CD, Applications |
-| 0:20 | 2. The platform is code | GitHub |
-| 0:50 | 3. My namespaces, inside the cloud admin's limits | VCF Automation |
-| 1:30 | 4. Argo CD is a service, not a project | VCF Automation, then Argo CD login |
-| 2:10 | 5. One Application, a whole environment | Argo CD, `music-store` |
-| 3:00 | 6. Clusters, a VM and a database, from one API | VCF Automation, namespace `music-store-<suffix>` |
-| 3:50 | 7. A private model for the app teams | VCF Automation, namespace `private-ai-<suffix>` |
-| 4:15 | 8. The golden path for the app | Argo CD `platform-tools-builds` and `music-store-apps`, then the shop |
-| 4:45 | 9. What I did not do | Argo CD, Applications |
-
-About 30 to 45 seconds a step. Step 9 has an optional self-heal shot
-that adds a minute.
+| 0:00 | 1. The cloud console | VCF Automation, Supervisor Namespaces |
+| 0:40 | 2. What the music store runs on | VCF Automation, `music-store-<suffix>` |
+| 1:20 | 3. A private AI model | VCF Automation, `private-ai-<suffix>` |
+| 1:50 | 4. GitOps, from the console | VCF Automation GitOps tab, then Argo CD |
+| 2:30 | 5. One Application, a whole environment | Argo CD, `music-store` |
+| 3:10 | 6. It's all code | GitHub |
+| 3:40 | 7. The golden path to production | GitHub, then Argo CD |
+| 4:50 | 8. The app | The shop |
+| 5:10 | 9. Back to the console | VCF Automation |
 
 ## Before the demo
 
 ### What you need
 
-- A browser on a machine on the lab network that resolves
-  `*.goad.gpu.set.lab`.
-- A VCF Automation user in the org `goad` who is in the platform
-  engineers' group, `ans-platform-engineer@set.lab`. That group is admin
-  in Argo CD and in the project that holds the namespaces.
+- A browser on the lab network that resolves `*.goad.gpu.set.lab`.
+- A VCF Automation user in org `goad`, in the group
+  `ans-platform-engineer@set.lab`. That group is admin in Argo CD and in
+  the project that holds the namespaces.
 - Read access to the GitHub repository `modern-apps-5/the-goad`.
-
-### Open Argo CD
-
-In VCF Automation, open the namespace `platform-<suffix>`, not
-`platform-tools-<suffix>`, and its GitOps tab. Click the button on the
-Argo CD instance to open Argo CD.
 
 ### Check the lab
 
-Log in to Argo CD with "VCF Automation". Every Application must be
-Synced and Healthy:
+1. In VCF Automation, open namespace `platform-<suffix>` (not
+   `platform-tools-<suffix>`), the GitOps tab, and click the button on
+   the Argo CD instance. Log in with "VCF Automation".
+2. Check every Application is Synced and Healthy:
 
-| Application | What it deploys |
-|---|---|
-| `private-ai` | A DSM database, Private AI Services, and the Qwen model |
-| `music-store` | The VKS cluster `music-store`, the DSM database `catalog`, the users VM `music-users` |
-| `music-store-platform` | The platform's part inside that cluster: secrets, certificate, monitoring agents, default deny |
-| `music-store-apps` | The shop's containers |
-| `platform-tools` | The VKS cluster `platform-tools` |
-| `platform-tools-apps` | Grafana, Prometheus and Zammad in that cluster |
-| `platform-tools-builds` | The Tekton pipeline that builds the shop's images |
+   | Application | What it deploys |
+   |---|---|
+   | `private-ai` | A DSM database, Private AI Services, and the Qwen model |
+   | `music-store` | The VKS cluster `music-store`, the DSM database `catalog`, the users VM `music-users` |
+   | `music-store-platform` | The platform's part inside that cluster: secrets, certificate, monitoring agents, default deny |
+   | `music-store-apps` | The shop's containers |
+   | `platform-tools` | The VKS cluster `platform-tools` |
+   | `platform-tools-apps` | Grafana, Prometheus and Zammad in that cluster |
+   | `platform-tools-builds` | The Tekton pipeline that builds the shop's images |
 
-If one is OutOfSync or Degraded, fix it or ask whoever owns it before
-you record. See Troubleshooting.
+   If one is not, see Troubleshooting.
+3. Log out of Argo CD, so step 4 shows the login.
 
-### Set up the browser
+### Browser tabs
 
-Open these tabs, in this order, logged in:
+1. VCF Automation, `https://auto.gpu.set.lab`, org `goad`, Build &
+   Deploy, the default project, Supervisor Namespaces.
+2. GitHub: `gitops/music-store/cluster.yaml`.
+3. GitHub: Actions, latest green run of `platform-engineer`.
+4. GitHub: `apps/music-store/`.
+5. GitHub: Actions, latest green run of `music-store-images`.
+6. The shop, `https://music.goad.gpu.set.lab`.
 
-1. Argo CD, Applications, tile view, opened from VCF Automation as in
-   Open Argo CD.
-2. GitHub: `modern-apps-5/the-goad`, the folder `gitops/`.
-3. GitHub: Actions, the latest green run of the `platform-engineer`
-   workflow.
-4. VCF Automation, `https://auto.gpu.set.lab`, org `goad`.
-5. The shop, `https://music.goad.gpu.set.lab`.
+Argo CD opens in its own tab in step 4.
 
 ## Run the demo
 
-Each step has:
+### 1. The cloud console (0:00)
 
-- **Go to**: the screen and the clicks.
-- **Show**: what to point at.
-- **Say**: the platform engineer's line, first person.
-- **Why it matters**: who it helps.
-- **Caption**: the text on screen if the video is played muted.
+Tab 1, VCF Automation, Supervisor Namespaces.
 
-### 1. Everything is green (0:00)
+**Show**
 
-**Go to**: tab 1, Argo CD, Applications.
+- The four namespaces: `platform`, `private-ai`, `music-store`,
+  `platform-tools`.
+- Open one: its resource limits, VM classes and storage classes.
 
-**Show**: the seven tiles, all Synced and Healthy. Hover over one to show
-its repository path under `gitops/`.
+**Why**: the cloud admin sets the budget and the networks. The platform
+engineer self-serves inside it, with no tickets.
 
-**Say**: "I'm the platform engineer. Everything on this screen is a
-Kubernetes cluster, a database, a VM, an AI model or an app that runs on
-them. I didn't click any of it into existence. Let me show you where it
-came from, and who it's for."
+### 2. What the music store runs on (0:40)
 
-**Why it matters**: sets the promise of the video: a full platform,
-running, with one view of its state.
+Namespace `music-store-<suffix>`: Kubernetes clusters, virtual machines,
+databases.
 
-**Caption**: *The whole platform, deployed and healthy, from one view.*
+**Show**
 
-### 2. The platform is code (0:20)
+- VKS cluster `music-store`: version, control plane, two workers, Ready.
+- VM `music-users`: running, VM class, IP.
+- DSM database `catalog`: PostgreSQL, Ready.
 
-**Go to**: tab 2, `gitops/` in GitHub. Open `music-store/` and click
-`cluster.yaml`. Then tab 3, the `platform-engineer` workflow run.
+**Why**: the developers get a cluster, a database and a VM without
+waiting on a DBA or a VM team. VCF patches the cluster; Data Services
+Manager backs up and upgrades the database. The platform engineer only
+consumes them.
 
-**Show**: in `cluster.yaml`, the cluster's Kubernetes version and its
-node pool with `replicas: 2`. Then the green workflow run and its
-`terraform apply` step.
+### 3. A private AI model (1:20)
 
-**Say**: "This is my job, and it's all in git. A VKS cluster is twenty
-lines of YAML: a version, a VM class, a number of workers. The
-foundation, the namespaces and Argo CD, is Terraform, and a GitHub
-workflow applies it. Any change to the platform is a pull request. My
-team reviews it, and git keeps the history."
+Namespace `private-ai-<suffix>`: Private AI Services, then the model
+endpoint.
 
-**Why it matters**: the platform is reviewed, repeatable and auditable.
-A second environment is a copy of a folder, not a week of clicks.
+**Show**
 
-**Caption**: *Platform changes are pull requests: reviewed, versioned,
-repeatable.*
+- Model `qwen-14b-xlarge`, Ready.
+- Its database `pais-db`.
 
-### 3. My namespaces, inside the cloud admin's limits (0:50)
+**Why**: the shop's chat uses a model in our own data center. No data
+goes to a public model, and no one runs a model server by hand.
 
-**Go to**: tab 4, VCF Automation. Build & Deploy, the default project,
-Supervisor Namespaces.
+### 4. GitOps, from the console (1:50)
 
-**Show**: the four namespaces: `platform`, `private-ai`, `music-store`,
-`platform-tools`, each with a generated suffix. Open one and show its
-resource limits and its VM classes and storage classes.
+Namespace `platform-<suffix>`, GitOps tab. Click the button on the Argo
+CD instance, log in with "VCF Automation".
 
-**Say**: "The cloud admin gave my team a project with a budget: how much
-CPU, memory and storage, which VM sizes, which network. Inside that, I
-self-serve. My Terraform made these four namespaces, one for each job:
-Argo CD, private AI, the music store, and our tools. I never open a
-ticket for infrastructure, and I can't overspend what the cloud admin
-set."
+**Show**
 
-**Why it matters**: the cloud admin keeps control of capacity and
-networking. The platform team moves at its own speed inside it. Neither
-waits on the other.
+- The Argo CD instance, Ready, and the button that opens it.
+- The "VCF Automation" login.
+- All tiles Synced and Healthy: everything from steps 2 and 3 is here.
 
-**Caption**: *Self-service namespaces, inside limits the cloud admin
-sets.*
+**Why**: none of it was clicked into existence. Argo CD is a VCF
+service, not a tool to install and patch, and it signs in with the same
+identity as VCF Automation.
 
-### 4. Argo CD is a service, not a project (1:30)
+### 5. One Application, a whole environment (2:30)
 
-**Go to**: VCF Automation, namespace `platform-<suffix>`, the GitOps
-tab. Then go to tab 1 and log out of Argo CD. Back in VCF Automation,
-click the button on the Argo CD instance, and log in with "VCF
-Automation".
+Argo CD, Application `music-store`, tree view.
 
-**Show**: the instance and its Ready state, and the button that opens
-it. On the Argo CD login page, the "VCF Automation" button, then the
-same user landing in Argo CD.
+**Show**
 
-**Say**: "Argo CD comes with VCF as a Supervisor Service. I asked for an
-instance in one small manifest. I don't install it, patch it or build a
-login for it. It signs me in with the same identity as VCF Automation,
-and my AD group decides that I'm an admin here."
+- The `Cluster` `music-store`, the `PostgresCluster` `catalog`, the
+  `VirtualMachine` `music-users`, the cluster's addons.
+- The `Cluster`'s live state.
+- The sync waves: database and cluster first, the Job that wires them
+  together last.
 
-**Why it matters**: no GitOps tool to run on the side. Access follows
-the company directory, so leavers lose it and joiners get it without a
-change in Argo CD.
+**Why**: the environment is one unit, deployed in order and kept in
+sync. A hand change is put back to what git says.
 
-**Caption**: *GitOps as a built-in service, with single sign-on.*
+### 6. It's all code (3:10)
 
-### 5. One Application, a whole environment (2:10)
+Tab 2, then tab 3.
 
-**Go to**: Argo CD, open the Application `music-store`. Tree view.
+**Show**
 
-**Show**: the tree, left to right: the VKS `Cluster` `music-store`, the
-`PostgresCluster` `catalog`, the `VirtualMachine` `music-users`, and the
-cluster's addons. Click the `Cluster` and show its live state. Point at
-the sync waves: the database and the cluster first, the Job that wires
-them together last.
+- `cluster.yaml`: Kubernetes version, node pool with `replicas: 2`.
+- The `platform-engineer` workflow run, its `terraform apply` step.
 
-**Say**: "This one Application is a whole environment for the shop: a
-Kubernetes cluster, a Postgres database and a VM for the users service.
-They're all Kubernetes resources, so Argo CD deploys them in order and
-watches them. If someone changes one by hand, Argo CD puts it back to
-what git says."
+**Why**: the namespaces and Argo CD are Terraform; the clusters,
+databases and VMs are YAML. Every platform change is a reviewed pull
+request. A second environment is a copy of a folder.
 
-**Why it matters**: the environment is one unit. It can be rebuilt,
-copied for a new team, or checked for drift at a glance.
+### 7. The golden path to production (3:40)
 
-**Caption**: *Cluster, database and VM: one Application, from git, kept
-in sync.*
+Tab 4, tab 5, then Argo CD.
 
-### 6. Clusters, a VM and a database, from one API (3:00)
+**Show**
 
-**Go to**: VCF Automation, namespace `music-store-<suffix>`. Open, in
-turn, the Kubernetes clusters, the virtual machines, and the databases.
+- `apps/music-store/`: only the services' code. No Dockerfile, no
+  Kubernetes YAML.
+- The `music-store-images` run: one image per service, tagged with the
+  commit, and the deploy pull request it opened.
+- Argo CD `platform-tools-builds`: the Tekton pipeline, clone then
+  build.
+- Argo CD `music-store-apps`: the shop's Deployments, pods Healthy, the
+  Gateway and HTTPRoute.
 
-**Show**:
+**Why**: the developers' path to production is a commit. The platform
+engineer owns the rest: images built from source on a trusted Tanzu
+base image, pushed to our own Harbor, deployed by a reviewed pull
+request. Every app goes the same way.
 
-- The VKS cluster `music-store`: its version, its control plane and two
-  workers, Ready.
-- The VM `music-users`: running, its VM class, its IP.
-- The DSM database `catalog`: PostgreSQL, Ready.
+### 8. The app (4:50)
 
-**Say**: "Here's the same thing from VCF's side. The cluster, the VM and
-the database are real, and VCF looks after them: it patches the cluster,
-it backs up and upgrades the database with Data Services Manager. The
-users service still runs on a VM, and that's fine. It sits next to the
-containers and Argo CD deploys it the same way."
+Tab 6, the shop.
 
-**Why it matters**: the developer gets a database and a cluster without
-waiting on a DBA or a VM team. Ops gets the lifecycle of each one,
-managed. VMs and containers are deployed and secured the same way.
+**Show**: the catalog, then the chat.
 
-**Caption**: *Kubernetes, VMs and managed databases, side by side, one
-way to deploy them.*
+**Why**: the developers' app, running on everything above.
 
-### 7. A private model for the app teams (3:50)
+### 9. Back to the console (5:10)
 
-**Go to**: VCF Automation, namespace `private-ai-<suffix>`. Open Private
-AI Services, then the model endpoint. Or, in Argo CD, the Application
-`private-ai`, tree view.
+Tab 1, Supervisor Namespaces.
 
-**Show**: the model `qwen-14b-xlarge`, Ready, and its database
-`pais-db`. In Argo CD, the four waves: database, address, Private AI
-Services, model.
+**Show**: the four namespaces again.
 
-**Say**: "The app teams want AI. I give them a model that runs in our own
-data center, behind an endpoint they can call. It's the same pattern:
-three manifests in git, and Argo CD brings up the database, the service
-and the model in order. No data goes to a public model."
-
-**Why it matters**: developers build AI features against an approved
-private model. Security and compliance keep the data in house.
-
-**Caption**: *A private AI model, deployed the same way as everything
-else.*
-
-### 8. The golden path for the app (4:15)
-
-**Go to**: Argo CD, the Application `platform-tools-builds`, tree view.
-Then the Application `music-store-apps`, tree view. Then tab 5, the
-shop.
-
-**Show**: in `platform-tools-builds`, the Tekton pipeline that builds the
-shop's images. In `music-store-apps`, the shop's Deployments and their
-pods, all Healthy, and the Gateway and HTTPRoute. In the shop, browse
-the catalog and open the chat.
-
-**Say**: "And this is why the platform exists. The deploy is mine too:
-it's a golden path. The developers write the shop's code. My pipeline
-builds their images, and Argo CD deploys them onto the cluster. They get
-a database, a users service, a model for the chat, a certificate and a
-web firewall in front, without asking for any of it one piece at a
-time."
-
-**Why it matters**: the developer's path to production is a commit. The
-build, the deploy and everything under the app are owned by the platform
-team, and the same for every app.
-
-**Caption**: *Developers ship code. The golden path takes it to
-production.*
-
-### 9. What I did not do (4:45)
-
-**Go to**: Argo CD, Applications, tile view.
-
-**Show**: the green tiles again.
-
-**Say**: "I didn't log in to vCenter, file a ticket, or install a tool on
-the side. I wrote down what the platform should be, and VCF built it and
-keeps it that way. When the next team needs one, it's a pull request."
-
-**Caption**: *Describe it once. VCF builds it, and keeps it that way.*
+**Why**: no vCenter login, no tickets, no service run by hand. The next
+team is a pull request.
 
 #### Optional: self-heal (+1:00)
 
-In `music-store-apps`, open a Deployment of the shop, pick one of its
-pods, and Delete it. The tree shows it Terminating, and a new pod comes
-up Healthy within seconds. Say: "Even when something goes away, the
-platform puts it back." Do not delete the `Cluster`, the database, or
-the VM: Argo CD would rebuild them, but it takes far longer than a demo.
+Argo CD, `music-store-apps`: delete one of the shop's pods. A new pod
+comes up Healthy within seconds. Do not delete the `Cluster`, the
+database or the VM: a rebuild takes far longer than a demo.
 
 ## After the demo
 
-The walkthrough changes nothing, except the optional pod delete, which
-Kubernetes replaces. Check that every Application in Argo CD is Synced
-and Healthy.
-
-If you clicked Sync, Refresh, or a button in VCF Automation by mistake,
-check that Application in Argo CD. Argo CD puts back what git says
-within a few minutes.
+Check every Application in Argo CD is Synced and Healthy. If you clicked
+Sync, Refresh or a VCF Automation button by mistake, Argo CD puts back
+what git says within a few minutes.
 
 ## Troubleshooting
 
-- **The Argo CD page shows a certificate warning**: the instance has a
-  self-signed certificate. Accept it before you record.
 - **"VCF Automation" login on Argo CD lands as read only**: your user is
   not in `ans-platform-engineer@set.lab`, or your VCF Automation session
   is from another org. Log out of both and log in to org `goad` again.
 - **An Application is OutOfSync**: click it, then App Diff, to see what
   differs. If git changed since the last sync, Sync it, or ask its owner
-  first. Record only when it is Synced again.
+  first.
 - **An Application is Progressing for a long time**: a cluster or a
   database is still being built. Open the resource in the tree; its
   message says what it waits on.
