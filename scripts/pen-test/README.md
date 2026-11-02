@@ -52,6 +52,28 @@ Remove the pod afterwards:
 scripts/pen-test/run.sh --delete
 ```
 
+## Flip the default deny for a demo
+
+`flip.sh` turns the default deny off and on without a commit, so the
+board "Pen test" changes on cue:
+
+```bash
+NAMESPACE=platform-9pq9n scripts/pen-test/flip.sh sup-gpu off      # checks 1 and 2 turn red
+NAMESPACE=platform-9pq9n scripts/pen-test/flip.sh sup-gpu on       # and green again
+NAMESPACE=platform-9pq9n scripts/pen-test/flip.sh sup-gpu status
+```
+
+The first argument is a context that reaches the Supervisor Namespace of
+the Argo CD Applications; `NAMESPACE` is that namespace, if the context
+does not already point at it. Argo CD is not paused. `off` adds a
+kustomize patch to the Application `music-store-platform` that deletes
+`music-store-default-deny`, and Argo CD prunes it; `on` removes the
+patch. Each takes about a minute: a few seconds for Argo CD, then up to
+two 30-second rounds of the checks. The WAF checks do not change.
+
+The patch is drift from the platform engineer's Terraform. Run `on`
+after the demo; a platform engineer apply also puts the policy back.
+
 ## Before and after
 
 To show the attacks getting through first, take both layers out and put

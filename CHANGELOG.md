@@ -3,6 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+
+## 2026-11-02 (Pen test flip)
+
+### Added
+
+- `scripts/pen-test/flip.sh`: turns the music store's default deny off
+  and on for a demo, through a kustomize patch on the Argo CD Application
+  `music-store-platform`, and waits until the board "Pen test" shows it.
+
 ## 2026-10-30 (Pen test board colors)
 
 ### Changed
