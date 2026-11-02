@@ -159,7 +159,7 @@ error if the integration is off.
 ## What the pen test proves
 
 The pen test runs five checks against the shop, in two forms: an
-attacker pod started by hand ([scripts/pen-test](../scripts/pen-test)),
+attacker pod started by hand ([demos/pen-test](../demos/pen-test)),
 and an always-on blackbox exporter in namespace `pen-test`
 ([pen-test.yaml](../gitops/music-store-platform/pen-test.yaml)) whose
 results are the Grafana board "Pen test". Namespace `pen-test` is allowed

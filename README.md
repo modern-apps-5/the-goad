@@ -650,6 +650,7 @@ gitops/platform-tools-builds/  The image build: Tekton pipeline, tasks, and the 
 gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
 tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
 scripts/                       What a person runs by hand: setup once, the SDK mirror, and the incident walk
+demos/<demo>/                  One demo each: its run guide end to end, and the scripts the presenter runs
 .github/workflows/             One Terraform workflow for each persona, tanzu-apps.yml, and music-store-images.yml
 .github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer
 .github/actions/cf-token/      Gets a Tanzu Platform token for goad-deployer, for Terraform
@@ -658,7 +659,8 @@ docs/                          Design, script, plan, decisions
 
 One rule decides where a file goes: if Terraform applies it, it is under
 `terraform/`. If Argo CD syncs it, it is under `gitops/`. If `cf push`
-pushes it, it is under `tanzu/`. If a person runs it, it is under
+pushes it, it is under `tanzu/`. If a presenter runs it during a demo,
+it is under `demos/<demo>/`. If a person runs it otherwise, it is under
 `scripts/`.
 
 To give Argo CD another namespace, add it to `namespaces` in
@@ -702,6 +704,7 @@ into a VKS cluster has its own `ManagedEntity` and Application in
 | [docs/execution-plan.md](docs/execution-plan.md) | Suggested order of work |
 | [docs/security-architecture.md](docs/security-architecture.md) | The music store's security layers: who owns each, how it reaches the cluster, what traffic it decides |
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
+| [demos/README.md](demos/README.md) | The demos you can run on the built lab, each with its own run guide |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
 | [terraform/runner/README.md](terraform/runner/README.md) | The self-hosted runner that the workflows run on, and how to build it |
