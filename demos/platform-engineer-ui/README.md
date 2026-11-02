@@ -1,8 +1,9 @@
 # Platform engineer: the platform, from the UI
 
-A six-minute browser demo, as the platform engineer. Start in VCF
+A five-minute browser demo, as the platform engineer. Start in VCF
 Automation, show what you set up for the music store, how you set it up,
-and the golden path to production. No terminal, no changes.
+and the app it delivers. No terminal, no changes. The golden path from
+a commit to production is its own demo, [golden-path](../golden-path).
 
 The point: the platform engineer lets the developers focus on code. They
 own the delivery of that code and consume the infrastructure services it
@@ -18,9 +19,9 @@ needs. VCF runs those services.
 | 1:50 | 4. GitOps, from the console | VCF Automation GitOps tab, then Argo CD |
 | 2:30 | 5. One Application, a whole environment | Argo CD, `music-store` |
 | 3:10 | 6. It's all code | GitHub |
-| 3:40 | 7. The golden path to production | GitHub, then Argo CD |
-| 4:50 | 8. The app | The shop |
-| 5:10 | 9. Back to the console | VCF Automation |
+| 3:40 | 7. The app, delivered | Argo CD, `music-store-apps` |
+| 4:10 | 8. The app | The shop |
+| 4:30 | 9. Back to the console | VCF Automation |
 
 ## Before the demo
 
@@ -58,9 +59,7 @@ needs. VCF runs those services.
    Deploy, the default project, Supervisor Namespaces.
 2. GitHub: `gitops/music-store/cluster.yaml`.
 3. GitHub: Actions, latest green run of `platform-engineer`.
-4. GitHub: `apps/music-store/`.
-5. GitHub: Actions, latest green run of `music-store-images`.
-6. The shop, `https://music.goad.gpu.set.lab`.
+4. The shop, `https://music.goad.gpu.set.lab`.
 
 Argo CD opens in its own tab in step 4.
 
@@ -151,35 +150,30 @@ Tab 2, then tab 3.
 databases and VMs are YAML. Every platform change is a reviewed pull
 request. A second environment is a copy of a folder.
 
-### 7. The golden path to production (3:40)
+### 7. The app, delivered (3:40)
 
-Tab 4, tab 5, then Argo CD.
+Argo CD, Application `music-store-apps`, tree view.
 
 **Show**
 
-- `apps/music-store/`: only the services' code. No Dockerfile, no
-  Kubernetes YAML.
-- The `music-store-images` run: one image per service, tagged with the
-  commit, and the deploy pull request it opened.
-- Argo CD `platform-tools-builds`: the Tekton pipeline, clone then
-  build.
-- Argo CD `music-store-apps`: the shop's Deployments, pods Healthy, the
-  Gateway and HTTPRoute.
+- The shop's Deployments, pods Healthy.
+- The Gateway and HTTPRoute.
+- A pod's image: `depot.kube-system.svc/music-store/<service>`, tagged
+  with a commit.
 
-**Why**: the developers' path to production is a commit. The platform
-engineer owns the rest: images built from source on a trusted Tanzu
-base image, pushed to our own Harbor, deployed by a reviewed pull
-request. Every app goes the same way.
+**Why**: the developers only write code. The platform engineer's golden
+path builds it from trusted sources and deploys it here. The
+[golden-path](../golden-path) demo shows it end to end.
 
-### 8. The app (4:50)
+### 8. The app (4:10)
 
-Tab 6, the shop.
+Tab 4, the shop.
 
 **Show**: the catalog, then the chat.
 
 **Why**: the developers' app, running on everything above.
 
-### 9. Back to the console (5:10)
+### 9. Back to the console (4:30)
 
 Tab 1, Supervisor Namespaces.
 
@@ -187,12 +181,6 @@ Tab 1, Supervisor Namespaces.
 
 **Why**: no vCenter login, no tickets, no service run by hand. The next
 team is a pull request.
-
-#### Optional: self-heal (+1:00)
-
-Argo CD, `music-store-apps`: delete one of the shop's pods. A new pod
-comes up Healthy within seconds. Do not delete the `Cluster`, the
-database or the VM: a rebuild takes far longer than a demo.
 
 ## After the demo
 
