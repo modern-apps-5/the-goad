@@ -36,7 +36,7 @@ not been changed to match. Fix these when Video 1 is rewritten.
   route is built (decision 43), AgentMinder's policies on the incident
   agents' tools, and the vDefend guardrails that reach the shop's cluster
   through Antrea (decision 49). vDefend DFW for the users VM and SSP are
-  not built. `scripts/pen-test` shows the default deny and the WAF
+  not built. `demos/pen-test` shows the default deny and the WAF
   stopping an attacker pod inside the cluster, and the Grafana board
   "Pen test" shows the same five checks all the time.
 

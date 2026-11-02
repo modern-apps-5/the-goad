@@ -2,11 +2,15 @@
 # Turn the music store's default deny off and on, to show the board "Pen
 # test" change in a demo.
 #
-#   scripts/pen-test/flip.sh <context> off      drop the default deny
-#   scripts/pen-test/flip.sh <context> on       put it back
-#   scripts/pen-test/flip.sh <context> status   what is set, and the checks
+#   demos/pen-test/flip.sh <context> off      drop the default deny
+#   demos/pen-test/flip.sh <context> on       put it back
+#   demos/pen-test/flip.sh <context> status   what is set, and the checks
 #
-#   NAMESPACE=platform-9pq9n scripts/pen-test/flip.sh sup-gpu off
+#   demos/pen-test/flip.sh goad:platform-9pq9n:default-project off
+#
+# <context> is your vcf context for the Supervisor Namespace where Argo CD
+# runs, the one named platform-<suffix>. demos/pen-test/README.md says how
+# to make it.
 #
 # The default deny is the ClusterNetworkPolicy music-store-default-deny in
 # gitops/music-store-platform/network-policy.yaml (layer 3, decision 49).
@@ -26,10 +30,10 @@
 # Application. A platform engineer apply while it is off turns the default
 # deny back on. Run "on" after the demo.
 #
-# Needs kubectl, curl and jq. The context must reach the Supervisor
-# Namespace that holds the Argo CD Applications: the platform engineer's
-# context for it, or the Supervisor admin context. Set NAMESPACE if the
-# context's own namespace is not that one.
+# Needs kubectl, curl and jq, and the right to patch Argo CD Applications
+# in that namespace, which the platform engineers' group has. The
+# namespace is the context's own; set NAMESPACE only for a context that
+# points elsewhere.
 set -euo pipefail
 
 usage() { echo "usage: $0 <context> off|on|status" >&2; exit 2; }
@@ -42,7 +46,7 @@ APP=music-store-platform
 POLICY=music-store-default-deny
 PROMETHEUS=${PROMETHEUS:-http://prometheus.goad.gpu.set.lab}
 NAMESPACE=${NAMESPACE:-$(kubectl config view -o jsonpath="{.contexts[?(@.name==\"$CONTEXT\")].context.namespace}")}
-[[ -n $NAMESPACE ]] || { echo "Context $CONTEXT has no namespace; set NAMESPACE" >&2; exit 2; }
+[[ -n $NAMESPACE ]] || { echo "Context $CONTEXT has no namespace. Use the context of the platform-<suffix> namespace (see demos/pen-test/README.md), or set NAMESPACE" >&2; exit 2; }
 
 k() { kubectl --context "$CONTEXT" -n "$NAMESPACE" "$@"; }
 

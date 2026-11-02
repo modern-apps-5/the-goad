@@ -1,5 +1,5 @@
 # The pen test, always on (decision 49). A blackbox exporter in its own
-# namespace, pen-test, probes the shop the five ways scripts/pen-test does,
+# namespace, pen-test, probes the shop the five ways demos/pen-test does,
 # and the Prometheus agent in platform-tools sends the results to the
 # board "Pen test" on the platform tools cluster.
 #
