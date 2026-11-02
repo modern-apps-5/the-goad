@@ -12,7 +12,8 @@ the demo, and the scripts and manifests it runs.
 ## What a demo folder holds
 
 - `README.md`, in this order:
-  1. What the demo shows and which layers it touches. No persona roles: anyone with the access in step 2 runs it.
+  1. What the demo shows and which layers it touches. No persona
+     roles: anyone with the access in step 2 runs it.
   2. **Before the demo**: the tools, the access, and the vcf contexts
      the presenter needs, made with their own login. Say which
      Supervisor Namespace each context must point at, and how to find
