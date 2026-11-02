@@ -62,7 +62,7 @@ scrape_configs:
   - job_name: pen-test-pod
     metrics_path: /probe
     params:
-      module: [pen_test_tcp]
+      module: [pen_test_around]
     kubernetes_sd_configs:
       - role: pod
         namespaces:
@@ -76,7 +76,7 @@ scrape_configs:
         action: keep
       - source_labels: [__meta_kubernetes_pod_ip]
         target_label: __param_target
-        replacement: $1:5000
+        replacement: http://$1:5000/
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
@@ -89,8 +89,8 @@ scrape_configs:
   - job_name: pen-test
     metrics_path: /probe
     static_configs:
-      - targets: ["music-store-1-service.music-store.svc:5000"]
-        labels: {pen_test: service, expect: drop, __param_module: pen_test_tcp}
+      - targets: ["http://music-store-1-service.music-store.svc:5000/"]
+        labels: {pen_test: service, expect: drop, __param_module: pen_test_around}
       - targets: ["https://music.goad.gpu.set.lab/?searchString=%27%20OR%201%3D1--"]
         labels: {pen_test: sqli, expect: "403", __param_module: pen_test_waf}
       - targets: ["https://music.goad.gpu.set.lab/?file=php%3A%2F%2Ffilter%2Fconvert.base64-encode%2Fresource%3Dindex.php"]

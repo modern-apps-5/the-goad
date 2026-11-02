@@ -2,12 +2,14 @@
 # lab's certificates are signed by lab CAs the image does not trust, so
 # TLS is not verified.
 modules:
-  # Checks 1 and 2, around Avi. Up when a connection opens. The default
-  # deny drops the SYN, so a pass is this probe failing.
-  pen_test_tcp:
-    prober: tcp
-    timeout: 5s
-    tcp:
+  # Checks 1 and 2, around Avi. An HTTP GET to the store, so the board can
+  # show the status code when one gets through. The default deny drops the
+  # SYN, so a pass is no answer: status code 0. The pass is decided in
+  # rules.yml from the code, not from probe_success.
+  pen_test_around:
+    prober: http
+    timeout: 25s
+    http:
       preferred_ip_protocol: ip4
   # Checks 3 and 4, attacks through Avi. Up only when the WAF answers 403.
   pen_test_waf:
