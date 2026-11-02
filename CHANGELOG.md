@@ -3,6 +3,16 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+
+## 2026-11-02 (Two pen test demos)
+
+### Changed
+
+- `demos/pen-test` is two demos: `demos/pen-test-dashboard`, which turns
+  the default deny off and on and is watched on the board "Pen test"
+  (`flip.sh`), and `demos/pen-test-manual`, the attacker pod run by hand
+  (`run.sh`). Each has its own run guide.
+
 ## 2026-11-02 (Demos folder, pen test flip)
 
 ### Added

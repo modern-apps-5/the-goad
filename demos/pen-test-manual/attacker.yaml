@@ -1,4 +1,4 @@
-# The attacker pod for the security demo (demos/pen-test/README.md): a
+# The attacker pod for the security demo (demos/pen-test-manual/README.md): a
 # pod in namespace music-store, with no shop labels, so no allow rule
 # matches it. run.sh applies this and puts connectivity-check.sh in the
 # ConfigMap pen-test-script.
