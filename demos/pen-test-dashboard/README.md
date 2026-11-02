@@ -15,9 +15,6 @@ What the checks show (decision 49,
   `metal-store-waf` in `gitops/music-store-apps`, answers 403 to SQL and
   PHP injection, and lets a clean request through.
 
-Personas: the platform engineer runs the flip; the policies on the board
-are the security admin's, the developer's and the platform engineer's.
-
 | File | What it is |
 |---|---|
 | `flip.sh` | Turns the default deny off and on through Argo CD, and waits until the board shows it. |
