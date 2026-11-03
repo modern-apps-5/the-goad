@@ -17,6 +17,7 @@ keeps every version.
 | `terraform/cloud-admin/ops` | `the-goad` | `goad-cloud-admin-ops` |
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
 | `terraform/agentic-ops` | `the-goad` | `goad-agentic-ops` |
+| `terraform/security-admin` | `the-goad` | `goad-security-admin` |
 | `terraform/runner` | `the-goad` | `goad-runner` |
 
 In Gitea, the states are under the organization's Packages.
@@ -84,9 +85,10 @@ and do not make your own.
 | `harbor_admin_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the Harbor login. The Harbor Supervisor Service sets it. |
 | `broadcom_registry_username` and `broadcom_registry_token` | `terraform/cloud-admin/org/terraform.tfvars` | Terraform writes them into the Harbor registry endpoint `tanzu-platform-content`. A wrong or expired token fails every pull of an image that Harbor has not cached yet. |
 | `music_store_robot_secret` | `terraform/cloud-admin/org/terraform.tfvars` and `terraform/platform-engineer/terraform.tfvars`, the same value | Terraform sets it on the Harbor robot account `robot$music-store+builder` only when `music_store_robot_secret_version` goes up. If it does, a value that differs from the GitHub secret `MUSIC_STORE_HARBOR_ROBOT_SECRET` fails the platform engineer's image pushes. |
-| `ops_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the VCF Operations login that makes the org's VCF SSO client. |
+| `ops_password` | `terraform/cloud-admin/org/terraform.tfvars` and `terraform/cloud-admin/ops/terraform.tfvars`, the same value | Not written to the lab, but a wrong one fails the VCF Operations login that makes the org's VCF SSO client. |
 | `vcfa_api_token` | `terraform/platform-engineer/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is an API token of `svc.platform_engineer@set.lab`, made by hand once. |
 | `vcfa_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is the provider administrator's password. |
+| `nsx_password` | `terraform/security-admin/terraform.tfvars` | Not written to the lab, but a wrong one fails the NSX login. |
 | `vcenter_password` | `terraform/runner/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. |
 | GitHub App's private key | `terraform/runner/.secrets/private-key.pem` | Terraform replaces the key in the Secret `github-app` with yours. If yours is not a key of that App, the runner's pods cannot register after their next restart. |
 
@@ -113,6 +115,9 @@ manager, and copy the whole file.
   passwords and keys)
 - `terraform/agentic-ops/terraform.tfvars` (AgentMinder's admin client and
   the sidecar token)
+- `terraform/cloud-admin/ops/terraform.tfvars` (the VCF Operations
+  password, the same as in `org`)
+- `terraform/security-admin/terraform.tfvars` (the NSX password)
 - `terraform/platform-engineer/.secrets/gitops-deploy-key`
 - The token for `backend.hcl`
 

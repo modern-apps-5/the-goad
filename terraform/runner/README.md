@@ -144,6 +144,7 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 | `INCIDENT_SIDECAR_TOKEN` | `incident_sidecar_token` in `terraform/agentic-ops/terraform.tfvars` | `agentic-ops`, `tanzu-apps` |
 | `AGENTIC_OPS_AGENTMINDER_CLIENT_ID`, `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET` | `agentminder_client_id` and `agentminder_client_secret` in `terraform/agentic-ops/terraform.tfvars`. Only in the cluster otherwise: the Secret `ssp-ssp-secret-defaulttenantclient` in namespace `ssp` | `agentic-ops` |
 | `INCIDENT_ZAMMAD_TOKEN`, `INCIDENT_AVI_USERNAME`, `INCIDENT_AVI_PASSWORD`, `INCIDENT_MCP_READ_TOKEN`, `INCIDENT_MCP_WRITE_TOKEN` | Only in GitHub: see [the incident apps' README](../../tanzu/metal-music-app-agentic-system/README.md) | `tanzu-apps` |
+| `SECURITY_ADMIN_NSX_PASSWORD` | `nsx_password` in `terraform/security-admin/terraform.tfvars` | `security-admin` |
 | `TANZU_HUB_CLIENT_ID`, `TANZU_HUB_CLIENT_ASSERTION` | The Tanzu Hub login of `goad-deployer` | `platform-engineer`, `agentic-ops` and `tanzu-apps`, through the `cf-login` and `cf-token` actions |
 
 Set each one with `gh secret set <name> --repo modern-apps-5/the-goad`.
