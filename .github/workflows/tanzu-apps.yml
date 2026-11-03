@@ -1,10 +1,13 @@
 # Push the incident apps to Tanzu Platform: org Goad, space
-# metal-music-app-agentic-system. See decision 40.
+# metal-music-app-agentic-system. The agentic ops engineer owns the apps. See
+# decisions 40 and 50.
 #
 # Runs on every push to main that changes tanzu/metal-music-app-agentic-system,
 # and by hand from the Actions page. The space and the user-provided services
-# it binds are the platform engineer's Terraform (tanzu.tf), so run
-# platform-engineer.yml first on a new foundation.
+# it binds are Terraform: the space, goad-qwen and k8s-mcp-cluster are the
+# platform engineer's (tanzu.tf), and the am-* and sc-* services are the
+# agentic ops engineer's (terraform/agentic-ops). Run platform-engineer.yml
+# and agentic-ops.yml first on a new foundation.
 #
 # Every Cloud Foundry login is goad-deployer (cf-login action). The
 # AgentMinder SDK comes from the private package
@@ -20,8 +23,10 @@
 #
 # The apps' secrets are GitHub secrets INCIDENT_*. They go into a vars file
 # for cf push, under the job's temp directory, deleted when the push ends.
-# The AgentMinder clients are not here: the cloud admin's Terraform puts
-# them in user-provided services that the manifest binds (decision 41).
+# The AgentMinder clients are not here: the agentic ops engineer's Terraform
+# puts them in user-provided services that the manifest binds (decision 41).
+# INCIDENT_SIDECAR_TOKEN is read here as AGENTMINDER_SIDECAR_TOKEN and by
+# agentic-ops.yml for the sc-* services. Change it in both places at once.
 name: tanzu-apps
 
 on:

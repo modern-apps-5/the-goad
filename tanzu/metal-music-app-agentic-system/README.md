@@ -21,9 +21,11 @@ own log. Each job:
 A last job adds the network policies the agents need on `apps.internal`,
 once every push has succeeded.
 
-The space and the user-provided services `goad-qwen`, `k8s-mcp-cluster`
-and `sc-*` are the platform engineer's: [terraform/platform-engineer/tanzu.tf](../../terraform/platform-engineer/tanzu.tf).
-The `am-*` services are the cloud admin's, below.
+The agentic ops engineer owns these apps. The space and the user-provided
+services `goad-qwen` and `k8s-mcp-cluster` are the platform engineer's:
+[terraform/platform-engineer/tanzu.tf](../../terraform/platform-engineer/tanzu.tf).
+The `am-*` and `sc-*` services are the agentic ops engineer's, in
+[terraform/agentic-ops](../../terraform/agentic-ops), below.
 
 | App | What it is |
 |---|---|
@@ -70,18 +72,18 @@ namespace `platform-tools` of the music store cluster, from the Secret
 `goad-k8s-mcp-token` that `gitops/music-store-platform` makes. It does not
 expire.
 
-The Qwen key, the K8s token and the sidecar token are also in the
-user-provided services, so the platform engineer workflow reads the same
-three secrets. Change one in both places at once: rerun the platform
-engineer workflow, then this one.
+The Qwen key and the K8s token are also in the user-provided services,
+so the platform engineer workflow reads the same two secrets. The sidecar
+token is in the `sc-*` services, so the `agentic-ops` workflow reads it.
+Change one in both places at once: rerun that workflow, then this one.
 
 The AgentMinder client ID, client secret and gateway URL are not in the
-vars file or in GitHub. The cloud admin's Terraform
-([terraform/cloud-admin/agentminder-registration](../../terraform/cloud-admin/agentminder-registration))
+vars file or in GitHub. The agentic ops engineer's Terraform
+([terraform/agentic-ops](../../terraform/agentic-ops))
 makes one user-provided service for each diagnostic agent: `am-lb-diagnostic-agent`,
 `am-k8s-diagnostic-agent` and `am-vcf-diagnostic-agent`. Each is tagged
 `agentminder-client`, and the manifest binds it to its agent. Run the
-`cloud-admin` workflow with apply before this one, so the services exist: the push
+`agentic-ops` workflow with apply before this one, so the services exist: the push
 fails without them. A changed client secret reaches an app on
 `cf restart <app>`. The GitHub secrets `INCIDENT_AM_*_CLIENT_SECRET` that
 held the clients before were deleted on 2026-10-28.

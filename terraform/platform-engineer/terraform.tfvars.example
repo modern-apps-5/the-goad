@@ -33,12 +33,11 @@ incident_zammad_db_password     = "CHANGE-ME"
 incident_zammad_admin_password  = "CHANGE-ME"
 
 # The incident apps' keys, written to their Cloud Foundry user-provided
-# services (tanzu.tf). GitHub secrets INCIDENT_QWEN_API_KEY,
-# INCIDENT_K8S_TOKEN and INCIDENT_SIDECAR_TOKEN. tanzu-apps.yml reads the
-# same three, so change them in both places at once.
-incident_qwen_api_key  = "CHANGE-ME"
-incident_k8s_token     = "CHANGE-ME"
-incident_sidecar_token = "CHANGE-ME"
+# services (tanzu.tf). GitHub secrets INCIDENT_QWEN_API_KEY and
+# INCIDENT_K8S_TOKEN. tanzu-apps.yml reads the same two, so change them in
+# both places at once.
+incident_qwen_api_key = "CHANGE-ME"
+incident_k8s_token    = "CHANGE-ME"
 
 # tanzu.tf also needs CF_ACCESS_TOKEN in the environment: a Tanzu Platform
 # token for goad-deployer. It is not a variable.

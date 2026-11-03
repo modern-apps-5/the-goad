@@ -6,25 +6,25 @@ this GitHub repository directly. The lab's Gitea server holds only the
 Terraform state.
 
 The demo shows VMware Cloud Foundation across an application's life,
-through four personas: the cloud admin, the platform engineer, the
-developer, and the security admin.
+through five personas: the cloud admin, the platform engineer, the
+agentic ops engineer, the developer, and the security admin.
 
 | Persona | Tool | What it builds | Where |
 |---|---|---|---|
 | Cloud admin | Terraform | Stage 1: the org, VCF SSO, quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin/org](terraform/cloud-admin/org) |
 | Cloud admin | Terraform | Stage 2: inside the org, the users and their roles, the Service Engine Group, and a project with a VKS cluster for AgentMinder | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
 | Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](terraform/cloud-admin/agentminder) |
-| Cloud admin | Terraform | Stage 4: the incident demo's agents and MCP servers registered in AgentMinder, and their clients handed to the apps as Cloud Foundry services | [terraform/cloud-admin/agentminder-registration](terraform/cloud-admin/agentminder-registration) |
-| Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, the secrets in Secret Store, Argo CD and the handoff to it, and the incident apps' Tanzu Platform space and services | [terraform/platform-engineer](terraform/platform-engineer) |
+| Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, the secrets in Secret Store, Argo CD and the handoff to it, and the incident apps' Tanzu Platform space, `goad-qwen` and `k8s-mcp-cluster` | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 | Platform engineer | Argo CD | The shop's DSM catalog database, its VKS cluster, its users VM, and the endpoints that point the VKS cluster at the VM and at the catalog | [gitops/music-store](gitops/music-store) |
 | Platform engineer | Argo CD | Inside the shop's VKS cluster: the ESO store, the Gateway certificate, and what the platform tools cluster watches it with | [gitops/music-store-platform](gitops/music-store-platform) |
 | Platform engineer | Argo CD | The platform tools VKS cluster, and in it the incident demo's Zammad, Grafana and Prometheus | [gitops/platform-tools](gitops/platform-tools), [gitops/platform-tools-apps](gitops/platform-tools-apps) |
 | Platform engineer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-apps](gitops/music-store-apps) |
 | Platform engineer | Argo CD, GitHub workflow `music-store-images` | The build of the shop's images: Tekton on the platform tools cluster, and a pull request with the new image tags | [gitops/platform-tools-builds](gitops/platform-tools-builds), [.github/workflows/music-store-images.yml](.github/workflows/music-store-images.yml) |
+| Agentic ops engineer | Terraform | The incident demo's agents and MCP servers registered in AgentMinder, their clients handed to the apps as Cloud Foundry services (`am-*`), and the agents' tool services (`sc-*`) | [terraform/agentic-ops](terraform/agentic-ops) |
 | Developer | Code | The shop's source: store, cart, orders, and chat | [apps/music-store](apps/music-store) |
 | Security admin | Terraform | The vDefend guardrails for the music store, pushed into its VKS cluster through Antrea. [docs/security-architecture.md](docs/security-architecture.md) shows every layer of the shop's security | [terraform/security-admin](terraform/security-admin) |
-| (incident demo) | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system) |
+| Agentic ops engineer | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](tanzu/metal-music-app-agentic-system) |
 
 The music-store application, manifests and source, is in
 [gitops/music-store-apps](gitops/music-store-apps). The developer
@@ -113,7 +113,7 @@ flowchart TD
         dev_handoff["For the shop cluster: ManagedEntity music-store-cluster, then Applications music-store-platform and music-store-apps"]
         tools_handoff["For the tools: ManagedEntity platform-tools-cluster, then Applications platform-tools-apps and platform-tools-builds"]
         images["Content library goad-images, with the Ubuntu image"]
-        cf_space["Tanzu Platform: space metal-music-app-agentic-system and its services"]
+        cf_space["Tanzu Platform: space metal-music-app-agentic-system, goad-qwen and k8s-mcp-cluster"]
         namespaces --> argocd --> role --> handoff --> dev_handoff
         handoff --> tools_handoff
         namespaces --> repo_secret
@@ -122,9 +122,9 @@ flowchart TD
         namespaces --> images
     end
 
-    subgraph registration["5. Cloud admin: terraform/cloud-admin/agentminder-registration"]
+    subgraph registration["5. Agentic ops engineer: terraform/agentic-ops"]
         am_objects["AgentMinder MCP servers, clients, and policies"]
-        am_services["User-provided services am-*, in the incident apps' space"]
+        am_services["User-provided services am-* and sc-*, in the incident apps' space"]
         am_objects --> am_services
     end
 
@@ -192,8 +192,8 @@ flowchart TD
     images -.->|"image for the users VM"| shop_wave0
     agentminder -->|"AgentMinder running"| registration
     cf_space -->|"the space"| registration
-    cf_space -->|"space, goad-qwen and sc-* services"| tanzu_apps
-    am_services -->|"am-* services"| tanzu_apps
+    cf_space -->|"space, goad-qwen and k8s-mcp-cluster"| tanzu_apps
+    am_services -->|"am-* and sc-* services"| tanzu_apps
 ```
 
 Solid arrows are that order. Dotted arrows are what one part reads from
@@ -202,10 +202,8 @@ another. After the handoff, Terraform does not touch what runs in
 `music-store` and `platform-tools`: a commit to `gitops/` on `main` is the
 change.
 
-`agentminder-registration` needs the space that the platform engineer
-makes. On a first build the `cloud-admin` workflow runs before
-`platform-engineer`, so its last job, `agentminder-registration`, fails
-until `platform-engineer` has applied. Run `cloud-admin` again after it.
+`terraform/agentic-ops` needs the space that the platform engineer makes
+and the AgentMinder that the cloud admin installs, so it runs after both.
 
 ## Joining a demo that is already built
 
@@ -216,12 +214,11 @@ shares, and nothing else that is not in git:
 1. Get them from a teammate: the five `terraform.tfvars` files, the
    deploy key, and the state token. They come as one text to paste at
    the root of your clone. Put the cloud admin's files in
-   `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
-   `terraform/cloud-admin/agentminder`, and
-   `terraform/cloud-admin/agentminder-registration`.
+   `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`, and
+   `terraform/cloud-admin/agentminder`, and the agentic ops engineer's in
+   `terraform/agentic-ops`.
 2. In `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
-   `terraform/cloud-admin/agentminder`,
-   `terraform/cloud-admin/agentminder-registration`, and
+   `terraform/cloud-admin/agentminder`, `terraform/agentic-ops`, and
    `terraform/platform-engineer`:
 
    ```sh
@@ -229,14 +226,12 @@ shares, and nothing else that is not in git:
    terraform plan
    ```
 
-   In `terraform/cloud-admin/agentminder` and
-   `terraform/cloud-admin/agentminder-registration`, also run
+   In `terraform/cloud-admin/agentminder`, also run
    `export TF_HTTP_PASSWORD=<the state token>` first. In
-   `terraform/cloud-admin/agentminder-registration` and
-   `terraform/platform-engineer`, also export `CF_ACCESS_TOKEN`, a Tanzu
-   Platform access token for `goad-deployer`: the Cloud Foundry provider
-   logs in with it. In `agentminder-registration`, never print the plan:
-   follow [its README](terraform/cloud-admin/agentminder-registration/README.md).
+   `terraform/agentic-ops` and `terraform/platform-engineer`, also export
+   `CF_ACCESS_TOKEN`, a Tanzu Platform access token for `goad-deployer`:
+   the Cloud Foundry provider logs in with it. In `terraform/agentic-ops`,
+   never print the plan: follow [its README](terraform/agentic-ops/README.md).
 
 3. All plans must show no changes. If one shows a change you did not
    make, stop: your files differ from the team's.
@@ -259,8 +254,9 @@ that pushes the incident apps:
 
 | Workflow | What it runs |
 |---|---|
-| `cloud-admin` | Four jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder`, then `agentminder-registration` runs `terraform/cloud-admin/agentminder-registration` |
+| `cloud-admin` | Three jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder` |
 | `platform-engineer` | `terraform/platform-engineer` |
+| `agentic-ops` | `terraform/agentic-ops`. Needs the repository secrets `AGENTIC_OPS_AGENTMINDER_CLIENT_ID` and `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`: see [its README](terraform/agentic-ops/README.md) |
 | `tanzu-apps` | `cf push` of each app in `tanzu/metal-music-app-agentic-system`, then their network policies. See [its README](tanzu/metal-music-app-agentic-system/README.md) |
 
 A Terraform workflow runs only when a person starts it. Nothing runs on a
@@ -281,8 +277,10 @@ cannot apply.
 apply; it pushes.
 
 Nothing orders the workflows. On a first build: `cloud-admin`, then
-`platform-engineer`, then `cloud-admin` again (its last job needs the
-space that `platform-engineer` makes), then `tanzu-apps`.
+`platform-engineer`, then `agentic-ops`, then `security-admin`, then
+`tanzu-apps`. The cloud admin copies the two `AGENTIC_OPS_AGENTMINDER_*`
+secrets after `cloud-admin` has installed AgentMinder and before
+`agentic-ops` runs.
 
 The workflows use the same state and the same shared secrets as a
 machine does, so a run and a teammate's `terraform apply` are the same
@@ -523,24 +521,25 @@ owns. The workflow `music-store-images.yml` starts a PipelineRun and
 opens a pull request with the new image tags
 (`depot.kube-system.svc/music-store/<service>:<commit>`, decision 48).
 
-### 5. Cloud admin: register the incident agents in AgentMinder
+### 5. Agentic ops engineer: register the incident agents in AgentMinder
 
-Needs the space from step 3.
+Needs the space from step 3 and AgentMinder from the cloud admin. The cloud
+admin copies AgentMinder's admin client into two values once: see
+[the root's README](terraform/agentic-ops/README.md).
 
 ```sh
-cd terraform/cloud-admin/agentminder-registration
-cp terraform.tfvars.example terraform.tfvars   # cloud_admin_password, the same as in org
+cd terraform/agentic-ops
+cp terraform.tfvars.example terraform.tfvars   # the admin client, and the sidecar token
 cp backend.hcl.example backend.hcl             # then put the state token in it
-export TF_HTTP_PASSWORD=<the same token>
 export CF_ACCESS_TOKEN=<a Tanzu Platform token for goad-deployer>
 terraform init -backend-config=backend.hcl
 ```
 
-Then plan and apply as its
-[README](terraform/cloud-admin/agentminder-registration/README.md) says,
+Then plan and apply as its [README](terraform/agentic-ops/README.md) says,
 without printing the plan: the plan can show client secrets. It creates
-the MCP servers and clients in AgentMinder, and the services `am-*` that
-hand each diagnostic agent its client.
+the MCP servers and clients in AgentMinder, the services `am-*` that hand
+each diagnostic agent its client, and the `sc-*` services that give each
+agent its tools.
 
 ### 6. Push the incident apps
 
@@ -581,7 +580,7 @@ GitHub secrets it reads and how to start a walk.
 
 ### Tear down
 
-Reverse order. `agentminder-registration` first: it needs the running
+Reverse order. `terraform/agentic-ops` first: it needs the running
 AgentMinder to delete its objects, and its services are in the platform
 engineer's space. Then the platform engineer, because its namespaces use
 the Service Engine Group, and the org cannot be deleted while it has
@@ -590,8 +589,8 @@ cluster must exist for Helm to remove what it installed. Then
 `org-config`, then `org`.
 
 ```sh
-cd terraform/cloud-admin/agentminder-registration && terraform destroy
-cd ../../platform-engineer && terraform destroy
+cd terraform/agentic-ops && terraform destroy
+cd ../platform-engineer && terraform destroy
 cd ../cloud-admin/agentminder && terraform destroy
 cd ../org-config && terraform destroy
 cd ../org && terraform destroy
@@ -612,8 +611,8 @@ talks to it, with locking. Gitea keeps every version of the state.
 | `terraform/cloud-admin/org` | `goad-cloud-admin` |
 | `terraform/cloud-admin/org-config` | `goad-cloud-admin-org-config` |
 | `terraform/cloud-admin/agentminder` | `goad-cloud-admin-agentminder` |
-| `terraform/cloud-admin/agentminder-registration` | `goad-cloud-admin-agentminder-registration` |
 | `terraform/platform-engineer` | `goad-platform-engineer` |
+| `terraform/agentic-ops` | `goad-agentic-ops` |
 | `terraform/runner` | `goad-runner` |
 
 `backend.tf` in each root holds the address and the settings, in git.
@@ -638,9 +637,9 @@ what to do when it goes wrong, and how to go back to an earlier state.
 terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
 terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, kro-authors, AgentMinder's cluster
 terraform/cloud-admin/agentminder/ Stage 3, AgentMinder on that cluster, with Helm
-terraform/cloud-admin/agentminder-registration/ Stage 4, the incident demo's agents registered in AgentMinder
 terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD handoff, Tanzu Platform space
   manifests/                   Manifests that Terraform applies
+terraform/agentic-ops/         The incident demo's agents registered in AgentMinder, and the am-* and sc-* services
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
 gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
 gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster
@@ -704,7 +703,7 @@ into a VKS cluster has its own `ManagedEntity` and Application in
 | [docs/execution-plan.md](docs/execution-plan.md) | Suggested order of work |
 | [docs/security-architecture.md](docs/security-architecture.md) | The music store's security layers: who owns each, how it reaches the cluster, what traffic it decides |
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
-| [docs/automation-walkthrough.html](docs/automation-walkthrough.html) | How the automation works, persona by persona, as a page to open in a browser. It shows the agentic ops engineer's ownership from issue #91, which is not built yet |
+| [docs/automation-walkthrough.html](docs/automation-walkthrough.html) | How the automation works, persona by persona, as a page to open in a browser. It shows each persona's ownership, including the agentic ops engineer's |
 | [demos/README.md](demos/README.md) | The demos you can run on the built lab, each with its own run guide |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
@@ -712,7 +711,7 @@ into a VKS cluster has its own `ManagedEntity` and Application in
 | [terraform/cloud-admin/org/README.md](terraform/cloud-admin/org/README.md) | The cloud admin Terraform, stage 1 (the org), in detail |
 | [terraform/cloud-admin/org-config/README.md](terraform/cloud-admin/org-config/README.md) | The cloud admin Terraform, stage 2 (inside the org), in detail |
 | [terraform/cloud-admin/agentminder/README.md](terraform/cloud-admin/agentminder/README.md) | The cloud admin Terraform, stage 3 (AgentMinder), in detail |
-| [terraform/cloud-admin/agentminder-registration/README.md](terraform/cloud-admin/agentminder-registration/README.md) | The cloud admin Terraform, stage 4 (AgentMinder registration), in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |
+| [terraform/agentic-ops/README.md](terraform/agentic-ops/README.md) | The agentic ops engineer Terraform (AgentMinder registration) in detail |
 | [gitops/README.md](gitops/README.md) | Each gitops directory, its owner and Application, and how host names are published |
 | [tanzu/metal-music-app-agentic-system/README.md](tanzu/metal-music-app-agentic-system/README.md) | The incident demo's Cloud Foundry apps, their secrets, and how to run a walk |

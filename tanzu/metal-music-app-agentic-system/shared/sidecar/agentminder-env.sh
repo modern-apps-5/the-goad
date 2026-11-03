@@ -1,8 +1,7 @@
 # Source this, do not run it. Exports the agent's AgentMinder client, from
 # the one bound user-provided service tagged agentminder-client, as the
-# variables the AgentMinder SDK and sidecar read. The cloud admin's
-# Terraform (terraform/cloud-admin/agentminder-registration) makes those
-# services.
+# variables the AgentMinder SDK and sidecar read. The agentic ops
+# engineer's Terraform (terraform/agentic-ops) makes those services.
 #
 # run-sidecar.sh sources it for the sidecar, and .profile for the web
 # process. Cloud Foundry gives a bound service's credentials only in

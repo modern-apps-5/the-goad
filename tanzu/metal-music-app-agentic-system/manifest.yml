@@ -1,10 +1,11 @@
 # The Metal Music incident apps. Org Goad, space metal-music-app-agentic-system.
 #
 # .github/workflows/tanzu-apps.yml pushes this on every change under tanzu/,
-# after stage.sh. The space and most user-provided services are the platform
-# engineer's Terraform (terraform/platform-engineer/tanzu.tf). The am-*
-# services, one AgentMinder client for each diagnostic agent, are the
-# cloud admin's (terraform/cloud-admin/agentminder-registration): the sidecar's
+# after stage.sh. The agentic ops engineer owns the apps. The space,
+# goad-qwen and k8s-mcp-cluster are the platform engineer's Terraform
+# (terraform/platform-engineer/tanzu.tf). The am-* services, one
+# AgentMinder client for each diagnostic agent, and the sc-* services are
+# the agentic ops engineer's (terraform/agentic-ops): the sidecar's
 # agentminder-env.sh turns the bound one into the AM_* and AGENTMINDER_*
 # variables. This file only binds them.
 #

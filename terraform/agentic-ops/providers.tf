@@ -1,56 +1,14 @@
-# The cloud admin's fourth stage registers the incident demo's agents and
-# MCP servers in the AgentMinder that terraform/cloud-admin/agentminder
-# installed. It logs in to the org as cloud-admin, as that stage does, only
-# to read the cluster's kubeconfig.
-provider "vcfa" {
-  url                  = var.vcfa_url
-  org                  = var.org_name
-  user                 = var.cloud_admin_username
-  password             = var.cloud_admin_password
-  allow_unverified_ssl = var.insecure_skip_tls_verify
-}
-
-# The project, namespace, and cluster names, from org-config's state. The
-# token of the shared Gitea user comes from TF_HTTP_PASSWORD, as for the
-# workflow's own backend. A data source cannot read backend.hcl.
-data "terraform_remote_state" "org_config" {
-  backend = "http"
-  config = {
-    address                = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-cloud-admin-org-config"
-    username               = "goad-terraform"
-    skip_cert_verification = true
-  }
-}
-
-data "vcfa_vks_cluster_kubeconfig" "agentminder" {
-  name = data.terraform_remote_state.org_config.outputs.agentminder_cluster_name
-  context = {
-    project   = data.terraform_remote_state.org_config.outputs.cloud_admin_project
-    namespace = data.terraform_remote_state.org_config.outputs.agentminder_namespace
-  }
-}
-
-provider "kubernetes" {
-  host                   = data.vcfa_vks_cluster_kubeconfig.agentminder.host
-  cluster_ca_certificate = base64decode(data.vcfa_vks_cluster_kubeconfig.agentminder.certificate_authority_data)
-  client_certificate     = base64decode(data.vcfa_vks_cluster_kubeconfig.agentminder.client_certificate_data)
-  client_key             = base64decode(data.vcfa_vks_cluster_kubeconfig.agentminder.client_key_data)
-}
-
+# The agentic ops engineer registers the incident demo's agents and MCP
+# servers in the AgentMinder that terraform/cloud-admin/agentminder
+# installed.
+#
 # The login: the default tenant's admin OAuth client, which the ssp chart
-# makes on its first install and keeps in this Secret. Only Terraform reads
-# it; nobody copies it. AgentMinder has no service accounts yet. See
-# decision 41.
-data "kubernetes_secret_v1" "agentminder_admin_client" {
-  metadata {
-    name      = "ssp-ssp-secret-defaulttenantclient"
-    namespace = "ssp"
-  }
-}
-
+# makes on its first install. The cloud admin copies it once into two
+# repository secrets, from the Secret ssp-ssp-secret-defaulttenantclient in
+# namespace ssp. This root reads no cluster and no remote state. AgentMinder
+# has no service accounts yet. See decisions 41 and 50.
 locals {
-  admin_client = data.kubernetes_secret_v1.agentminder_admin_client.data
-  tenant_url   = "https://${var.agentminder_hostname}/${var.tenant}"
+  tenant_url = "https://${var.agentminder_hostname}/${var.tenant}"
 }
 
 # The token comes from this request, not from restapi's own
@@ -69,7 +27,7 @@ data "http" "agentminder_admin_token" {
   method   = "POST"
   insecure = var.insecure_skip_tls_verify
   request_headers = {
-    Authorization  = "Basic ${base64encode("${urlencode(local.admin_client["clientId"])}:${urlencode(local.admin_client["clientSecret"])}")}"
+    Authorization  = "Basic ${base64encode("${urlencode(var.agentminder_client_id)}:${urlencode(var.agentminder_client_secret)}")}"
     "Content-Type" = "application/x-www-form-urlencoded"
   }
   request_body = "grant_type=client_credentials&scope=${urlencode("urn:iam:myscopes")}"

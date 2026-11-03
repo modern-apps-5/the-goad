@@ -126,7 +126,7 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 
 | Secret | Where the value is | Read by |
 |---|---|---|
-| `GITEA_STATE_TOKEN` | `password` in any `backend.hcl` | `cloud-admin`, `platform-engineer` |
+| `GITEA_STATE_TOKEN` | `password` in any `backend.hcl` | `cloud-admin`, `platform-engineer`, `agentic-ops`, `security-admin` |
 | `VCFA_ADMIN_PASSWORD` | `vcfa_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
 | `CLOUD_ADMIN_PASSWORD` | `cloud_admin_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
 | `OPS_ADMIN_PASSWORD` | `ops_password` in `terraform/cloud-admin/org/terraform.tfvars` | `cloud-admin` |
@@ -140,12 +140,30 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 | `GITOPS_DEPLOY_KEY` | The file `terraform/platform-engineer/.secrets/gitops-deploy-key` | `platform-engineer` |
 | `MUSIC_STORE_DB_PASSWORD`, `MUSIC_STORE_CHAT_API_KEY` | `music_store_db_password` and `music_store_chat_api_key` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD`, `INCIDENT_ZAMMAD_ADMIN_PASSWORD` | The `incident_*` passwords in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`; `tanzu-apps` reads the Grafana one too |
-| `INCIDENT_QWEN_API_KEY`, `INCIDENT_K8S_TOKEN`, `INCIDENT_SIDECAR_TOKEN` | `incident_qwen_api_key`, `incident_k8s_token` and `incident_sidecar_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`, `tanzu-apps` |
+| `INCIDENT_QWEN_API_KEY`, `INCIDENT_K8S_TOKEN` | `incident_qwen_api_key` and `incident_k8s_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`, `tanzu-apps` |
+| `INCIDENT_SIDECAR_TOKEN` | `incident_sidecar_token` in `terraform/agentic-ops/terraform.tfvars` | `agentic-ops`, `tanzu-apps` |
+| `AGENTIC_OPS_AGENTMINDER_CLIENT_ID`, `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET` | `agentminder_client_id` and `agentminder_client_secret` in `terraform/agentic-ops/terraform.tfvars`. Only in the cluster otherwise: the Secret `ssp-ssp-secret-defaulttenantclient` in namespace `ssp` | `agentic-ops` |
 | `INCIDENT_ZAMMAD_TOKEN`, `INCIDENT_AVI_USERNAME`, `INCIDENT_AVI_PASSWORD`, `INCIDENT_MCP_READ_TOKEN`, `INCIDENT_MCP_WRITE_TOKEN` | Only in GitHub: see [the incident apps' README](../../tanzu/metal-music-app-agentic-system/README.md) | `tanzu-apps` |
-| `TANZU_HUB_CLIENT_ID`, `TANZU_HUB_CLIENT_ASSERTION` | The Tanzu Hub login of `goad-deployer` | all three, through the `cf-login` and `cf-token` actions |
+| `TANZU_HUB_CLIENT_ID`, `TANZU_HUB_CLIENT_ASSERTION` | The Tanzu Hub login of `goad-deployer` | `platform-engineer`, `agentic-ops` and `tanzu-apps`, through the `cf-login` and `cf-token` actions |
 
 Set each one with `gh secret set <name> --repo modern-apps-5/the-goad`.
 For the deploy key, add `< terraform/platform-engineer/.secrets/gitops-deploy-key`.
+
+The two `AGENTIC_OPS_AGENTMINDER_*` secrets are the cloud admin's to copy,
+once, after `cloud-admin` has installed AgentMinder. Run these on a machine
+with `kubectl` access to the `agentminder` cluster. They pass each value
+from the Secret to `gh` and print nothing:
+
+```sh
+kubectl -n ssp get secret ssp-ssp-secret-defaulttenantclient -o jsonpath='{.data.clientId}' \
+  | base64 -d | gh secret set AGENTIC_OPS_AGENTMINDER_CLIENT_ID --repo modern-apps-5/the-goad
+kubectl -n ssp get secret ssp-ssp-secret-defaulttenantclient -o jsonpath='{.data.clientSecret}' \
+  | base64 -d | gh secret set AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET --repo modern-apps-5/the-goad
+```
+
+The agentic ops engineer's own `terraform.tfvars` needs the same two
+values. The cloud admin hands them over once, in the team's password
+manager.
 
 ## Joining, when it is already built
 

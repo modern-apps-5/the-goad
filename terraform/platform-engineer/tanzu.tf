@@ -1,7 +1,9 @@
 # The incident apps' place on Tanzu Platform: org Goad, foundation goad.
 #
-# This root owns the space and the user-provided services in it. The apps
-# themselves are pushed by .github/workflows/tanzu-apps.yml from
+# This root owns the space, the model binding goad-qwen, and the cluster
+# service k8s-mcp-cluster. The agents' tool services (am-* and sc-*) are the
+# agentic ops engineer's, in terraform/agentic-ops. The apps themselves are
+# pushed by .github/workflows/tanzu-apps.yml from
 # tanzu/metal-music-app-agentic-system, which binds these services by name.
 # The org exists already and is not this root's: it is only read.
 #
@@ -18,13 +20,6 @@ locals {
   # The agents reach the model through a proxy on 127.0.0.1:8765 in their
   # own container (tanzu/.../shared/trust), so the binding names that.
   goad_qwen_proxy = "http://127.0.0.1:8765/api/v1/compatibility"
-  # The diagnostic agents' MCP tools: the AgentMinder sidecar in the same
-  # container, one resource for each agent.
-  sidecar_tools = {
-    "sc-lb-diagnostic-agent-avi"  = "avi"
-    "sc-k8s-diagnostic-agent-k8s" = "k8s"
-    "sc-vcf-diagnostic-agent-vcf" = "vcf"
-  }
 }
 
 data "cloudfoundry_org" "goad" {
@@ -88,48 +83,19 @@ import {
   id = "7578c44a-b628-4571-aa87-b1d1b9d381e8"
 }
 
-# The incident response agent's one tool: the orchestrator, on the
-# container network.
-resource "cloudfoundry_service_instance" "orchestrator_tools" {
-  name  = "sc-incident-response-agent-orch"
-  type  = "user-provided"
-  space = cloudfoundry_space.agentic.id
-  tags  = ["mcp-server"]
-  credentials = jsonencode({
-    url = "http://metal-incident-live.apps.internal:8080/mcp"
-  })
+# The agents' sc-* tool services moved to terraform/agentic-ops, which
+# imports them. These blocks keep this root from destroying them. Remove
+# them once they are in every state.
+removed {
+  from = cloudfoundry_service_instance.orchestrator_tools
+  lifecycle {
+    destroy = false
+  }
 }
 
-import {
-  to = cloudfoundry_service_instance.orchestrator_tools
-  id = "a0881d91-d59f-4775-a538-6218233a6dc3"
-}
-
-resource "cloudfoundry_service_instance" "sidecar_tools" {
-  for_each = local.sidecar_tools
-
-  name  = each.key
-  type  = "user-provided"
-  space = cloudfoundry_space.agentic.id
-  tags  = ["mcp-server"]
-  credentials = jsonencode({
-    url       = "http://127.0.0.1:8181/mcp?resource=${each.value}"
-    api_key   = var.incident_sidecar_token
-    auth_type = "bearer"
-  })
-}
-
-import {
-  to = cloudfoundry_service_instance.sidecar_tools["sc-lb-diagnostic-agent-avi"]
-  id = "21b30a57-1dd6-4ec3-924f-47d7c3693bb0"
-}
-
-import {
-  to = cloudfoundry_service_instance.sidecar_tools["sc-k8s-diagnostic-agent-k8s"]
-  id = "52c99ec9-9cc6-49d0-9ce3-7d3e7d99724a"
-}
-
-import {
-  to = cloudfoundry_service_instance.sidecar_tools["sc-vcf-diagnostic-agent-vcf"]
-  id = "4d81c9a6-3248-4de8-b07a-e3a5f4405247"
+removed {
+  from = cloudfoundry_service_instance.sidecar_tools
+  lifecycle {
+    destroy = false
+  }
 }

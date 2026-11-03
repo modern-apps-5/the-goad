@@ -47,10 +47,8 @@ provider "registry.terraform.io/hashicorp/http" {
 }
 
 provider "registry.terraform.io/hashicorp/kubernetes" {
-  version     = "3.4.0"
-  constraints = "~> 3.0"
+  version = "3.4.0"
   hashes = [
-    "h1:1MhhjtjkTzTxU1OnarvoK8a4JISljVXm5gyGVaSrVcw=",
     "h1:5y5WaxTR8Xia0MG/Y5yDHNEMqNJJUyJH8F03F6UxsfQ=",
     "zh:02a3156701f8eb7c43acaaf4ac136ddfe55cd86a703a5b2b54c679bf4fe25c02",
     "zh:08b4122be7fba2e9b4dce65f16cf9cfac8fcbc5be0d99da527a7b9aa2d011b3a",
@@ -93,10 +91,8 @@ provider "registry.terraform.io/mastercard/restapi" {
 }
 
 provider "registry.terraform.io/vmware/vcfa" {
-  version     = "1.2.3"
-  constraints = "~> 1.2"
+  version = "1.2.3"
   hashes = [
-    "h1:O5MifH9adVBe7ZolVyKZTG4SY9uhODav11zu0/RDVn8=",
     "h1:f1S5IpSdpvOBFUDgNofnf5uO6ArCAQoL10sfcE2f2e8=",
     "zh:015f25e07dec454994512f70ef38b91e79e31bf45238243cb1fcaa9a52bee1f9",
     "zh:0ae13ca0efaeadf19dddcb04ce365199c0bbbfe375d73f21c406df2c3cb76321",
