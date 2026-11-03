@@ -43,3 +43,17 @@ To give Argo CD another namespace, add it to `namespaces` in
 `gitops/<namespace key>/` do not set a namespace. A directory that syncs
 into a VKS cluster has its own `ManagedEntity` and Application in
 `terraform/platform-engineer/gitops.tf`.
+
+## Workflows
+
+The workflows run on a self-hosted runner inside the lab, with the lab's
+secrets in scope, and this repository is public. So:
+
+- No workflow runs on `pull_request` or `pull_request_target`. A run starts
+  only by hand (`workflow_dispatch`) or on a push to `main`. Do not add a
+  pull request trigger to a workflow that runs on the self-hosted runner.
+- Every action from outside this repository is pinned to a commit SHA,
+  with its version in a comment. Dependabot opens a pull request when an
+  action has a new release.
+- A workflow from a pull request by anyone outside the organization waits
+  for a maintainer's approval before it runs.
