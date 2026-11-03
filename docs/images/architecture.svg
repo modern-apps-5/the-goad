@@ -121,7 +121,7 @@
 
   <!-- ===== Tanzu Platform: agents ===== -->
   <rect x="1020" y="200" width="550" height="410" rx="12" fill="#f3f8ff" stroke="#8fb3e8" stroke-width="1.4"/>
-  <text x="1040" y="226" class="title">Incident AI agents</text>
+  <text x="1555" y="226" text-anchor="end" class="title">Incident AI agents</text>
 
   <rect x="1035" y="370" width="110" height="60" rx="10" fill="#f1ebfb" stroke="#6b4fa0" stroke-width="1.4" filter="url(#shadow)"/>
   <text x="1090" y="396" text-anchor="middle" class="label">incident</text>
