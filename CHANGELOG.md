@@ -4,6 +4,19 @@ What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
 
+## 2026-11-03 (Docs: public release, part 1)
+
+### Removed
+
+- `docs/master-design-v5.md`, `docs/execution-plan.md`, and
+  `docs/walkthrough-script.md`: internal planning documents, not for
+  readers of a public repository. The README no longer lists them.
+
+### Changed
+
+- Personal names and addresses in `README.md`, `docs/decisions.md`, and
+  this changelog are replaced by roles.
+- The README's "No GPU" note no longer carries presenter instructions.
 
 ## 2026-11-03 (Agentic ops engineer: cleanup)
 
@@ -639,7 +652,7 @@ the storefront and chat Deployments.
   `kubectl_manifest.platform_engineer_group_project_role_binding`. The
   `kro-authors` binding moved there from `kro.tf` with a `moved` block.
 - The Argo CD policy gives `role:admin` to `ans-platform-engineer@set.lab`
-  instead of `william.arroyo@set.lab`.
+  instead of one named user.
 
 ### Removed
 
@@ -848,7 +861,7 @@ are now in git, so both Applications can follow `main` again.
   It is not a VCF Automation service account: a service account's session
   cannot manage other service accounts (403 `SERVICE_ACCOUNT_SIMPLE_VIEW`),
   and the Argo CD step in `argocd.tf` needs that.
-- Argo CD: `role:admin` is now for `william.arroyo@set.lab`, not
+- Argo CD: `role:admin` is now for one named user, not
   `platform-admin` (`terraform/platform-engineer/manifests/argocd.yaml`).
 - `.github/workflows/cloud-admin.yml` has two jobs, `org` then
   `org-config`. `platform-engineer.yml` passes

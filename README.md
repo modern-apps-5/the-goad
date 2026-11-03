@@ -557,7 +557,7 @@ GitHub secrets it reads and how to start a walk.
 ### 7. Check it
 
 - **VCF Automation**, as a member of `ans-platform-engineer@set.lab`
-  (for example `william.arroyo@set.lab`) in the org `goad`: four
+  in the org `goad`: four
   namespaces in the default project.
 - **Argo CD**: the address is the `externalIP` in the status of the
   `ArgoCD` object in the `platform` namespace. Log in with "VCF
@@ -685,8 +685,7 @@ into a VKS cluster has its own `ManagedEntity` and Application in
   [docs/terraform-state.md](docs/terraform-state.md) lists what breaks.
 - **The lab is shared.** `terraform apply` and `terraform destroy` in
   `cloud-admin/org` create and delete a real org.
-- **No GPU.** The model runs on CPU. Do not say GPU on camera until one
-  is allocated.
+- **No GPU.** The model runs on CPU.
 - **This repository is tied to one lab.** `lab.auto.tfvars`,
   `backend.tf`, and the manifests in `gitops/` name this lab's VCF
   Automation and Gitea addresses, region, storage policy, and DSM
@@ -702,9 +701,6 @@ into a VKS cluster has its own `ManagedEntity` and Application in
 
 | Document | What it is |
 |---|---|
-| [docs/master-design-v5.md](docs/master-design-v5.md) | Design V5, transcribed from the current plan |
-| [docs/walkthrough-script.md](docs/walkthrough-script.md) | The five-video script, including the unfinished beats |
-| [docs/execution-plan.md](docs/execution-plan.md) | Suggested order of work |
 | [docs/security-architecture.md](docs/security-architecture.md) | The music store's security layers: who owns each, how it reaches the cluster, what traffic it decides |
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
 | [docs/automation-walkthrough.html](docs/automation-walkthrough.html) | How the automation works, persona by persona, as a page to open in a browser. It shows each persona's ownership, including the agentic ops engineer's |
