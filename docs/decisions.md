@@ -610,7 +610,7 @@ stays within the org's 1 TiB region quota.
 Why not a `vcfa_vks_cluster` in Terraform, as for AgentMinder's cluster in
 `terraform/cloud-admin/org-config`: the platform engineer owns what runs in
 the `music-store` namespace, and decision 13 makes git the source after
-Terraform. `docs/master-design-v5.md` has the platform engineer deploy VKS
+Terraform. The original design has the platform engineer deploy VKS
 clusters, and the script has the VKS cluster in the deploy. Why the same
 Application and no new one: decision 13, the smallest thing. Why wave 0:
 the cluster needs nothing else and takes the longest.
@@ -1205,8 +1205,8 @@ tenant cluster needs Zammad and Grafana.
 
 ## 43. The shop is published through Gateway API, with a cert-manager certificate
 
-The shop's Ingress `metal-store` is replaced by Gateway API, as Thomas
-Kraus moved it on 2026-10-27: the Gateway `metal-store` in namespace
+The shop's Ingress `metal-store` is replaced by Gateway API, as the security
+admin moved it on 2026-10-27: the Gateway `metal-store` in namespace
 `default`, with HTTP and HTTPS listeners for `*.goad.gpu.set.lab`, the
 HTTPRoute `metal-store-frontend` for `music.goad.gpu.set.lab`, and the
 L7Rule `metal-store-waf`, which puts Avi's `System-WAF-Policy` on the route.
