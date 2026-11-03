@@ -1,16 +1,25 @@
 # The Grandmother of All Demos (GOAD)
 
-GOAD shows what it looks like to run an enterprise application on
-VMware Cloud Foundation as a private cloud, end to end. It exists so that
-customers and field teams can see, in one working lab, where each part of
-the VCF stack fits and how the teams that run a platform work together on
-it: the cloud admin who runs the infrastructure, the platform engineer
-who turns it into a product for developers, the developer, the security
-admin, and the agentic ops engineer who builds AI agents for operations.
-The application they run is a music store with an AI chat on a private
-model.
+GOAD shows VMware Cloud Foundation used the way it is meant to be: as a
+true private cloud, centered on the applications that run on it. It uses
+all of VCF's components together to run the different workload types
+that a modern application needs, side by side in one platform:
 
-Each persona owns one part and hands a defined set of things to the
+- Containers on VKS clusters
+- Virtual machines
+- PostgreSQL databases from Data Services Manager
+- A private AI model on Private AI Services
+- Cloud Foundry apps on Tanzu Platform
+- Networking, load balancing, and security from NSX, vDefend, and Avi
+
+The application is a music store with an AI chat. Its services, data,
+and model each run on the workload type that fits them, and AI agents
+built on the same platform help operate it.
+
+Five personas share the platform: the cloud admin who runs the
+infrastructure, the platform engineer who turns it into a product for
+developers, the developer, the security admin, and the agentic ops
+engineer who builds AI agents for operations. Each persona owns one part and hands a defined set of things to the
 next. Every change starts in git. Terraform builds what has to exist
 first, and Argo CD keeps everything else matching git. Nobody logs in to
 a cluster to change things by hand. Because all of it is in this
