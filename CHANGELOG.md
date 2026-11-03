@@ -4,6 +4,29 @@ What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
 
+## 2026-11-03 (Docs: public release, part 2)
+
+### Added
+
+- `docs/architecture.md`: what runs where, and the full automation flow,
+  moved from the README.
+- `docs/build.md`: what the lab needs, the first build, checks, tear
+  down, and things to know, moved from the README's Quickstart.
+- `docs/github-workflows.md`: running the roots from GitHub, moved from
+  the README.
+- `CONTRIBUTING.md`: where a file goes, and adding a namespace for Argo
+  CD, moved from the README's Layout.
+
+### Changed
+
+- `README.md` is now an overview: the personas, a persona-level diagram,
+  how to build it, the layout, and the documents, grouped. It no longer
+  repeats `docs/terraform-state.md`.
+- "Joining a demo that is already built" is now a short section in
+  `docs/build.md` that points to `docs/terraform-state.md`, which already
+  has the setup.
+- The shop's login is no longer written in the docs.
+
 ## 2026-11-03 (Docs: public release, part 1)
 
 ### Removed
