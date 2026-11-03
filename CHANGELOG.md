@@ -4,6 +4,23 @@ What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
 
+## 2026-11-03 (Workflows: locked down for a public repository)
+
+### Changed
+
+- Every action from outside this repository is pinned to a commit SHA in
+  `.github/workflows/`.
+
+### Added
+
+- `.github/dependabot.yml`: weekly updates of the pinned actions, in one
+  pull request.
+- `CONTRIBUTING.md`: the rules for workflows on the self-hosted runner.
+
+Repository settings changed at the same time: a workflow from a pull request
+by any outside contributor needs approval, `GITHUB_TOKEN` can no longer
+approve pull requests, and secret scanning with push protection is on.
+
 ## 2026-11-03 (Cloud admin: kro removed)
 
 ### Removed

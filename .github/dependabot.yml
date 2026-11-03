@@ -1,0 +1,12 @@
+# Keeps the pinned action SHAs in .github/ current. The workflows run on the
+# lab's self-hosted runner with lab secrets in scope, so each action is
+# pinned to a commit, not a tag that can move.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

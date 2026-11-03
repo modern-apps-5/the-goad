@@ -72,8 +72,8 @@ jobs:
       # secret.
       TF_VAR_music_store_robot_secret: ${{ secrets.MUSIC_STORE_HARBOR_ROBOT_SECRET }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "~1.15"
           terraform_wrapper: false
@@ -98,8 +98,8 @@ jobs:
       # cloud-admin, the user the org job made. Same value as there.
       TF_VAR_cloud_admin_password: ${{ secrets.CLOUD_ADMIN_PASSWORD }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "~1.15"
           terraform_wrapper: false
@@ -125,8 +125,8 @@ jobs:
       # The VCF Operations administrator. Same value as in the org job.
       TF_VAR_ops_password: ${{ secrets.OPS_ADMIN_PASSWORD }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "~1.15"
           terraform_wrapper: false
@@ -154,8 +154,8 @@ jobs:
       TF_VAR_ssp_registry_username: ${{ secrets.SSP_REGISTRY_USERNAME }}
       TF_VAR_ssp_registry_password: ${{ secrets.SSP_REGISTRY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "~1.15"
           terraform_wrapper: false
