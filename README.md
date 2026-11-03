@@ -9,7 +9,10 @@ that a modern application needs, side by side in one platform:
 - Virtual machines
 - PostgreSQL databases from Data Services Manager
 - A private AI model on Private AI Services
-- Cloud Foundry apps on Tanzu Platform
+- A platform as a service for AI workloads on Tanzu Platform, where the
+  AI agents run
+- Governance for those agents in AgentMinder: their identities, and
+  which tools each one may call
 - Networking, load balancing, and security from NSX, vDefend, and Avi
 
 The application is a music store with an AI chat. Its services, data,
