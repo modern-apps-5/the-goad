@@ -29,6 +29,17 @@ The lab must already have:
 - A Tanzu Platform foundation with the org `Goad`, and the Tanzu Hub
   account `goad-deployer` that the workflows log in as. The incident apps
   run there.
+- NSX with vDefend, for the security admin's guardrails, and VCF
+  Operations, for the cloud admin's dashboards and for VCF SSO.
+- An Active Directory in VCF SSO, with a group for the platform engineers
+  and a service account for the platform engineer's automation.
+- A Terraform state backend. GOAD uses a Gitea server's Terraform state
+  registry: see [terraform-state.md](terraform-state.md).
+- A self-hosted GitHub runner in the lab, only to run the workflows:
+  see [terraform/runner/README.md](../terraform/runner/README.md).
+
+Every name and address of the lab is in git. Before the first build in
+another lab, change them: see [adapt-to-your-lab.md](adapt-to-your-lab.md).
 
 Your machine needs `terraform` 1.11 or later, `git`, `gh`, `openssl`, `curl`, `jq`, and
 a network path to VCF Automation, to Tanzu Platform, and to the lab's Gitea server.
@@ -110,8 +121,25 @@ terraform apply
 It reads the cluster from the state of `org-config` and installs
 `ingress-nginx` and AgentMinder with Helm. AgentMinder is installed
 small: [decision 30](decisions.md). Its agents are registered later,
-in step 5. Avi DNS makes the record for
+in step 6. Avi DNS makes the record for
 `agentminder.goad.gpu.set.lab` by itself: see decision 31.
+
+## 1d. Cloud admin: VCF Operations content
+
+This root needs nothing from the others, and they need nothing from it.
+Apply it at any time.
+
+```sh
+cd terraform/cloud-admin/ops
+cp terraform.tfvars.example terraform.tfvars   # ops_password
+cp backend.hcl.example backend.hcl             # then put the state token in it
+terraform init -backend-config=backend.hcl
+terraform apply
+```
+
+It imports the platform observability dashboards in `dashboards/` and
+turns on the alert for VKS node disk latency. See
+[its README](../terraform/cloud-admin/ops/README.md).
 
 ## 2. Give Argo CD read access to this repository
 
@@ -230,7 +258,25 @@ owns. The workflow `music-store-images.yml` starts a PipelineRun and
 opens a pull request with the new image tags
 (`depot.kube-system.svc/music-store/<service>:<commit>`, decision 48).
 
-## 5. Agentic ops engineer: register the incident agents in AgentMinder
+## 5. Security admin: vDefend guardrails
+
+Needs the cluster `music-store` up, with Antrea's NSX integration, from
+step 4.
+
+```sh
+cd terraform/security-admin
+cp terraform.tfvars.example terraform.tfvars   # nsx_password
+cp backend.hcl.example backend.hcl             # then put the state token in it
+terraform init -backend-config=backend.hcl
+terraform apply
+```
+
+It writes the music store's vDefend rules in NSX, and NSX pushes them into
+the cluster as Antrea policies. See
+[its README](../terraform/security-admin/README.md) and
+[security-architecture.md](security-architecture.md).
+
+## 6. Agentic ops engineer: register the incident agents in AgentMinder
 
 Needs the space from step 3 and AgentMinder from the cloud admin. The cloud
 admin copies AgentMinder's admin client into two values once: see
@@ -250,7 +296,7 @@ the MCP servers and clients in AgentMinder, the services `am-*` that hand
 each diagnostic agent its client, and the `sc-*` services that give each
 agent its tools.
 
-## 6. Push the incident apps
+## 7. Push the incident apps
 
 Zammad starts empty. Create its admin and the walk tickets' organization,
 then store the admin's API token as the GitHub secret
@@ -260,7 +306,7 @@ run the `tanzu-apps` workflow, or push a change under
 [Its README](../tanzu/metal-music-app-agentic-system/README.md) lists the
 GitHub secrets it reads and how to start a walk.
 
-## 7. Check it
+## 8. Check it
 
 - **VCF Automation**, as a member of `ans-platform-engineer@set.lab`
   in the org `goad`: four
@@ -285,29 +331,79 @@ GitHub secrets it reads and how to start a walk.
   `http://grafana.goad.gpu.set.lab` answer.
 - **The incident apps**: `cf apps` in org `Goad`, space
   `metal-music-app-agentic-system`, shows nine apps running.
+- **vDefend**: on the cluster `music-store`,
+  `kubectl get acnp -l ccp-adapter.antrea.tanzu.vmware.com/managedBy=ccp-adapter`
+  lists the pushed policy.
 - **Terraform**: `terraform plan` in each root shows no changes.
 
 ## Tear down
 
 Reverse order. `terraform/agentic-ops` first: it needs the running
 AgentMinder to delete its objects, and its services are in the platform
-engineer's space. Then the platform engineer, because its namespaces use
+engineer's space. Then `security-admin`, while the cluster it ties its
+policy to still exists. Then the platform engineer, because its namespaces use
 the Service Engine Group, and the org cannot be deleted while it has
 namespaces and a Service Engine Group. Then `agentminder`, because its
 cluster must exist for Helm to remove what it installed. Then
-`org-config`, then `org`.
+`org-config`, then `org`. `cloud-admin/ops` stands alone: destroy it
+whenever you like.
 
 ```sh
 cd terraform/agentic-ops && terraform destroy
+cd ../security-admin && terraform destroy
 cd ../platform-engineer && terraform destroy
 cd ../cloud-admin/agentminder && terraform destroy
 cd ../org-config && terraform destroy
 cd ../org && terraform destroy
+cd ../ops && terraform destroy
 ```
 
 Deleting a namespace deletes what Argo CD put in it: for `private-ai`,
 the database, Private AI Services, and the model; for `music-store` and
 `platform-tools`, their VKS clusters.
+
+## The secrets you make
+
+The `terraform.tfvars` files and the GitHub repository secrets hold the
+same values. [terraform/runner/README.md](../terraform/runner/README.md)
+maps each GitHub secret to its `terraform.tfvars` value. On a first build,
+this is where each value comes from.
+
+| Value | Root | Where it comes from |
+|---|---|---|
+| `vcfa_password` | `cloud-admin/org` | The VCF Automation provider administrator's password. It exists already |
+| `cloud_admin_password` | `cloud-admin/org`, `org-config`, `agentminder` | Choose one. Terraform sets it on the org's local user `cloud-admin`. The same value in all three |
+| `ops_password` | `cloud-admin/org`, `cloud-admin/ops` | The VCF Operations administrator's password. It exists already |
+| `harbor_admin_password` | `cloud-admin/org` | The Supervisor Harbor's administrator password, set by the Harbor Supervisor Service |
+| `broadcom_registry_username`, `broadcom_registry_token` | `cloud-admin/org` | A Broadcom registry login for `tanzu-platform-content.packages.broadcom.com` |
+| `music_store_robot_secret` | `cloud-admin/org`, `platform-engineer` | Choose one: 8 to 128 characters, with an upper case letter, a lower case letter and a digit. The same value in both |
+| `ssp_registry_username`, `ssp_registry_password` | `cloud-admin/agentminder` | A Broadcom registry login for `securityservices.packages.broadcom.com` |
+| Gitea token | every `backend.hcl` | The token of the Gitea user that owns the state: see [terraform-state.md](terraform-state.md) |
+| Deploy key | `platform-engineer` | Step 2 |
+| `vcfa_api_token` | `platform-engineer` | Step 3 |
+| `pais_admin_password_hash` | `platform-engineer` | `openssl passwd -6` of a password you choose for the Private AI Services user `admin` |
+| `music_store_db_password`, `incident_grafana_admin_password`, `incident_zammad_db_password`, `incident_zammad_admin_password` | `platform-engineer` | Choose each. Terraform writes them to Secret Store |
+| `music_store_chat_api_key`, `incident_qwen_api_key` | `platform-engineer` | Private AI Services API keys for the model, after step 4 |
+| `incident_k8s_token` | `platform-engineer` | The Secret `goad-k8s-mcp-token` in namespace `platform-tools` of the cluster `music-store`, after step 4 |
+| `nsx_password` | `security-admin` | The password of `nsx_username` in NSX Manager. It exists already |
+| `agentminder_client_id`, `agentminder_client_secret` | `agentic-ops` | The Secret `ssp-ssp-secret-defaulttenantclient` in namespace `ssp` of the cluster `agentminder`, after step 1c |
+| `incident_sidecar_token` | `agentic-ops` | Choose one, random |
+
+The values marked "after step 4" do not exist at step 3. Apply step 3
+with a placeholder for each, then set the real value and apply again.
+
+Some values are only GitHub secrets, never in a `terraform.tfvars`:
+
+| GitHub secret | Where it comes from |
+|---|---|
+| `TANZU_HUB_CLIENT_ID`, `TANZU_HUB_CLIENT_ASSERTION` | The Tanzu Hub login of `goad-deployer` |
+| `MUSIC_STORE_BUILD_KUBECONFIG` | `scripts/music-store-build-kubeconfig.sh`, after step 4 |
+| `INCIDENT_ZAMMAD_TOKEN` | Zammad's admin API token, after step 4: see step 7 |
+| `INCIDENT_AVI_USERNAME`, `INCIDENT_AVI_PASSWORD` | An Avi Controller login for the incident apps |
+| `INCIDENT_MCP_READ_TOKEN`, `INCIDENT_MCP_WRITE_TOKEN` | Choose two different random values |
+
+Generate a random value with `openssl rand -hex 32`. Keep each value in a
+password manager.
 
 ## Joining a lab that is already built
 
@@ -325,9 +421,9 @@ then shows no changes.
   `cloud-admin/org` create and delete a real org.
 - **No GPU.** The model runs on CPU.
 - **This repository is tied to one lab.** `lab.auto.tfvars`,
-  `backend.tf`, and the manifests in `gitops/` name this lab's VCF
-  Automation and Gitea addresses, region, storage policy, and DSM
-  infrastructure policy. For another lab, change those and commit.
+  `backend.tf`, the manifests in `gitops/`, and the incident apps'
+  manifest name this lab's addresses and policies.
+  [adapt-to-your-lab.md](adapt-to-your-lab.md) lists each one.
 - **AgentMinder needs a registry login.** Its images come from Broadcom's
   registry. `terraform/cloud-admin/agentminder` takes the login as
   `ssp_registry_username` and `ssp_registry_password`. Copy the team's

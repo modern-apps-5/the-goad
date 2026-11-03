@@ -76,6 +76,7 @@ terraform/cloud-admin/ops/      VCF Operations content: platform observability d
 terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD handoff, Tanzu Platform space
   manifests/                   Manifests that Terraform applies
 terraform/agentic-ops/         The incident demo's agents registered in AgentMinder, and the am-* and sc-* services
+terraform/security-admin/      The vDefend guardrails for the music store, in NSX
 terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
 gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
 gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster

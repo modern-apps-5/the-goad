@@ -50,7 +50,7 @@ and `scripts/incident-walk.sh` starts a walk.
 
 ## Automation flow
 
-Five Terraform roots, from a machine or from GitHub, then Argo CD and the
+Six Terraform roots, from a machine or from GitHub, then Argo CD and the
 `tanzu-apps` workflow. An arrow means the first box is done before the
 second one starts.
 
@@ -107,6 +107,14 @@ flowchart TD
 
     subgraph tanzu_apps["6. Workflow tanzu-apps: tanzu/metal-music-app-agentic-system"]
         incident_apps["The nine incident apps, cf push, then network policies"]
+    end
+
+    subgraph security_admin["7. Security admin: terraform/security-admin"]
+        vdefend["vDefend policy music-store in NSX, pushed into the cluster as Antrea policies"]
+    end
+
+    subgraph ops["Cloud admin, any time: terraform/cloud-admin/ops"]
+        ops_content["VCF Operations dashboards and alert"]
     end
 
     git[("GitHub: gitops/ on main")]
@@ -171,6 +179,7 @@ flowchart TD
     cf_space -->|"the space"| registration
     cf_space -->|"space, goad-qwen and k8s-mcp-cluster"| tanzu_apps
     am_services -->|"am-* and sc-* services"| tanzu_apps
+    music_store -->|"cluster music-store with Antrea's NSX integration"| security_admin
 ```
 
 Solid arrows are that order. Dotted arrows are what one part reads from
@@ -181,3 +190,7 @@ change.
 
 `terraform/agentic-ops` needs the space that the platform engineer makes
 and the AgentMinder that the cloud admin installs, so it runs after both.
+`terraform/security-admin` needs the cluster `music-store`, so it runs
+after Argo CD has built it. `terraform/cloud-admin/ops` needs nothing from
+the others. `terraform/runner`, for the GitHub runner, is not in the
+diagram.

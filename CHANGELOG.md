@@ -4,6 +4,34 @@ What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
 
+## 2026-11-03 (Docs: public release, part 3)
+
+### Added
+
+- `docs/adapt-to-your-lab.md`: every lab value, address, and GitHub name
+  to change to build GOAD in another lab, and where each one lives.
+- `docs/build.md`: what the lab needs beyond VCF Automation (NSX with
+  vDefend, VCF Operations, the directory, a state backend, a runner), the
+  steps for `terraform/cloud-admin/ops` (1d) and
+  `terraform/security-admin` (5), a vDefend check, and where each secret
+  comes from on a first build.
+
+### Changed
+
+- `docs/build.md`: the agentic ops and later steps are renumbered. Tear
+  down destroys `security-admin` before the platform engineer, and
+  `cloud-admin/ops` at any time.
+- `docs/architecture.md`: six Terraform roots, not five; the diagram has
+  the security admin and the VCF Operations content.
+- `docs/github-workflows.md`: lists `security-admin` and
+  `music-store-images`, and every path that starts `tanzu-apps`.
+- `docs/terraform-state.md`: the state table lists
+  `terraform/security-admin`; the shared values list `nsx_password` and
+  the `ops` root's copy of `ops_password`.
+- `terraform/runner/README.md`: lists the secret
+  `SECURITY_ADMIN_NSX_PASSWORD`.
+- `README.md`: the layout lists `terraform/security-admin/`.
+
 ## 2026-11-03 (Docs: public release, part 2)
 
 ### Added
