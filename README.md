@@ -704,6 +704,7 @@ into a VKS cluster has its own `ManagedEntity` and Application in
 | [docs/execution-plan.md](docs/execution-plan.md) | Suggested order of work |
 | [docs/security-architecture.md](docs/security-architecture.md) | The music store's security layers: who owns each, how it reaches the cluster, what traffic it decides |
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
+| [docs/automation-walkthrough.html](docs/automation-walkthrough.html) | How the automation works, persona by persona, as a page to open in a browser. It shows the agentic ops engineer's ownership from issue #91, which is not built yet |
 | [demos/README.md](demos/README.md) | The demos you can run on the built lab, each with its own run guide |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, and how to set up a machine for it |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |

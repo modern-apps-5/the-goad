@@ -53,6 +53,17 @@ What changed in this repository, newest first. The reasons are in
   demo's run guide: the presenter's own vcf context for the Argo CD
   namespace, the steps, the reset, and troubleshooting.
 
+## 2026-11-02 (Automation walkthrough page)
+
+### Added
+
+- `docs/automation-walkthrough.html`: a page that walks through how the
+  automation works, with a tab and a flow diagram for each persona: cloud
+  admin, platform engineer, developer, agentic ops engineer, and security
+  admin. It is written for readers who do not read the code. It shows the
+  ownership planned in issue #91, where the agentic ops engineer owns the
+  incident agents, their MCP servers, and their AgentMinder registration.
+
 ## 2026-10-30 (Security architecture)
 
 ### Added

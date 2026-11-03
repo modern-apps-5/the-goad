@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GOAD Automation Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: header, then a persona tab bar. Each persona tab is a guided walk: a step rail on the left, one step at a time on the right, with Back and Next. Without script, every panel and step shows in one long page. */
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #17202a;
+  --muted: #56616d;
+  --line: #d9dee3;
+  --chip: #eef1f4;
+  --admin: #1f5fa8;      /* cloud admin */
+  --admin-soft: #e3ecf7;
+  --pe: #0f7b6c;         /* platform engineer */
+  --pe-soft: #def1ed;
+  --dev: #a24b16;        /* developer / golden path */
+  --dev-soft: #f7e6da;
+  --sec: #8a2f4a;        /* security admin */
+  --sec-soft: #f4e2e7;
+  --inc: #6e5c0e;        /* agentic ops engineer */
+  --inc-soft: #f3edd4;
+  --base: #4a5866;       /* under the hood */
+  --base-soft: #e6eaee;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171c; --surface: #1a2027; --ink: #e6eaee; --muted: #9aa5b1; --line: #2c343d; --chip: #222a33;
+    --admin: #7fb0ea; --admin-soft: #1c2b3d; --pe: #5cc9b6; --pe-soft: #16302b; --dev: #f0a06a; --dev-soft: #3a2518;
+    --sec: #e98aa6; --sec-soft: #3a1c26; --inc: #d9c060; --inc-soft: #322c12; --base: #a9b6c3; --base-soft: #232b33;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171c; --surface: #1a2027; --ink: #e6eaee; --muted: #9aa5b1; --line: #2c343d; --chip: #222a33;
+  --admin: #7fb0ea; --admin-soft: #1c2b3d; --pe: #5cc9b6; --pe-soft: #16302b; --dev: #f0a06a; --dev-soft: #3a2518;
+  --sec: #e98aa6; --sec-soft: #3a1c26; --inc: #d9c060; --inc-soft: #322c12; --base: #a9b6c3; --base-soft: #232b33;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--f-body); }
+.wrap { max-width: 62rem; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.6rem; font-weight: 700; }
+h3 { font-size: 1.12rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+button { font: inherit; color: inherit; }
+.eyebrow { font: 600 0.75rem/1 var(--f-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.1rem; color: var(--muted); }
+header { display: grid; gap: 12px; }
+
+/* Persona color scopes */
+.c-admin { --c: var(--admin); --soft: var(--admin-soft); }
+.c-pe { --c: var(--pe); --soft: var(--pe-soft); }
+.c-dev { --c: var(--dev); --soft: var(--dev-soft); }
+.c-sec { --c: var(--sec); --soft: var(--sec-soft); }
+.c-inc { --c: var(--inc); --soft: var(--inc-soft); }
+.c-base { --c: var(--base); --soft: var(--base-soft); }
+.c-all { --c: var(--ink); --soft: var(--chip); }
+
+/* Tabs */
+.tabbar { display: none; }
+.js .tabbar { display: flex; gap: 4px; overflow-x: auto; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.tab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; background: transparent; padding: 8px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 0.92rem; color: var(--muted); white-space: nowrap; }
+.tab::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+.tab:hover { color: var(--ink); background: var(--chip); }
+.tab[aria-selected="true"] { color: var(--c); background: var(--soft); border-color: var(--c); }
+.tab:focus-visible, .rail button:focus-visible, .nav button:focus-visible, .start:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+
+.panel { display: grid; gap: 22px; }
+.js .panel[hidden] { display: none; }
+.panel + .panel { margin-top: 40px; }
+.js .panel + .panel { margin-top: 0; }
+.panel-head { display: grid; gap: 8px; padding-left: 16px; border-left: 4px solid var(--c); }
+.panel-head .eyebrow { color: var(--c); }
+
+/* Overview */
+.relay { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.leg { padding: 18px 18px 20px; display: grid; gap: 8px; align-content: start; min-width: 0; border-top: 4px solid var(--c); }
+.leg + .leg { border-left: 1px solid var(--line); }
+.leg .who { font: 700 1.05rem/1.2 var(--f-display); color: var(--c); }
+.leg .tool { font-size: 0.82rem; color: var(--muted); }
+.leg ul { margin: 0; padding-left: 1.1em; font-size: 0.92rem; }
+.leg .gives { font-size: 0.85rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px; }
+@media (max-width: 720px) {
+  .relay { grid-template-columns: 1fr; }
+  .leg + .leg { border-left: 0; }
+}
+.note { font-size: 0.95rem; color: var(--muted); padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.note strong { color: var(--ink); }
+.start { justify-self: start; background: var(--admin); color: var(--surface); border: 0; border-radius: 999px; padding: 10px 20px; font-weight: 600; cursor: pointer; --c: var(--admin); }
+.start { display: none; }
+.js .start { display: inline-block; }
+.persona-link { all: unset; cursor: pointer; font-weight: 600; color: var(--c); }
+.js .persona-link:hover { text-decoration: underline; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; min-width: 30rem; }
+th, td { text-align: left; padding: 9px 12px; vertical-align: top; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 0.72rem/1.2 var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+td:first-child { font-weight: 600; }
+
+/* Walk: rail + stage */
+.walk { display: grid; gap: 18px; }
+.js .walk { grid-template-columns: 15.5rem minmax(0, 1fr); align-items: start; }
+.rail { display: none; }
+.js .rail { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 64px); }
+.rail button { width: 100%; display: grid; grid-template-columns: 1.8rem minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; background: transparent; border: 0; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-size: 0.9rem; color: var(--muted); line-height: 1.3; }
+.rail button:hover { background: var(--chip); color: var(--ink); }
+.rail .num { width: 1.8rem; height: 1.8rem; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font: 700 0.82rem/1 var(--f-display); background: var(--surface); }
+.rail button.done .num { border-color: var(--c); color: var(--c); }
+.rail button[aria-current="step"] { background: var(--soft); color: var(--ink); font-weight: 600; }
+.rail button[aria-current="step"] .num { background: var(--c); border-color: var(--c); color: var(--surface); }
+
+.stage { display: grid; gap: 14px; min-width: 0; }
+ol.track { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; display: grid; gap: 10px; min-width: 0; }
+.js .step { padding: 26px 28px; min-height: 15rem; align-content: start; }
+.js .step[hidden] { display: none; }
+.step .tool { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; color: var(--c); }
+.js .step h3 { font-size: 1.4rem; }
+.step ul, .step ol { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.step.handoff { background: var(--soft); border-color: transparent; }
+.step.handoff h3 { color: var(--c); }
+.count { font-size: 0.78rem; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.count { display: none; }
+.js .count { display: block; }
+@media (prefers-reduced-motion: no-preference) {
+  .js .step.enter { animation: rise 220ms ease-out; }
+  @keyframes rise { from { transform: translateY(6px); opacity: 0.35; } to { transform: none; opacity: 1; } }
+}
+
+.nav { display: none; }
+.js .nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nav button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.nav button:hover:not(:disabled) { border-color: var(--c); color: var(--c); }
+.nav button:disabled { opacity: 0.4; cursor: default; }
+.nav .next { background: var(--c); border-color: var(--c); color: var(--surface); }
+.nav .next:hover:not(:disabled) { color: var(--surface); filter: brightness(1.08); }
+.nav .hint { font-size: 0.8rem; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .js .walk { grid-template-columns: 1fr; }
+  .js .rail { position: static; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+  .js .rail button { grid-template-columns: 1.8rem; padding: 4px; }
+  .js .rail .label { display: none; }
+  .js .step { padding: 20px; }
+  .nav .hint { display: none; }
+}
+
+/* Golden path pipeline */
+.pipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 8px; }
+.hop { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px; font-size: 0.85rem; min-width: 0; transition: border-color 160ms, background 160ms; }
+.hop b { font-family: var(--f-display); font-size: 0.96rem; }
+.hop span { color: var(--muted); }
+.hop { border-top-color: var(--dev); }
+.js .hop { border-top-color: var(--line); }
+.js .hop.past { border-top-color: var(--dev); }
+.js .hop.now { border-top-color: var(--dev); background: var(--dev-soft); }
+
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.88rem; }
+.flow .n { background: var(--chip); border-radius: 4px; padding: 3px 9px; }
+.flow .a { color: var(--muted); }
+
+/* Flow diagrams */
+.dg { margin: 0; display: grid; gap: 8px; }
+.dg-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px; }
+.dg svg { display: block; width: 100%; min-width: 640px; height: auto; color: var(--muted); }
+.dg figcaption { font-size: 0.86rem; color: var(--muted); max-width: 68ch; }
+.dg .node rect { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; transition: fill 160ms, stroke 160ms; }
+.dg .node.hand rect { stroke-dasharray: 5 4; }
+.dg .node .t { fill: var(--ink); font: 600 13px var(--f-body); text-anchor: middle; }
+.dg .node .s { fill: var(--muted); font: 11px var(--f-body); text-anchor: middle; }
+.dg .node.on rect { fill: var(--soft); stroke: var(--c); stroke-width: 2; }
+.dg .node.on .t { fill: var(--c); }
+.dg .node.persona rect { fill: var(--soft); stroke: var(--c); stroke-width: 2; }
+.dg .node.persona .t { fill: var(--c); }
+.js .dg .node { cursor: pointer; }
+.js .dg .node:hover rect { stroke: var(--c); }
+.dg .edge { fill: none; stroke: currentColor; stroke-width: 1.5; }
+.dg .edge.dash { stroke-dasharray: 5 4; }
+.dg .el { fill: var(--muted); font: 11px var(--f-body); }
+.dg .frame rect { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 2 4; }
+.dg .frame .ft { fill: var(--muted); font: 600 11px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; }
+footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <header>
+    <div class="eyebrow">The Grandmother of All Demos</div>
+    <h1>GOAD Automation Walkthrough</h1>
+    <p class="lede">How the lab gets built, start to finish, without reading any code. Five personas each own one part and hand a defined set of things to the next. Pick a persona and step through their part.</p>
+  </header>
+
+  <div class="tabbar" role="tablist" aria-label="Personas">
+    <button class="tab c-all" role="tab" data-target="overview">Overview</button>
+    <button class="tab c-admin" role="tab" data-target="cloud-admin">Cloud admin</button>
+    <button class="tab c-pe" role="tab" data-target="platform-engineer">Platform engineer</button>
+    <button class="tab c-dev" role="tab" data-target="golden-path">Developer</button>
+    <button class="tab c-inc" role="tab" data-target="agentic-ops">Agentic ops engineer</button>
+    <button class="tab c-sec" role="tab" data-target="security-admin">Security admin</button>
+    <button class="tab c-base" role="tab" data-target="under-the-hood">Under the hood</button>
+  </div>
+
+  <!-- Overview -->
+  <section class="panel c-all" id="overview" role="tabpanel" data-label="Overview">
+<figure class="dg">
+<div class="dg-wrap"><svg viewBox="0 0 1030 280" role="img" aria-label="The cloud admin hands the organization to the platform engineer, who hands a running store to the developer and a Tanzu space to the agentic ops engineer; AgentMinder comes from the cloud admin; the security admin guards the store"><defs><marker id="ah-ov" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs><g class="node persona c-admin" data-steps="" data-goto="cloud-admin" role="link" tabindex="-1"><rect x="10" y="104" width="170" height="52" rx="7"/><text class="t" x="95" y="125">Cloud admin</text><text class="s" x="95" y="142">organization, AgentMinder</text></g><g class="node persona c-pe" data-steps="" data-goto="platform-engineer" role="link" tabindex="-1"><rect x="290" y="104" width="170" height="52" rx="7"/><text class="t" x="375" y="125">Platform engineer</text><text class="s" x="375" y="142">environments, Argo CD</text></g><g class="node persona c-dev" data-steps="" data-goto="golden-path" role="link" tabindex="-1"><rect x="570" y="20" width="170" height="52" rx="7"/><text class="t" x="655" y="41">Developer</text><text class="s" x="655" y="58">music store code</text></g><g class="node persona c-inc" data-steps="" data-goto="agentic-ops" role="link" tabindex="-1"><rect x="570" y="188" width="170" height="52" rx="7"/><text class="t" x="655" y="209">Agentic ops engineer</text><text class="s" x="655" y="226">agents and tool servers</text></g><g class="node persona c-sec" data-steps="" data-goto="security-admin" role="link" tabindex="-1"><rect x="850" y="20" width="170" height="52" rx="7"/><text class="t" x="935" y="41">Security admin</text><text class="s" x="935" y="58">NSX guardrails, web firewall</text></g><polyline class="edge" points="180,130 290,130" marker-end="url(#ah-ov)"/><text class="el" x="235" y="123" text-anchor="middle">org + login</text><polyline class="edge" points="460,122 515,122 515,46 570,46" marker-end="url(#ah-ov)"/><text class="el" x="522" y="92" text-anchor="start">store + golden path</text><polyline class="edge" points="460,138 515,138 515,214 570,214" marker-end="url(#ah-ov)"/><text class="el" x="522" y="176" text-anchor="start">Tanzu space</text><polyline class="edge" points="95,156 95,262 655,262 655,240" marker-end="url(#ah-ov)"/><text class="el" x="375" y="255" text-anchor="middle">AgentMinder</text><polyline class="edge" points="850,46 740,46" marker-end="url(#ah-ov)"/><text class="el" x="795" y="39" text-anchor="middle">guards the store</text></svg></div>
+<figcaption>Five personas, each handing a defined set of things to the next. Click a persona to walk through their part.</figcaption>
+</figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Persona</th><th>Owns</th></tr></thead>
+        <tbody>
+          <tr class="c-admin"><td><button class="persona-link" data-goto="cloud-admin">Cloud admin</button></td><td>The organization, sign-in, capacity, networking, load balancer capacity, and AgentMinder as a core organization tool</td></tr>
+          <tr class="c-pe"><td><button class="persona-link" data-goto="platform-engineer">Platform engineer</button></td><td>Namespaces, Argo CD, Kubernetes clusters, databases, the private AI model, the golden path, and the Tanzu Platform setup the agents run on</td></tr>
+          <tr class="c-dev"><td><button class="persona-link" data-goto="golden-path">Developer</button></td><td>The music store's code, and nothing else</td></tr>
+          <tr class="c-inc"><td><button class="persona-link" data-goto="agentic-ops">Agentic ops engineer</button></td><td>The developer for agents: the incident AI agents, their tool servers, and the agents' identities in AgentMinder and which tools each agent may call</td></tr>
+          <tr class="c-sec"><td><button class="persona-link" data-goto="security-admin">Security admin</button></td><td>Network guardrails in NSX and the web firewall</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note"><strong>The idea behind it.</strong> Every change starts in git. Terraform builds what has to exist first, and Argo CD keeps everything else matching git. Nobody logs in to a cluster to change things by hand.</p>
+    <button class="start" data-goto="cloud-admin">Start with the cloud admin</button>
+  </section>
+
+  <!-- Cloud admin -->
+  <section class="panel c-admin" id="cloud-admin" role="tabpanel" data-label="Cloud admin">
+    <div class="panel-head">
+      <div class="eyebrow">Cloud admin</div>
+      <h2>Set up the organization and its shared services</h2>
+      <p>Three stages, each building on the last. A person starts them from GitHub. Each run first shows what it would change, and changes the lab only when the person approves it.</p>
+    </div>
+<figure class="dg">
+<div class="dg-wrap"><svg viewBox="0 0 1030 200" role="img" aria-label="The cloud admin workflow builds the organization, then people and projects, then AgentMinder, and hands a login to the platform engineer"><defs><marker id="ah-ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs><g class="node " data-steps="0,1,2" tabindex="-1"><rect x="10" y="20" width="170" height="52" rx="7"/><text class="t" x="95" y="41">GitHub workflow</text><text class="s" x="95" y="58">started by a person</text></g><g class="node " data-steps="0" tabindex="-1"><rect x="290" y="20" width="170" height="52" rx="7"/><text class="t" x="375" y="41">Organization</text><text class="s" x="375" y="58">sign-in, quota, networks</text></g><g class="node " data-steps="0" tabindex="-1"><rect x="290" y="130" width="170" height="52" rx="7"/><text class="t" x="375" y="151">Avi · DSM policy</text><text class="s" x="375" y="168">load balancing, databases</text></g><g class="node " data-steps="1" tabindex="-1"><rect x="570" y="20" width="170" height="52" rx="7"/><text class="t" x="655" y="41">People and projects</text><text class="s" x="655" y="58">AD groups, service account</text></g><g class="node " data-steps="1,2" tabindex="-1"><rect x="570" y="130" width="170" height="52" rx="7"/><text class="t" x="655" y="151">Tools cluster</text><text class="s" x="655" y="168">cloud admin&#x27;s own VKS</text></g><g class="node hand" data-steps="3" tabindex="-1"><rect x="850" y="20" width="170" height="52" rx="7"/><text class="t" x="935" y="41">Platform engineer</text><text class="s" x="935" y="58">gets login and project</text></g><g class="node " data-steps="2" tabindex="-1"><rect x="850" y="130" width="170" height="52" rx="7"/><text class="t" x="935" y="151">AgentMinder</text><text class="s" x="935" y="168">governs AI agents</text></g><polyline class="edge" points="180,46 290,46" marker-end="url(#ah-ca)"/><text class="el" x="235" y="39" text-anchor="middle">applies</text><polyline class="edge" points="375,72 375,130" marker-end="url(#ah-ca)"/><text class="el" x="382" y="105" text-anchor="start">turns on</text><polyline class="edge" points="460,46 570,46" marker-end="url(#ah-ca)"/><text class="el" x="515" y="39" text-anchor="middle">inside it</text><polyline class="edge" points="655,72 655,130" marker-end="url(#ah-ca)"/><text class="el" x="662" y="105" text-anchor="start">creates</text><polyline class="edge" points="740,46 850,46" marker-end="url(#ah-ca)"/><text class="el" x="795" y="39" text-anchor="middle">hands over</text><polyline class="edge" points="740,156 850,156" marker-end="url(#ah-ca)"/><text class="el" x="795" y="149" text-anchor="middle">installs</text></svg></div>
+<figcaption>One approved workflow run builds the organization in stages. The platform engineer gets a login and a project; AgentMinder serves the whole organization.</figcaption>
+</figure>
+    <div class="walk">
+      <div class="stage">
+        <ol class="track">
+          <li class="step">
+            <div class="tool">VCF Automation · VCF SSO</div>
+            <h3>Create the organization</h3>
+            <ul>
+              <li>A new organization, GOAD, for the whole demo</li>
+              <li>Single sign-on, so people log in with their company accounts</li>
+              <li>How much compute and storage the organization gets, and its networks</li>
+              <li>The Avi load balancer, and a policy for self-service PostgreSQL databases</li>
+            </ul>
+          </li>
+          <li class="step">
+            <div class="tool">VCF Automation</div>
+            <h3>Set up who can do what</h3>
+            <ul>
+              <li>The platform engineering team from Active Directory becomes admin of the main project</li>
+              <li>A service account the platform engineer's automation logs in as</li>
+              <li>Load balancer capacity for the namespaces to use</li>
+              <li>A Kubernetes cluster for the cloud admin's own tools</li>
+            </ul>
+          </li>
+          <li class="step">
+            <div class="tool">AgentMinder</div>
+            <h3>Run AI agent governance for the organization</h3>
+            <p>AgentMinder goes on that cluster. It controls which AI agents may call which tools, and records what they do. It is a core organization tool, like sign-in, so the cloud admin owns it. The agentic ops engineer registers their agents in it.</p>
+          </li>
+          <li class="step handoff">
+            <div class="tool">Handoff</div>
+            <h3>What the platform engineer gets</h3>
+            <ul>
+              <li>An organization with capacity, networking, load balancing and databases ready to use</li>
+              <li>A login for the platform engineer's automation</li>
+              <li>Nothing more. The cloud admin does not build the app's environments.</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platform engineer -->
+  <section class="panel c-pe" id="platform-engineer" role="tabpanel" data-label="Platform engineer">
+    <div class="panel-head">
+      <div class="eyebrow">Platform engineer</div>
+      <h2>Build the environments, then let Argo CD run them</h2>
+      <p>Terraform builds the starting point and hands it to Argo CD. From then on, a change in git is a change in the lab.</p>
+    </div>
+<figure class="dg">
+<div class="dg-wrap"><svg viewBox="0 0 1030 290" role="img" aria-label="Terraform creates namespaces, Argo CD, Secret Store entries and the Tanzu space; Argo CD then builds the clusters, databases, model and VM from git"><defs><marker id="ah-pe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs><g class="node " data-steps="0,1" tabindex="-1"><rect x="10" y="117" width="170" height="52" rx="7"/><text class="t" x="95" y="138">GitHub workflow</text><text class="s" x="95" y="155">Terraform, approved</text></g><g class="node " data-steps="0" tabindex="-1"><rect x="290" y="10" width="170" height="52" rx="7"/><text class="t" x="375" y="31">Namespaces</text><text class="s" x="375" y="48">platform, AI, store, tools</text></g><g class="node " data-steps="0,2,3" tabindex="-1"><rect x="290" y="80" width="170" height="52" rx="7"/><text class="t" x="375" y="101">Argo CD</text><text class="s" x="375" y="118">watches git</text></g><g class="node " data-steps="1" tabindex="-1"><rect x="290" y="150" width="170" height="52" rx="7"/><text class="t" x="375" y="171">Secret Store</text><text class="s" x="375" y="188">passwords and keys</text></g><g class="node " data-steps="0" tabindex="-1"><rect x="290" y="220" width="170" height="52" rx="7"/><text class="t" x="375" y="241">Tanzu space</text><text class="s" x="375" y="258">model and cluster wired in</text></g><g class="node " data-steps="3" tabindex="-1"><rect x="570" y="80" width="170" height="52" rx="7"/><text class="t" x="655" y="101">Clusters, databases</text><text class="s" x="655" y="118">Qwen model, users VM</text></g><g class="node hand" data-steps="4" tabindex="-1"><rect x="850" y="80" width="170" height="52" rx="7"/><text class="t" x="935" y="101">Developers</text><text class="s" x="935" y="118">store + golden path</text></g><g class="node hand" data-steps="4" tabindex="-1"><rect x="850" y="220" width="170" height="52" rx="7"/><text class="t" x="935" y="241">Agentic ops engineer</text><text class="s" x="935" y="258">a space to deploy into</text></g><polyline class="edge" points="180,143 235,143"/><polyline class="edge" points="235,36 235,246"/><polyline class="edge" points="235,36 290,36" marker-end="url(#ah-pe)"/><polyline class="edge" points="235,106 290,106" marker-end="url(#ah-pe)"/><polyline class="edge" points="235,176 290,176" marker-end="url(#ah-pe)"/><polyline class="edge" points="235,246 290,246" marker-end="url(#ah-pe)"/><text class="el" x="207.5" y="135" text-anchor="middle">creates</text><polyline class="edge" points="460,106 570,106" marker-end="url(#ah-pe)"/><text class="el" x="515" y="99" text-anchor="middle">builds in waves</text><polyline class="edge dash" points="460,176 515,176 515,118 570,118" marker-end="url(#ah-pe)"/><text class="el" x="522" y="152" text-anchor="start">copied in</text><polyline class="edge" points="740,106 850,106" marker-end="url(#ah-pe)"/><text class="el" x="795" y="99" text-anchor="middle">hands over</text><polyline class="edge" points="460,246 850,246" marker-end="url(#ah-pe)"/><text class="el" x="710" y="239" text-anchor="middle">hands over</text></svg></div>
+<figcaption>Terraform builds the starting point once. After the handoff, Argo CD reads git and builds everything else, with secrets copied in from Secret Store.</figcaption>
+</figure>
+    <div class="walk">
+      <div class="stage">
+        <ol class="track">
+          <li class="step">
+            <div class="tool">Terraform · VCF Automation</div>
+            <h3>Build the landing zone</h3>
+            <ul>
+              <li>Four namespaces: one for the platform itself, one for private AI, one for the music store, and one for the platform tools</li>
+              <li>An Argo CD instance, with read-only access to the GitHub repository</li>
+              <li>An Ubuntu image for the music store's virtual machine</li>
+              <li>A Tanzu Platform space for the agentic ops engineer, connected to the private model and the lab's systems</li>
+            </ul>
+          </li>
+          <li class="step">
+            <div class="tool">Secret Store · External Secrets</div>
+            <h3>Keep secrets out of git</h3>
+            <p>Passwords and keys live as GitHub secrets. Terraform puts them in the Supervisor's Secret Store. Inside each cluster, External Secrets copies them in where the apps need them.</p>
+            <div class="flow" aria-label="How a password reaches an app">
+              <span class="n">GitHub secret</span><span class="a">to</span>
+              <span class="n">Terraform</span><span class="a">to</span>
+              <span class="n">Secret Store</span><span class="a">to</span>
+              <span class="n">External Secrets</span><span class="a">to</span>
+              <span class="n">The app</span>
+            </div>
+          </li>
+          <li class="step">
+            <div class="tool">Argo CD</div>
+            <h3>Hand off to Argo CD</h3>
+            <p>Terraform tells Argo CD which part of git belongs to which namespace or cluster. After that, Terraform stays out of the way. To change anything inside, someone changes git, and Argo CD applies it.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Argo CD · DSM · VKS · Private AI Services</div>
+            <h3>Argo CD builds the platform in order</h3>
+            <p>Argo CD creates things in waves and waits for each wave to be healthy before the next. A database comes up first, then the service that uses it, then the apps.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>What Argo CD builds</th><th>Where</th><th>What is in it</th></tr></thead>
+                <tbody>
+                  <tr><td>Private AI</td><td>Namespace</td><td>A PostgreSQL database, Private AI Services, and the Qwen model</td></tr>
+                  <tr><td>Music store base</td><td>Namespace</td><td>The catalog database, the music store's Kubernetes cluster, and the users VM</td></tr>
+                  <tr><td>Music store platform</td><td>Music store cluster</td><td>Secret access, the web certificate, and monitoring</td></tr>
+                  <tr><td>Music store app</td><td>Music store cluster</td><td>The store, cart, orders and chat, published through Avi with its web firewall</td></tr>
+                  <tr><td>Platform tools</td><td>Namespace</td><td>A second Kubernetes cluster for shared tools</td></tr>
+                  <tr><td>Incident tools</td><td>Platform tools cluster</td><td>Zammad for tickets, Grafana and Prometheus for monitoring</td></tr>
+                  <tr><td>Image builds</td><td>Platform tools cluster</td><td>The Tekton pipeline that builds the music store's images</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </li>
+          <li class="step handoff">
+            <div class="tool">Handoff</div>
+            <h3>What the developers get</h3>
+            <ul>
+              <li>The music store's developers get a running store and a build and deploy path they never set up</li>
+              <li>The agentic ops engineer gets a Tanzu Platform space, the private model, and the incident tools</li>
+              <li>Each team works in its own folder in git and nothing else</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Developer / golden path -->
+  <section class="panel c-dev" id="golden-path" role="tabpanel" data-label="Developer">
+    <div class="panel-head">
+      <div class="eyebrow">Developer on the golden path</div>
+      <h2>From one code change to production</h2>
+      <p>The developer writes code for four services: store, cart, orders and chat. There is no container file, no Kubernetes setup and no pipeline to maintain. The platform engineer owns all of that, the same way for every app.</p>
+    </div>
+<figure class="dg">
+<div class="dg-wrap"><svg viewBox="0 0 1030 200" role="img" aria-label="A code change goes through GitHub Actions to a Tekton build, images to Harbor, a deploy pull request, then Argo CD rolls it out to the music store cluster"><defs><marker id="ah-dv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs><g class="node " data-steps="0" tabindex="-1"><rect x="10" y="20" width="170" height="52" rx="7"/><text class="t" x="95" y="41">Code change</text><text class="s" x="95" y="58">the developer merges</text></g><g class="node " data-steps="1,4" tabindex="-1"><rect x="290" y="20" width="170" height="52" rx="7"/><text class="t" x="375" y="41">GitHub Actions</text><text class="s" x="375" y="58">starts the build</text></g><g class="node " data-steps="2" tabindex="-1"><rect x="570" y="20" width="170" height="52" rx="7"/><text class="t" x="655" y="41">Tekton</text><text class="s" x="655" y="58">platform tools cluster</text></g><g class="node " data-steps="3" tabindex="-1"><rect x="850" y="20" width="170" height="52" rx="7"/><text class="t" x="935" y="41">Harbor</text><text class="s" x="935" y="58">registry inside VCF</text></g><g class="node " data-steps="4" tabindex="-1"><rect x="290" y="130" width="170" height="52" rx="7"/><text class="t" x="375" y="151">Deploy request</text><text class="s" x="375" y="168">pull request, reviewed</text></g><g class="node " data-steps="5" tabindex="-1"><rect x="570" y="130" width="170" height="52" rx="7"/><text class="t" x="655" y="151">Argo CD</text><text class="s" x="655" y="168">watches git</text></g><g class="node " data-steps="5" tabindex="-1"><rect x="850" y="130" width="170" height="52" rx="7"/><text class="t" x="935" y="151">Music store</text><text class="s" x="935" y="168">VKS cluster</text></g><polyline class="edge" points="180,46 290,46" marker-end="url(#ah-dv)"/><text class="el" x="235" y="39" text-anchor="middle">push to main</text><polyline class="edge" points="460,46 570,46" marker-end="url(#ah-dv)"/><text class="el" x="515" y="39" text-anchor="middle">starts</text><polyline class="edge" points="740,46 850,46" marker-end="url(#ah-dv)"/><text class="el" x="795" y="39" text-anchor="middle">pushes images</text><polyline class="edge" points="375,72 375,130" marker-end="url(#ah-dv)"/><text class="el" x="382" y="105" text-anchor="start">opens, after build</text><polyline class="edge" points="460,156 570,156" marker-end="url(#ah-dv)"/><text class="el" x="515" y="149" text-anchor="middle">merge = deploy</text><polyline class="edge" points="740,156 850,156" marker-end="url(#ah-dv)"/><text class="el" x="795" y="149" text-anchor="middle">rolls out</text><polyline class="edge dash" points="935,72 935,130" marker-end="url(#ah-dv)"/><text class="el" x="942" y="105" text-anchor="start">images pulled</text></svg></div>
+<figcaption>Building and deploying are separate. The build ends in Harbor and a pull request; only merging that request changes what runs.</figcaption>
+</figure>
+    <div class="walk">
+      <div class="stage">
+        <ol class="track">
+          <li class="step">
+            <div class="tool">GitHub</div>
+            <h3>The developer merges a change</h3>
+            <p>A reviewed change to the app's code is the only thing the developer does. Everything after it is automatic.</p>
+          </li>
+          <li class="step">
+            <div class="tool">GitHub Actions</div>
+            <h3>GitHub only starts the build</h3>
+            <p>GitHub asks the lab to build. Its login can start a build and read the result, and nothing else. The build itself runs inside VCF.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Tekton · Tanzu Hub</div>
+            <h3>Tekton builds from a trusted base</h3>
+            <ul>
+              <li>Every image starts from a base image Broadcom builds and maintains, not one from the public internet</li>
+              <li>That base comes through the lab's own registry, which the cloud admin set up</li>
+              <li>One build template, owned by the platform engineer, covers every Python service</li>
+            </ul>
+          </li>
+          <li class="step">
+            <div class="tool">Harbor</div>
+            <h3>Images land in the lab's registry</h3>
+            <p>Each image is labelled with the code change it came from. Nothing goes to a public registry.</p>
+          </li>
+          <li class="step">
+            <div class="tool">GitHub</div>
+            <h3>A deploy request proposes the release</h3>
+            <p>The build opens a pull request that points the app at the new images. Building is not deploying. Every release is reviewed, recorded and easy to roll back.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Argo CD</div>
+            <h3>Argo CD rolls it out</h3>
+            <p>When the request is merged, Argo CD starts the new version and retires the old one. Nobody touched the cluster. The music store shows the change.</p>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Agentic ops engineer -->
+  <section class="panel c-inc" id="agentic-ops" role="tabpanel" data-label="Agentic ops engineer">
+    <div class="panel-head">
+      <div class="eyebrow">Agentic ops engineer</div>
+      <h2>Build and run the AI agents that watch the music store</h2>
+      <p>The agentic ops engineer is the developer for agents. They write nine apps on Tanzu Platform that investigate incidents in the music store. The apps are operations tooling, not part of the music store business. The platform engineer owns the cluster and Tanzu setup the apps run on, the same split as with the music store's developers.</p>
+    </div>
+<figure class="dg">
+<div class="dg-wrap"><svg viewBox="0 0 1030 300" role="img" aria-label="The agentic ops workflows register agents in AgentMinder and deploy them to Tanzu; every tool call goes through AgentMinder to the tool servers; agents reason with Qwen and write to Zammad and Grafana"><defs><marker id="ah-ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs><g class="node " data-steps="2,3" tabindex="-1"><rect x="10" y="120" width="170" height="52" rx="7"/><text class="t" x="95" y="141">GitHub workflows</text><text class="s" x="95" y="158">register, then deploy</text></g><g class="node " data-steps="0,3,4" tabindex="-1"><rect x="290" y="120" width="170" height="52" rx="7"/><text class="t" x="375" y="141">Agents</text><text class="s" x="375" y="158">on Tanzu Platform</text></g><g class="node " data-steps="2,4" tabindex="-1"><rect x="570" y="120" width="170" height="52" rx="7"/><text class="t" x="655" y="141">AgentMinder</text><text class="s" x="655" y="158">cloud admin&#x27;s</text></g><g class="node " data-steps="3,4" tabindex="-1"><rect x="850" y="120" width="170" height="52" rx="7"/><text class="t" x="935" y="141">Tool servers</text><text class="s" x="935" y="158">Avi, Kubernetes, VCF</text></g><g class="node " data-steps="0,4" tabindex="-1"><rect x="290" y="235" width="170" height="52" rx="7"/><text class="t" x="375" y="256">Qwen model</text><text class="s" x="375" y="273">private AI, from the PE</text></g><g class="node " data-steps="1,4" tabindex="-1"><rect x="570" y="235" width="170" height="52" rx="7"/><text class="t" x="655" y="256">Zammad · Grafana</text><text class="s" x="655" y="273">from the PE</text></g><polyline class="edge" points="95,120 95,55 655,55 655,120" marker-end="url(#ah-ag)"/><text class="el" x="375" y="47" text-anchor="middle">registers agents, sets limits</text><polyline class="edge" points="180,146 290,146" marker-end="url(#ah-ag)"/><text class="el" x="235" y="139" text-anchor="middle">deploys</text><polyline class="edge" points="460,146 570,146" marker-end="url(#ah-ag)"/><text class="el" x="515" y="139" text-anchor="middle">every tool call</text><polyline class="edge" points="740,146 850,146" marker-end="url(#ah-ag)"/><text class="el" x="795" y="139" text-anchor="middle">if allowed</text><polyline class="edge" points="375,172 375,235" marker-end="url(#ah-ag)"/><text class="el" x="382" y="207.5" text-anchor="start">reasons with</text><polyline class="edge" points="460,162 515,162 515,261 570,261" marker-end="url(#ah-ag)"/><text class="el" x="522" y="215" text-anchor="start">reads, writes</text></svg></div>
+<figcaption>The agents never hold tool logins. Every call passes AgentMinder, which checks who the agent is and whether that tool is allowed.</figcaption>
+</figure>
+    <div class="walk">
+      <div class="stage">
+        <ol class="track">
+          <li class="step">
+            <div class="tool">From the platform engineer · Tanzu Platform</div>
+            <h3>A space to run in</h3>
+            <p>The platform engineer provides the space the apps run in, already connected to the private Qwen model and to the music store's cluster.</p>
+          </li>
+          <li class="step">
+            <div class="tool">From the platform engineer · Argo CD</div>
+            <h3>Tools for the agents to work with</h3>
+            <p>Zammad (tickets), Grafana and Prometheus (monitoring) run on the platform tools cluster, apart from the music store they watch.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Terraform · GitHub Actions · AgentMinder</div>
+            <h3>Each agent gets an identity and its limits</h3>
+            <p>The agentic ops engineer's Terraform registers each agent and its tool servers in the cloud admin's AgentMinder, and sets which tools each agent may call. They know what each agent needs, so the limits are theirs for now. A person starts the run from GitHub, and it changes AgentMinder only when approved.</p>
+            <p>The same run hands each agent its identity on Tanzu Platform and wires each agent to its tools. No agent secret is stored in GitHub.</p>
+          </li>
+          <li class="step">
+            <div class="tool">GitHub Actions · Tanzu Platform</div>
+            <h3>A workflow deploys the apps</h3>
+            <p>Any change to the agents or tool servers in git deploys them again. Nobody deploys them by hand. The tool servers hold logins to Avi, Kubernetes and VCF, so they stay with an operations team, not an app team.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>App</th><th>Its job</th></tr></thead>
+                <tbody>
+                  <tr><td>Incident chat</td><td>Where people talk to the agents</td></tr>
+                  <tr><td>Orchestrator</td><td>Runs an investigation and calls the specialists</td></tr>
+                  <tr><td>Three diagnostic agents</td><td>Specialists for the load balancer, Kubernetes and VCF</td></tr>
+                  <tr><td>Three tool servers</td><td>The tools each specialist may use, for Avi, the cluster and VCF</td></tr>
+                  <tr><td>Privacy filter</td><td>Removes personal data from text before it goes anywhere</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </li>
+          <li class="step handoff">
+            <div class="tool">The result</div>
+            <h3>A working agentic system inside VCF</h3>
+            <ul>
+              <li>The agents run on Tanzu Platform, next to the music store they watch</li>
+              <li>They reason with the private Qwen model, which runs in VCF</li>
+              <li>They reach Avi, Kubernetes and VCF only through AgentMinder, and only the tools they are allowed</li>
+              <li>They read from and write to the same Zammad and Grafana people use</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security admin -->
+  <section class="panel c-sec" id="security-admin" role="tabpanel" data-label="Security admin">
+    <div class="panel-head">
+      <div class="eyebrow">Security admin</div>
+      <h2>Guardrails for the network and the web</h2>
+      <p>Like the other personas, the security admin works through Terraform, started from a GitHub workflow. They never log in to the app's cluster. They write firewall rules in NSX, and NSX enforces them inside the cluster.</p>
+    </div>
+<figure class="dg">
+<div class="dg-wrap"><svg viewBox="0 0 1030 290" role="img" aria-label="The security admin workflow applies Terraform to NSX, NSX pushes rules into the music store cluster, where three layers decide every connection; Avi filters requests before they arrive"><defs><marker id="ah-sc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs><g class="frame"><rect x="570" y="10" width="450" height="270" rx="10"/><text class="ft" x="582" y="30">Music store cluster</text></g><g class="node " data-steps="1,2" tabindex="-1"><rect x="10" y="30" width="170" height="52" rx="7"/><text class="t" x="95" y="51">GitHub workflow</text><text class="s" x="95" y="68">Terraform, approved</text></g><g class="node " data-steps="2,3" tabindex="-1"><rect x="290" y="30" width="170" height="52" rx="7"/><text class="t" x="375" y="51">NSX Manager</text><text class="s" x="375" y="68">vDefend rules</text></g><g class="node " data-steps="0" tabindex="-1"><rect x="290" y="125" width="170" height="52" rx="7"/><text class="t" x="375" y="146">Argo CD</text><text class="s" x="375" y="163">from the PE</text></g><g class="node " data-steps="5" tabindex="-1"><rect x="290" y="220" width="170" height="52" rx="7"/><text class="t" x="375" y="241">Avi web firewall</text><text class="s" x="375" y="258">checks every request</text></g><g class="node " data-steps="3,4,5" tabindex="-1"><rect x="590" y="40" width="240" height="46" rx="7"/><text class="t" x="710" y="61">1. Guardrails</text><text class="s" x="710" y="78">security admin, from NSX</text></g><g class="node " data-steps="4" tabindex="-1"><rect x="590" y="100" width="240" height="46" rx="7"/><text class="t" x="710" y="121">2. App rules</text><text class="s" x="710" y="138">app team&#x27;s</text></g><g class="node " data-steps="4" tabindex="-1"><rect x="590" y="160" width="240" height="46" rx="7"/><text class="t" x="710" y="181">3. Default deny</text><text class="s" x="710" y="198">platform engineer&#x27;s</text></g><g class="node " data-steps="5" tabindex="-1"><rect x="590" y="220" width="240" height="46" rx="7"/><text class="t" x="710" y="241">Store services</text><text class="s" x="710" y="258">store, cart, orders, chat</text></g><polyline class="edge" points="710,86 710,100" marker-end="url(#ah-sc)"/><polyline class="edge" points="710,146 710,160" marker-end="url(#ah-sc)"/><text class="el" x="915" y="112" text-anchor="middle">checked</text><text class="el" x="915" y="126" text-anchor="middle">in order,</text><text class="el" x="915" y="140" text-anchor="middle">first match</text><text class="el" x="915" y="154" text-anchor="middle">wins</text><polyline class="edge" points="180,56 290,56" marker-end="url(#ah-sc)"/><text class="el" x="235" y="49" text-anchor="middle">applies</text><polyline class="edge" points="460,56 590,70" marker-end="url(#ah-sc)"/><text class="el" x="515" y="48" text-anchor="middle">pushes rules</text><polyline class="edge" points="460,151 570,151" marker-end="url(#ah-sc)"/><text class="el" x="515" y="144" text-anchor="middle">joins it to NSX</text><polyline class="edge" points="460,246 590,246" marker-end="url(#ah-sc)"/><text class="el" x="515" y="238" text-anchor="middle">clean requests</text></svg></div>
+<figcaption>The security admin changes NSX, never the cluster. NSX pushes the rules in, and the cluster checks three layers in order.</figcaption>
+</figure>
+    <div class="walk">
+      <div class="stage">
+        <ol class="track">
+          <li class="step">
+            <div class="tool">From the platform engineer · Argo CD · Antrea</div>
+            <h3>The cluster joins NSX</h3>
+            <p>When Argo CD builds the music store cluster, it connects the cluster's networking to NSX. NSX can then see the cluster and send it rules.</p>
+          </li>
+          <li class="step">
+            <div class="tool">GitHub Actions · Terraform</div>
+            <h3>The security admin's workflow runs Terraform</h3>
+            <p>A person starts the security admin's workflow in GitHub. It runs on the build machine inside the lab and shows what would change in NSX. It changes NSX only when the person approves it. The NSX login is a GitHub secret, and Terraform keeps its record in the same shared place as every other persona.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Terraform · vDefend</div>
+            <h3>Terraform writes the rules in NSX</h3>
+            <p>The rules name each music store service and say which traffic is allowed. For example, only the load balancer may reach the store's front end.</p>
+          </li>
+          <li class="step">
+            <div class="tool">NSX · Antrea</div>
+            <h3>NSX pushes the rules into the cluster</h3>
+            <p>The rules show up in the cluster as read-only policies. If someone changes them in the cluster, NSX puts them back. Every change goes through the workflow.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Antrea</div>
+            <h3>Three layers decide every connection</h3>
+            <p>The cluster checks the layers in order. The first rule that matches wins.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Layer</th><th>Owner</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td>1. Guardrails</td><td>Security admin</td><td>Company-wide rules from NSX. Allow rules only, so the layers below still get a say.</td></tr>
+                  <tr><td>2. App rules</td><td>The app's team</td><td>Which services in the app may talk to each other</td></tr>
+                  <tr><td>3. Default deny</td><td>Platform engineer</td><td>Blocks anything the layers above did not allow</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </li>
+          <li class="step handoff">
+            <div class="tool">The result</div>
+            <h3>A music store guarded at every layer</h3>
+            <ul>
+              <li>Avi's web application firewall checks every request before it reaches the cluster</li>
+              <li>NSX guardrails, app rules and a default deny decide every connection inside it</li>
+              <li>All of it comes from git, through a workflow, with no hand-made rules</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Under the hood -->
+  <section class="panel c-base" id="under-the-hood" role="tabpanel" data-label="Under the hood">
+    <div class="panel-head">
+      <div class="eyebrow">Under the hood</div>
+      <h2>What keeps the automation consistent</h2>
+      <p>The pieces that make every run behave the same, whoever or whatever starts it.</p>
+    </div>
+<figure class="dg">
+<div class="dg-wrap"><svg viewBox="0 0 1030 280" role="img" aria-label="Git and GitHub secrets feed GitHub Actions, which runs on a runner inside the lab; Terraform records state in Gitea and applies to VCF; Argo CD watches git and keeps VCF in sync"><defs><marker id="ah-uh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs><g class="node " data-steps="2,3" tabindex="-1"><rect x="10" y="30" width="170" height="52" rx="7"/><text class="t" x="95" y="51">Git</text><text class="s" x="95" y="68">settings and code</text></g><g class="node " data-steps="3" tabindex="-1"><rect x="290" y="30" width="170" height="52" rx="7"/><text class="t" x="375" y="51">GitHub Actions</text><text class="s" x="375" y="68">person or code change</text></g><g class="node " data-steps="0" tabindex="-1"><rect x="570" y="30" width="170" height="52" rx="7"/><text class="t" x="655" y="51">Lab runner</text><text class="s" x="655" y="68">on the Supervisor</text></g><g class="node " data-steps="1" tabindex="-1"><rect x="850" y="30" width="170" height="52" rx="7"/><text class="t" x="935" y="51">Gitea</text><text class="s" x="935" y="68">one record, locked</text></g><g class="node " data-steps="2" tabindex="-1"><rect x="290" y="140" width="170" height="52" rx="7"/><text class="t" x="375" y="161">GitHub secrets</text><text class="s" x="375" y="178">team values</text></g><g class="node " data-steps="3,5" tabindex="-1"><rect x="10" y="140" width="170" height="52" rx="7"/><text class="t" x="95" y="161">Argo CD</text><text class="s" x="95" y="178">in the lab</text></g><g class="node " data-steps="4,5" tabindex="-1"><rect x="850" y="140" width="170" height="52" rx="7"/><text class="t" x="935" y="161">VCF lab</text><text class="s" x="935" y="178">one owner per piece</text></g><polyline class="edge" points="180,56 290,56" marker-end="url(#ah-uh)"/><text class="el" x="235" y="49" text-anchor="middle">triggers</text><polyline class="edge" points="460,56 570,56" marker-end="url(#ah-uh)"/><text class="el" x="515" y="49" text-anchor="middle">runs job on</text><polyline class="edge" points="740,56 850,56" marker-end="url(#ah-uh)"/><text class="el" x="795" y="49" text-anchor="middle">state, locked</text><polyline class="edge dash" points="460,166 515,166 515,70 570,70" marker-end="url(#ah-uh)"/><text class="el" x="522" y="125" text-anchor="start">injected</text><polyline class="edge" points="655,82 655,166 850,166" marker-end="url(#ah-uh)"/><text class="el" x="752" y="159" text-anchor="middle">applies if approved</text><polyline class="edge dash" points="95,140 95,82" marker-end="url(#ah-uh)"/><text class="el" x="102" y="115" text-anchor="start">watches</text><polyline class="edge" points="95,192 95,240 935,240 935,192" marker-end="url(#ah-uh)"/><text class="el" x="515" y="233" text-anchor="middle">keeps in sync with git</text></svg></div>
+<figcaption>Two paths change the lab: approved Terraform runs through the lab runner, and Argo CD keeping VCF matching git.</figcaption>
+</figure>
+    <div class="walk">
+      <div class="stage">
+        <ol class="track">
+          <li class="step">
+            <div class="tool">GitHub Actions · vSphere</div>
+            <h3>A build machine inside the lab</h3>
+            <p>GitHub's own machines cannot reach the lab, so the workflows run on machines inside it. Those machines are containers on the Supervisor. Each takes one job at a time and cleans up after it, so no run inherits anything from the last.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Gitea</div>
+            <h3>One shared record of what Terraform built</h3>
+            <p>Terraform keeps its record of the lab on the lab's own Gitea server, one record per persona. A lock lets only one run change the lab at a time, and every earlier version is kept. A run from GitHub and a run from a laptop read and write the same record.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Git · GitHub secrets</div>
+            <h3>Same settings for everyone</h3>
+            <p>Everything about the lab that is not secret lives in git, so it is the same for every run. Passwords and keys are team values held as GitHub secrets, not personal ones. Because every run uses the same values, one run never undoes another.</p>
+          </li>
+          <li class="step">
+            <div class="tool">GitHub Actions · Argo CD</div>
+            <h3>Two kinds of change</h3>
+            <ul>
+              <li><strong>Infrastructure changes are deliberate.</strong> Each persona's Terraform runs only when a person starts it, shows its plan, and applies only when approved.</li>
+              <li><strong>App changes flow on their own.</strong> New app code starts a build, a change to the agents redeploys them, and Argo CD keeps everything it owns matching git all the time.</li>
+            </ul>
+          </li>
+          <li class="step">
+            <div class="tool">Dependencies</div>
+            <h3>Each layer builds on the one below</h3>
+            <p>The personas form a chain. The cloud admin's organization comes first, because everything runs inside it. The platform engineer's namespaces, clusters and Tanzu space come next. The agents can only be registered once their space exists, and the security rules can only reach the music store once its cluster has joined NSX. Inside Argo CD, sync waves apply the same idea: a database is healthy before anything that uses it starts.</p>
+          </li>
+          <li class="step">
+            <div class="tool">Argo CD · Supervisor Namespaces</div>
+            <h3>Everything has one owner</h3>
+            <p>Each piece of the lab belongs to exactly one persona's Terraform or one Argo CD application, never two. A namespace owns what Argo CD puts in it, clusters included, so removing a namespace removes everything inside. That clean ownership is what lets the whole lab be built, and taken apart, in a predictable order.</p>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <footer>Based on the GOAD repository's documentation, as of 2 November 2026.</footer>
+</main>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+  var order = tabs.map(function (t) { return t.dataset.target; });
+  var walks = {};
+
+  function labelOf(id) {
+    var p = document.getElementById(id);
+    return p ? p.dataset.label : '';
+  }
+
+  function showTab(id, opts) {
+    opts = opts || {};
+    if (order.indexOf(id) < 0) id = 'overview';
+    tabs.forEach(function (t) {
+      var on = t.dataset.target === id;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      if (on && opts.focusTab) t.focus();
+      if (on && t.scrollIntoView) t.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    panels.forEach(function (p) { p.hidden = p.id !== id; });
+    if (walks[id]) walks[id].go(opts.step === 'last' ? walks[id].count - 1 : (opts.step || 0), false);
+    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+    try { localStorage.setItem('goad-tab', id); } catch (e) {}
+    if (opts.scroll) {
+      var bar = document.querySelector('.tabbar');
+      if (bar && bar.getBoundingClientRect().top < 0) window.scrollTo({ top: bar.offsetTop - 4 });
+    }
+  }
+
+  // Build one guided walk per persona panel
+  panels.forEach(function (panel) {
+    var walk = panel.querySelector('.walk');
+    if (!walk) return;
+    var stage = walk.querySelector('.stage');
+    var steps = Array.prototype.slice.call(stage.querySelectorAll('ol.track > li.step'));
+    var nodes = Array.prototype.slice.call(panel.querySelectorAll('.dg .node'));
+    nodes.forEach(function (n) {
+      n.addEventListener('click', function () { api.go(parseInt(n.dataset.steps.split(',')[0], 10), true); });
+    });
+    var idx = order.indexOf(panel.id);
+    var nextId = order[idx + 1];
+
+    var rail = document.createElement('ol');
+    rail.className = 'rail';
+    rail.setAttribute('aria-label', 'Steps');
+    var railButtons = steps.map(function (step, i) {
+      var li = document.createElement('li');
+      var b = document.createElement('button');
+      b.type = 'button';
+      var h = step.querySelector('h3');
+      b.innerHTML = '<span class="num"></span><span class="label"></span>';
+      b.querySelector('.num').textContent = String(i + 1);
+      b.querySelector('.label').textContent = h ? h.textContent : 'Step ' + (i + 1);
+      b.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + (h ? h.textContent : ''));
+      b.addEventListener('click', function () { api.go(i, true); });
+      li.appendChild(b);
+      rail.appendChild(li);
+      return b;
+    });
+    walk.insertBefore(rail, stage);
+
+    steps.forEach(function (step, i) {
+      var c = document.createElement('div');
+      c.className = 'count';
+      c.textContent = 'Step ' + (i + 1) + ' of ' + steps.length;
+      step.insertBefore(c, step.firstChild);
+    });
+
+    var nav = document.createElement('div');
+    nav.className = 'nav';
+    nav.innerHTML = '<button type="button" class="back">Back</button><span class="hint">Use the arrow keys to step through</span><button type="button" class="next">Next</button>';
+    stage.appendChild(nav);
+    var back = nav.querySelector('.back');
+    var next = nav.querySelector('.next');
+
+    var api = {
+      count: steps.length,
+      cur: 0,
+      go: function (i, animate) {
+        i = Math.max(0, Math.min(steps.length - 1, i));
+        api.cur = i;
+        steps.forEach(function (s, j) {
+          s.hidden = j !== i;
+          s.classList.remove('enter');
+        });
+        if (animate) { void steps[i].offsetWidth; steps[i].classList.add('enter'); }
+        railButtons.forEach(function (b, j) {
+          if (j === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+          b.classList.toggle('done', j < i);
+        });
+        nodes.forEach(function (n) {
+          n.classList.toggle('on', n.dataset.steps.split(',').indexOf(String(i)) >= 0);
+        });
+        back.textContent = i === 0 ? 'Back: ' + labelOf(order[idx - 1]) : 'Back';
+        if (i === steps.length - 1) {
+          next.textContent = nextId ? 'Next: ' + labelOf(nextId) : 'Back to overview';
+        } else {
+          next.textContent = 'Next';
+        }
+      },
+      step: function (d) {
+        var i = api.cur + d;
+        if (i < 0) { showTab(order[idx - 1], { step: 'last', scroll: true }); return; }
+        if (i >= steps.length) { showTab(nextId || 'overview', { scroll: true }); return; }
+        api.go(i, true);
+      }
+    };
+    back.addEventListener('click', function () { api.step(-1); });
+    next.addEventListener('click', function () { api.step(1); });
+    walks[panel.id] = api;
+  });
+
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { showTab(t.dataset.target); });
+    t.addEventListener('keydown', function (e) {
+      var j = null;
+      if (e.key === 'ArrowRight') j = (i + 1) % tabs.length;
+      if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length;
+      if (e.key === 'Home') j = 0;
+      if (e.key === 'End') j = tabs.length - 1;
+      if (j !== null) { e.preventDefault(); e.stopPropagation(); showTab(tabs[j].dataset.target, { focusTab: true }); }
+    });
+  });
+
+  Array.prototype.slice.call(document.querySelectorAll('[data-goto]')).forEach(function (el) {
+    el.addEventListener('click', function () { showTab(el.dataset.goto, { scroll: true }); });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target && e.target.closest && e.target.closest('.tabbar')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var open = panels.filter(function (p) { return !p.hidden; })[0];
+    var w = open && walks[open.id];
+    if (!w) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); w.step(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); w.step(-1); }
+  });
+
+  var start = (location.hash || '').slice(1);
+  if (order.indexOf(start) < 0) {
+    try { start = localStorage.getItem('goad-tab') || ''; } catch (e) { start = ''; }
+  }
+  showTab(order.indexOf(start) >= 0 ? start : 'overview');
+})();
+</script>
+</body>
+</html>
