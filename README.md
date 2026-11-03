@@ -19,8 +19,8 @@ built on the same platform help operate it.
 Five personas share the platform: the cloud admin who runs the
 infrastructure, the platform engineer who turns it into a product for
 developers, the developer, the security admin, and the agentic ops
-engineer who builds AI agents for operations. Each persona owns one part and hands a defined set of things to the
-next. Every change starts in git. Terraform builds what has to exist
+engineer who builds AI agents for operations. Each persona owns one
+part and hands a defined set of things to the next. Every change starts in git. Terraform builds what has to exist
 first, and Argo CD keeps everything else matching git. Nobody logs in to
 a cluster to change things by hand. Because all of it is in this
 repository, the lab can be rebuilt, and every change to it is reviewed.
