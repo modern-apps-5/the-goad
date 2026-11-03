@@ -14,6 +14,7 @@ keeps every version.
 | `terraform/cloud-admin/org` | `the-goad` | `goad-cloud-admin` |
 | `terraform/cloud-admin/org-config` | `the-goad` | `goad-cloud-admin-org-config` |
 | `terraform/cloud-admin/agentminder` | `the-goad` | `goad-cloud-admin-agentminder` |
+| `terraform/cloud-admin/ops` | `the-goad` | `goad-cloud-admin-ops` |
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
 | `terraform/agentic-ops` | `the-goad` | `goad-agentic-ops` |
 | `terraform/runner` | `the-goad` | `goad-runner` |

@@ -5,7 +5,9 @@
 # org-config configures things inside it (terraform/cloud-admin/org-config),
 # and agentminder installs AgentMinder on the cluster org-config made
 # (terraform/cloud-admin/agentminder). The agents' registration in
-# AgentMinder is the agentic ops engineer's: agentic-ops.yml.
+# AgentMinder is the agentic ops engineer's: agentic-ops.yml. A fourth job,
+# ops, runs terraform/cloud-admin/ops on its own: VCF Operations dashboards
+# and alerts.
 #
 # It runs only when a person starts it: Actions, this workflow, Run workflow.
 # It plans. It applies only if "apply" is ticked, and only on main. A pull
@@ -106,6 +108,33 @@ jobs:
         run: |
           terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
           { echo '## org-config'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply
+        if: env.APPLY == 'true'
+        run: terraform apply -no-color -lock-timeout=5m tfplan
+
+  # VCF Operations content: platform observability dashboards and alerts.
+  # It needs nothing the other jobs make, so it runs beside them.
+  ops:
+    runs-on: [self-hosted, lab]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/cloud-admin/ops
+    env:
+      # The VCF Operations administrator. Same value as in the org job.
+      TF_VAR_ops_password: ${{ secrets.OPS_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "~1.15"
+          terraform_wrapper: false
+      - run: terraform init
+      - name: Plan
+        run: |
+          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
+          { echo '## ops'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan

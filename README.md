@@ -14,6 +14,7 @@ agentic ops engineer, the developer, and the security admin.
 | Cloud admin | Terraform | Stage 1: the org, VCF SSO, quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin/org](terraform/cloud-admin/org) |
 | Cloud admin | Terraform | Stage 2: inside the org, the users and their roles, the Service Engine Group, and a project with a VKS cluster for AgentMinder | [terraform/cloud-admin/org-config](terraform/cloud-admin/org-config) |
 | Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](terraform/cloud-admin/agentminder) |
+| Cloud admin | Terraform | VCF Operations content: platform observability dashboards and alerts | [terraform/cloud-admin/ops](terraform/cloud-admin/ops) |
 | Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, the secrets in Secret Store, Argo CD and the handoff to it, and the incident apps' Tanzu Platform space, `goad-qwen` and `k8s-mcp-cluster` | [terraform/platform-engineer](terraform/platform-engineer) |
 | Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](gitops/private-ai) |
 | Platform engineer | Argo CD | The shop's DSM catalog database, its VKS cluster, its users VM, and the endpoints that point the VKS cluster at the VM and at the catalog | [gitops/music-store](gitops/music-store) |
@@ -211,14 +212,16 @@ The lab is shared and the demo is running. To work on it from your
 machine you do not build anything. You need the secrets that the team
 shares, and nothing else that is not in git:
 
-1. Get them from a teammate: the five `terraform.tfvars` files, the
+1. Get them from a teammate: the six `terraform.tfvars` files, the
    deploy key, and the state token. They come as one text to paste at
    the root of your clone. Put the cloud admin's files in
-   `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`, and
-   `terraform/cloud-admin/agentminder`, and the agentic ops engineer's in
+   `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
+   `terraform/cloud-admin/agentminder`, and `terraform/cloud-admin/ops`,
+   and the agentic ops engineer's in
    `terraform/agentic-ops`.
 2. In `terraform/cloud-admin/org`, `terraform/cloud-admin/org-config`,
-   `terraform/cloud-admin/agentminder`, `terraform/agentic-ops`, and
+   `terraform/cloud-admin/agentminder`, `terraform/cloud-admin/ops`,
+   `terraform/agentic-ops`, and
    `terraform/platform-engineer`:
 
    ```sh
@@ -254,7 +257,7 @@ that pushes the incident apps:
 
 | Workflow | What it runs |
 |---|---|
-| `cloud-admin` | Three jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder` |
+| `cloud-admin` | Three jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder`. A fourth job, `ops`, runs `terraform/cloud-admin/ops` on its own, in parallel with `org`. Its only secret is `OPS_ADMIN_PASSWORD` |
 | `platform-engineer` | `terraform/platform-engineer` |
 | `agentic-ops` | `terraform/agentic-ops`. Needs the repository secrets `AGENTIC_OPS_AGENTMINDER_CLIENT_ID` and `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`: see [its README](terraform/agentic-ops/README.md) |
 | `tanzu-apps` | `cf push` of each app in `tanzu/metal-music-app-agentic-system`, then their network policies. See [its README](tanzu/metal-music-app-agentic-system/README.md) |
@@ -637,6 +640,7 @@ what to do when it goes wrong, and how to go back to an earlier state.
 terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
 terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, kro-authors, AgentMinder's cluster
 terraform/cloud-admin/agentminder/ Stage 3, AgentMinder on that cluster, with Helm
+terraform/cloud-admin/ops/      VCF Operations content: platform observability dashboards (dashboards/*.json) and alerts
 terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD handoff, Tanzu Platform space
   manifests/                   Manifests that Terraform applies
 terraform/agentic-ops/         The incident demo's agents registered in AgentMinder, and the am-* and sc-* services
@@ -711,6 +715,7 @@ into a VKS cluster has its own `ManagedEntity` and Application in
 | [terraform/cloud-admin/org/README.md](terraform/cloud-admin/org/README.md) | The cloud admin Terraform, stage 1 (the org), in detail |
 | [terraform/cloud-admin/org-config/README.md](terraform/cloud-admin/org-config/README.md) | The cloud admin Terraform, stage 2 (inside the org), in detail |
 | [terraform/cloud-admin/agentminder/README.md](terraform/cloud-admin/agentminder/README.md) | The cloud admin Terraform, stage 3 (AgentMinder), in detail |
+| [terraform/cloud-admin/ops/README.md](terraform/cloud-admin/ops/README.md) | The cloud admin Terraform for VCF Operations content (dashboards and alerts) in detail |
 | [terraform/platform-engineer/README.md](terraform/platform-engineer/README.md) | The platform engineer Terraform in detail |
 | [terraform/agentic-ops/README.md](terraform/agentic-ops/README.md) | The agentic ops engineer Terraform (AgentMinder registration) in detail |
 | [gitops/README.md](gitops/README.md) | Each gitops directory, its owner and Application, and how host names are published |
