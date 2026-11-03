@@ -32,7 +32,7 @@ What changed in this repository, newest first. The reasons are in
   `SECURITY_ADMIN_NSX_PASSWORD`.
 - `README.md`: the intro says what GOAD is and why it exists. The
   persona table is one line per persona and what it owns, and the diagram
-  shows the handoffs between personas. The layout lists
+  is an architecture picture, `docs/images/architecture.svg`. The layout lists
   `terraform/security-admin/`.
 - `docs/architecture.md`: "Who owns what", the detailed persona table
   that was in the README.

@@ -43,25 +43,17 @@ each persona builds, with which tool, and where it is in this repository.
 
 ## How it fits together
 
-```mermaid
-flowchart LR
-    cloud_admin["Cloud admin"]
-    platform_engineer["Platform engineer"]
-    developer["Developer"]
-    agentic_ops["Agentic ops engineer"]
-    security_admin["Security admin"]
-    store[("Music store")]
+![GOAD architecture: the music store on VKS, a VM, DSM and Private AI Services in a VCF Automation org; the incident AI agents on Tanzu Platform, governed by AgentMinder; all on the Supervisor and VCF](docs/images/architecture.svg)
 
-    cloud_admin -->|"org and login"| platform_engineer
-    cloud_admin -->|"AgentMinder"| agentic_ops
-    platform_engineer -->|"store environment and golden path"| developer
-    platform_engineer -->|"Tanzu Platform space"| agentic_ops
-    developer -->|"code"| store
-    security_admin -->|"guards"| store
-```
+Users reach the music store through Avi's load balancer and web firewall.
+The store runs on a VKS cluster, with its users service on a VM, its
+catalog in a DSM PostgreSQL database, and its chat on a private model in
+Private AI Services. When something breaks, AI agents on Tanzu Platform
+read the incident ticket and diagnose it. Every tool call they make goes
+through AgentMinder, which decides which agent may call which tool.
 
-An arrow is a handoff: what one persona gives the next.
-[docs/architecture.md](docs/architecture.md) has every resource behind it.
+[docs/architecture.md](docs/architecture.md) has every resource behind it,
+and how the automation builds them.
 
 ## Build it
 
