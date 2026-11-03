@@ -1,0 +1,42 @@
+# GitHub workflows
+
+The persona roots can also run in GitHub Actions, on a runner in the
+lab. There is one Terraform workflow for each persona, and one workflow
+that pushes the incident apps:
+
+| Workflow | What it runs |
+|---|---|
+| `cloud-admin` | Three jobs, in order: `org` runs `terraform/cloud-admin/org`, then `org-config` runs `terraform/cloud-admin/org-config`, then `agentminder` runs `terraform/cloud-admin/agentminder`. A fourth job, `ops`, runs `terraform/cloud-admin/ops` on its own, in parallel with `org`. Its only secret is `OPS_ADMIN_PASSWORD` |
+| `platform-engineer` | `terraform/platform-engineer` |
+| `agentic-ops` | `terraform/agentic-ops`. Needs the repository secrets `AGENTIC_OPS_AGENTMINDER_CLIENT_ID` and `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`: see [its README](../terraform/agentic-ops/README.md) |
+| `tanzu-apps` | `cf push` of each app in `tanzu/metal-music-app-agentic-system`, then their network policies. See [its README](../tanzu/metal-music-app-agentic-system/README.md) |
+
+A Terraform workflow runs only when a person starts it. Nothing runs on a
+pull request or on a push. In GitHub: Actions, the workflow, **Run
+workflow**. Or:
+
+```sh
+gh workflow run cloud-admin.yml                 # plan
+gh workflow run cloud-admin.yml -f apply=true   # plan, then apply
+```
+
+A run plans, and the plan is on the run's summary page. It applies only
+with `apply`, and only on `main`: a run on another branch can plan and
+cannot apply.
+
+`tanzu-apps` runs on every push to `main` that changes
+`tanzu/metal-music-app-agentic-system`, and by hand. It does not plan or
+apply; it pushes.
+
+Nothing orders the workflows. On a first build: `cloud-admin`, then
+`platform-engineer`, then `agentic-ops`, then `security-admin`, then
+`tanzu-apps`. The cloud admin copies the two `AGENTIC_OPS_AGENTMINDER_*`
+secrets after `cloud-admin` has installed AgentMinder and before
+`agentic-ops` runs.
+
+The workflows use the same state and the same shared secrets as a
+machine does, so a run and a teammate's `terraform apply` are the same
+thing. The secrets are repository secrets in GitHub.
+[terraform/runner/README.md](../terraform/runner/README.md) lists them and
+says how the runner is built.
+[Decision 25](decisions.md) has the reasons.
