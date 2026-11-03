@@ -1,0 +1,72 @@
+# Shoppers for the storage troubleshooting demo (demos/storage-troubleshooting).
+# Each pod is one shopper on the public shop URL: open the catalog, add an
+# album to the cart, pay. Every add and every order is a SQLite commit on
+# the cart and order PVCs, so the shop's disk latency shows up as their
+# response times. Each request is one line in the pod log: status, seconds,
+# step.
+#
+# Own namespace: the music-store default deny does not apply, and the
+# traffic comes in through the Gateway like a real shopper's. fault.sh
+# applies and deletes this file.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shoppers
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoppers
+  namespace: shoppers
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: shoppers
+  template:
+    metadata:
+      labels:
+        app: shoppers
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: shopper
+          image: curlimages/curl:8.11.1
+          env:
+            - name: STORE_URL
+              value: https://music.goad.gpu.set.lab
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              jar=/tmp/cookies
+              step() {
+                name=$1; shift
+                curl -sk -o /dev/null -b "$jar" -c "$jar" --max-time 30 \
+                  -w "%{http_code} %{time_total}s $name\n" "$@" || echo "000 timeout $name"
+              }
+              while true; do
+                step catalog "$STORE_URL/"
+                step add_to_cart -d album_id=$((RANDOM % 6 + 1)) -d quantity=1 "$STORE_URL/add_to_cart"
+                step pay -d card_number=4111111111111111 -d expiry=12/30 -d cvv=123 "$STORE_URL/process_payment"
+                sleep 1
+              done
+      volumes:
+        - name: tmp
+          emptyDir: {}
