@@ -2,8 +2,7 @@
 # platform engineer owns. The manifest
 # (tanzu/metal-music-app-agentic-system/manifest.yml) binds each one to its
 # agent. They were the platform engineer's first, in terraform/platform-engineer/
-# tanzu.tf. That root has a removed block for each, with destroy = false, so
-# either root can apply first and nothing is deleted.
+# tanzu.tf. See decision 50.
 locals {
   # The diagnostic agents' MCP tools: the AgentMinder sidecar in the same
   # container, one resource for each agent.
@@ -26,13 +25,6 @@ resource "cloudfoundry_service_instance" "orchestrator_tools" {
   })
 }
 
-# The services were made by hand before any root owned them. Remove these
-# blocks once they are in every state.
-import {
-  to = cloudfoundry_service_instance.orchestrator_tools
-  id = "a0881d91-d59f-4775-a538-6218233a6dc3"
-}
-
 resource "cloudfoundry_service_instance" "sidecar_tools" {
   for_each = local.sidecar_tools
 
@@ -45,19 +37,4 @@ resource "cloudfoundry_service_instance" "sidecar_tools" {
     api_key   = var.incident_sidecar_token
     auth_type = "bearer"
   })
-}
-
-import {
-  to = cloudfoundry_service_instance.sidecar_tools["sc-lb-diagnostic-agent-avi"]
-  id = "21b30a57-1dd6-4ec3-924f-47d7c3693bb0"
-}
-
-import {
-  to = cloudfoundry_service_instance.sidecar_tools["sc-k8s-diagnostic-agent-k8s"]
-  id = "52c99ec9-9cc6-49d0-9ce3-7d3e7d99724a"
-}
-
-import {
-  to = cloudfoundry_service_instance.sidecar_tools["sc-vcf-diagnostic-agent-vcf"]
-  id = "4d81c9a6-3248-4de8-b07a-e3a5f4405247"
 }
