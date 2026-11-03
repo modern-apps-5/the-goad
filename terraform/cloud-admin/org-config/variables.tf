@@ -33,7 +33,7 @@ variable "cloud_admin_password" {
 
 variable "platform_engineer_group" {
   type        = string
-  description = "VCF SSO group, as group@domain, of the platform engineers. This root imports it into the org with the org role Organization User, and makes it admin of platform_engineer_project and editor of kro_authors_project."
+  description = "VCF SSO group, as group@domain, of the platform engineers. This root imports it into the org with the org role Organization User, and makes it admin of platform_engineer_project."
 }
 
 variable "platform_engineer_project" {
@@ -76,14 +76,6 @@ variable "service_engine_group_name" {
   type        = string
   description = "Name of the org's Avi Service Engine Group, which this root creates. terraform/platform-engineer names it too."
   default     = "goad-se-group"
-}
-
-# --- kro ---
-
-variable "kro_authors_project" {
-  type        = string
-  description = "Project this root creates for kro authors. platform_engineer_group gets the role edit in it. Its uid goes in the kro Supervisor Service's multitenancy.orgs[].authorProjects."
-  default     = "kro-authors"
 }
 
 # --- AgentMinder: project, namespace, and cluster ---

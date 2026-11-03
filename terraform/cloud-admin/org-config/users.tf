@@ -1,6 +1,6 @@
 # Who may do what in the org. Platform engineers are the members of one
 # VCF SSO group, not users named one by one: they administer one project,
-# not the whole org, and author kro APIs.
+# not the whole org.
 #
 # A group must be in the org before a project can name it, so it is
 # imported first with the org role Organization User. That role alone
@@ -65,13 +65,11 @@ resource "terracurl_request" "platform_engineer_group" {
 }
 
 # The group's role in each project: admin of the project that holds the
-# platform engineers' namespaces, and editor of the kro author project
-# (kro.tf). VCF Automation requires the name cci:group:<domain>:<group>
+# platform engineers' namespaces. VCF Automation requires the name cci:group:<domain>:<group>
 # for a group group@domain.
 locals {
   platform_engineer_group_project_roles = {
     (var.platform_engineer_project) = "admin"
-    (var.kro_authors_project)       = "edit"
   }
 }
 
@@ -103,7 +101,7 @@ resource "kubectl_manifest" "platform_engineer_group_project_role_binding" {
     }]
   })
 
-  depends_on = [terracurl_request.platform_engineer_group, kubectl_manifest.kro_authors_project]
+  depends_on = [terracurl_request.platform_engineer_group]
 }
 
 # --- The platform engineer's automation login ---

@@ -4,7 +4,7 @@
 
 ```
 terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
-terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, kro-authors, AgentMinder's cluster
+terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, AgentMinder's cluster
 terraform/cloud-admin/agentminder/ Stage 3, AgentMinder on that cluster, with Helm
 terraform/cloud-admin/ops/      VCF Operations content: platform observability dashboards (dashboards/*.json) and alerts
 terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD handoff, Tanzu Platform space

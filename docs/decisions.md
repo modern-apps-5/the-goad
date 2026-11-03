@@ -1535,3 +1535,25 @@ once.
 
 Look again if: AgentMinder gets service accounts or scoped clients, or
 `goad-deployer` gets narrower roles.
+
+## 51. The kro author project is removed
+
+`terraform/cloud-admin/org-config/kro.tf` is gone: the project
+`kro-authors`, its Supervisor Namespace `kro-authors-xxxxx`, and the
+platform engineer group's `edit` role in it. The root's outputs
+`kro_authors_project` and `kro_authors_namespace`, and the variable
+`kro_authors_project`, are gone with it. This replaces decision 35.
+
+Why: nothing in GOAD uses kro. The music store's bindings it was for
+(issue #25) were done another way: ESO reads Secret Store (decision 38),
+and the Job `shop-endpoints` writes the addresses into the cluster. kro
+cannot own `KeyValueSecret`s, so that route was dropped. The project and
+its namespace held quota for no workload.
+
+Cost: the kro Supervisor Service's values on the Supervisor still list the
+project's old uid under `authorProjects`. The vSphere admin removes the
+goad entry, or leaves it: a uid with no project matches no one.
+
+Look again if: a demo needs platform engineers to publish their own APIs
+on the Supervisor. Restore `kro.tf` from git history; the new project gets
+a new uid for the service's values.
