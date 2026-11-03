@@ -48,7 +48,7 @@ vcf context for that namespace, logged in as yourself.
 
    ```bash
    vcf context create goad --endpoint https://auto.gpu.set.lab --type cci \
-     --tenant-name goad --api-token <your API token>
+     --tenant-name goad --api-token <your API token> --insecure-skip-tls-verify
    ```
 
    The vcf CLI makes one more context for each namespace you can use,
