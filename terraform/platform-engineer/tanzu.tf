@@ -82,20 +82,3 @@ import {
   to = cloudfoundry_service_instance.k8s_mcp_cluster
   id = "7578c44a-b628-4571-aa87-b1d1b9d381e8"
 }
-
-# The agents' sc-* tool services moved to terraform/agentic-ops, which
-# imports them. These blocks keep this root from destroying them. Remove
-# them once they are in every state.
-removed {
-  from = cloudfoundry_service_instance.orchestrator_tools
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = cloudfoundry_service_instance.sidecar_tools
-  lifecycle {
-    destroy = false
-  }
-}

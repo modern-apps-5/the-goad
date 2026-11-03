@@ -5,6 +5,18 @@ What changed in this repository, newest first. The reasons are in
 
 
 
+## 2026-11-03 (Agentic ops engineer: cleanup)
+
+### Removed
+
+- The `sc-*` `import` blocks in `terraform/agentic-ops/tools.tf` and the
+  `removed` blocks in `terraform/platform-engineer/tanzu.tf`. Both are
+  applied in the lab.
+- `vcfa` and `kubernetes` from the `terraform/agentic-ops` lock file. The
+  old data sources are out of the state.
+- The old state `goad-cloud-admin-agentminder-registration`, deleted from
+  Gitea after the first clean `agentic-ops` plan.
+
 ## 2026-11-02 (Agentic ops engineer)
 
 ### Added

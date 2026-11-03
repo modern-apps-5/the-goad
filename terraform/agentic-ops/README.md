@@ -41,10 +41,8 @@ AgentMinder running. One root could not plan a fresh build.
   `sc-lb-diagnostic-agent-avi`, `sc-k8s-diagnostic-agent-k8s` and
   `sc-vcf-diagnostic-agent-vcf`, which point at each agent's sidecar and
   hold `incident_sidecar_token`. They were the platform engineer's, in
-  `tanzu.tf`. This root imports them with `import` blocks, and the
-  platform engineer's root has a `removed` block for each with
-  `destroy = false`. Either root can apply first and nothing is deleted.
-  Remove the blocks once they are in every state.
+  `tanzu.tf`. This root imported them on 2026-11-03, and the platform
+  engineer's root dropped them from its state without deleting them.
 
 ## Login
 
@@ -134,12 +132,13 @@ there. Secret Store is a later step.
 
 This root was `terraform/cloud-admin/agentminder-registration`, with the state
 `goad-cloud-admin-agentminder-registration`. Resource addresses did not
-change. Move the state once, by hand, before the merge. Initialize the
-old state, with the old address in `backend.tf`. Then change the address,
-lock address and unlock address to `goad-agentic-ops` and run
-`terraform init -migrate-state -backend-config=backend.hcl`. The first plan must show no changes except
-the `sc-*` imports. Keep the old state in Gitea until that plan is clean,
-then delete it.
+change. On 2026-11-02 the state moved to `goad-agentic-ops` with
+`terraform init -migrate-state`, and the old state was deleted after the
+first clean plan.
+
+The `sc-*` imports showed as updates in the first plan. The Cloud Foundry
+API does not return a user-provided service's credentials, so after an
+import the state has none and the apply writes them again.
 
 ## The one-time import
 
