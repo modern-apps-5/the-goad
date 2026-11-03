@@ -19,7 +19,7 @@ zone_allocations = {
     cpu_limit_mhz          = 963146
     memory_limit_mib       = 2415569
     cpu_reservation_mhz    = 20000
-    memory_reservation_mib = 32768
+    memory_reservation_mib = 49152
   }
 }
 
