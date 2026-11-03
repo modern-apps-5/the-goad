@@ -52,9 +52,8 @@ Each directory belongs to one owner and one Application.
    the vDefend policy in NSX, which pushes it into the cluster
    (decision 49).
 5. The incident apps: the `platform-engineer` workflow makes their Cloud
-   Foundry space, the `cloud-admin` workflow's job
-   `agentminder-registration` makes their AgentMinder clients in it, and
-   `tanzu-apps` pushes them. See
+   Foundry space, the `agentic-ops` workflow makes their AgentMinder
+   clients in it, and `tanzu-apps` pushes them. See
    [tanzu/metal-music-app-agentic-system](../tanzu/metal-music-app-agentic-system/README.md).
    Zammad starts empty on a new build. One
    `curl http://zammad.goad.gpu.set.lab/api/v1/getting_started/auto_wizard`

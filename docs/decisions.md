@@ -1013,6 +1013,9 @@ Look again if: Tanzu Hub service accounts get narrower roles, the
 `cloudfoundry` provider learns `private_key_jwt`, or AgentMinder clients
 move to Terraform.
 
+Amended by decision 50: the agentic ops engineer owns the `am-*` and `sc-*`
+services and the incident apps, and shares `goad-deployer`.
+
 ## 41. The cloud admin registers AgentMinder in Terraform, with restapi
 
 `incident-demo/agentminder/register.py` made the incident demo's
@@ -1104,6 +1107,10 @@ Cost:
 
 Look again if: AgentMinder gets service accounts, or the runner pods get a
 way to log in to Secret Store. Move the login there.
+
+Amended by decision 50: the agentic ops engineer owns the registration, in
+`terraform/agentic-ops`, and the login is two repository secrets that
+Terraform no longer reads from the cluster.
 
 ## 42. The incident demo's tools run on a platform tools cluster, from gitops
 
@@ -1466,3 +1473,65 @@ could read the other personas' secrets.
 Look again if: the security admin should own the default deny as well,
 or vDefend policy moves to a Supervisor-side API that VCF Automation
 exposes.
+
+## 50. The agentic ops engineer is a persona, with the agents' wiring in its own root
+
+The incident demo's agents and MCP servers get their own persona, the
+agentic ops engineer. It is the developer for agents (issue #91). There
+are now five personas:
+
+| Persona | Owns |
+|---|---|
+| Cloud admin | The org, its configuration, and AgentMinder itself as a core organization tool |
+| Platform engineer | The clusters, the Tanzu Platform space, `goad-qwen` and `k8s-mcp-cluster`, and the music store's platform |
+| Agentic ops engineer | The agents, the MCP servers, their deploy, the agent identities in AgentMinder, and for now which tools each agent may call |
+| Security admin | The vDefend layer of the network policy. Not AgentMinder policies |
+| Developer | The music store's code |
+
+The agentic ops engineer gets a Terraform root, `terraform/agentic-ops`,
+and a workflow, `agentic-ops.yml`, the same as the other personas
+(decision 25). The root was `terraform/cloud-admin/agentminder-registration`.
+Resource addresses did not change. The state is `goad-agentic-ops`. The
+root also owns the `sc-*` services that were in the platform engineer's
+`tanzu.tf`: `orchestrator_tools` and `sidecar_tools`, with
+`incident_sidecar_token`. The new root imports them with the IDs `tanzu.tf`
+had. The platform engineer's root has a `removed` block for each, with
+`destroy = false`. So either root can apply first and nothing is deleted.
+
+**The login.** The root logs in to AgentMinder as the default tenant's
+admin client, from two variables, `agentminder_client_id` and
+`agentminder_client_secret`. The cloud admin copies them once from the
+Secret `ssp-ssp-secret-defaulttenantclient` in namespace `ssp` into the
+repository secrets `AGENTIC_OPS_AGENTMINDER_CLIENT_ID` and
+`AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`, without printing them. The root
+has no `vcfa` or `kubernetes` provider, reads no remote state, and needs no
+`TF_HTTP_PASSWORD` of its own. The `http` token request and the two
+`restapi` providers are as they were.
+
+**Changes to earlier decisions.**
+
+- Decision 40: `goad-deployer` is still shared, and now by the platform
+  engineer and the agentic ops engineer, with admin roles. The `sc-*`
+  services move to the agentic ops engineer. `INCIDENT_SIDECAR_TOKEN` moves
+  from `platform-engineer.yml` to `agentic-ops.yml`. `tanzu-apps.yml` stays,
+  and still reads it.
+- Decision 41: the registration is not the cloud admin's fourth stage. The
+  cloud admin's workflow has three jobs, and its first build no longer fails
+  once and needs a second run. Terraform no longer reads the admin client
+  from the cluster: a person copies it once.
+
+Why a persona: the agents and their tools are a product of their own, with
+their own deploy and their own identities. The cloud admin keeps the
+platform they run on.
+
+Why the `goad-qwen` binding stays with the platform engineer: it points at
+the agents' local proxy and the orchestrator's `config_url`, but its key
+comes from Private AI Services. Look again if that is the wrong split.
+
+Cost: the client is AgentMinder's default tenant admin client, so the
+agentic ops engineer has full admin in AgentMinder. `goad-deployer` has
+admin roles and is shared. The cloud admin must copy two secrets by hand
+once.
+
+Look again if: AgentMinder gets service accounts or scoped clients, or
+`goad-deployer` gets narrower roles.

@@ -186,7 +186,7 @@ Not network policy, but part of the same picture:
   cert-manager ([decision 43](decisions.md)).
 - **Agent tools.** AgentMinder policies decide which incident agent may
   call which MCP server's tools
-  ([terraform/cloud-admin/agentminder-registration](../terraform/cloud-admin/agentminder-registration)).
+  ([terraform/agentic-ops](../terraform/agentic-ops)).
 - **Tanzu Platform apps.** The incident apps reach each other only
   through `cf add-network-policy` rules, set by the `tanzu-apps`
   workflow.

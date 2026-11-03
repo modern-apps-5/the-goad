@@ -25,8 +25,8 @@ existed. It is kept as written below. What has changed since:
   (decision 38). The traffic generator is not deployed (decision 44).
 - **Built:** an incident demo. Agents and MCP servers on Tanzu Platform
   (`tanzu/metal-music-app-agentic-system`, decision 40), registered in a
-  GOAD-owned AgentMinder (`terraform/cloud-admin/agentminder` and
-  `agentminder-registration`, decision 41). Their tools, Zammad, Grafana
+  GOAD-owned AgentMinder (`terraform/cloud-admin/agentminder`, and the registration in
+  `terraform/agentic-ops`, decisions 41 and 50). Their tools, Zammad, Grafana
   and Prometheus, run on a platform tools VKS cluster from gitops
   (decision 42).
 - **Not started:** the Oracle as its own Tanzu app (step 3); the chat

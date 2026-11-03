@@ -5,6 +5,57 @@ What changed in this repository, newest first. The reasons are in
 
 
 
+## 2026-11-02 (Agentic ops engineer)
+
+### Added
+
+- The agentic ops engineer, a fifth persona and the developer for agents
+  (issue #91). Decision 50.
+- `terraform/agentic-ops`, moved from
+  `terraform/cloud-admin/agentminder-registration`. Resource addresses are
+  the same. The state is `goad-agentic-ops`.
+- `.github/workflows/agentic-ops.yml`, the same shape as `security-admin.yml`.
+  It never prints the plan, as the job it replaces did.
+- The repository secrets `AGENTIC_OPS_AGENTMINDER_CLIENT_ID` and
+  `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`.
+
+### Changed
+
+- The root logs in to AgentMinder with the variables `agentminder_client_id`
+  and `agentminder_client_secret`. It has no `vcfa` or `kubernetes`
+  provider, reads no remote state, and needs no `TF_HTTP_PASSWORD`. The
+  cloud admin copies the client once from the Secret
+  `ssp-ssp-secret-defaulttenantclient`.
+- The `sc-*` services and `incident_sidecar_token` moved from
+  `terraform/platform-engineer` to `terraform/agentic-ops`. The new root
+  imports them. The platform engineer's root has a `removed` block for each,
+  with `destroy = false`, so either root can apply first.
+- `INCIDENT_SIDECAR_TOKEN` is read by `agentic-ops.yml` and `tanzu-apps.yml`,
+  no longer by `platform-engineer.yml`.
+- A first build runs `cloud-admin`, `platform-engineer`, `agentic-ops`,
+  `security-admin`, then `tanzu-apps`. `cloud-admin` no longer fails once and
+  needs a second run.
+- README, `docs/terraform-state.md`, the runner README and the incident
+  apps' README name the agentic ops engineer as owner.
+
+### Removed
+
+- The job `agentminder-registration` in `cloud-admin.yml`.
+
+### Manual steps
+
+- Before the merge, move the state: `terraform init -migrate-state` in
+  `terraform/agentic-ops` with the new address. The first plan must show no
+  changes except the `sc-*` imports.
+- The cloud admin sets the two new repository secrets from the Secret in
+  namespace `ssp`, without printing them. Commands are in
+  `terraform/runner/README.md`.
+- After the first clean plan, delete the old state
+  `goad-cloud-admin-agentminder-registration` in Gitea.
+- Remove the `removed` blocks in `terraform/platform-engineer/tanzu.tf` and
+  the `import` blocks in `terraform/agentic-ops/tools.tf` once they are in
+  every state.
+
 ## 2026-11-02 (Pen test dashboard: status codes)
 
 ### Changed
