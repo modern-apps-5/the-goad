@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Slow catalog queries and open one Zammad ticket.
+"""Slow catalog queries and open one Zammad ticket, or put the catalog back.
 
 Does not call the agents and does not start a disk-write loop.
 """
@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import time
 import urllib.request
 
@@ -31,6 +32,22 @@ END
 $body$;
 """
 
+# Undoes APPLY_SQL: drops the slow view and gives the table its name back.
+RESTORE_SQL = """
+DO $body$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname = 'albums_data' AND c.relkind = 'r'
+  ) THEN
+    DROP VIEW IF EXISTS albums;
+    ALTER TABLE albums_data RENAME TO albums;
+  END IF;
+END
+$body$;
+"""
+
 
 def kubectl(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(
@@ -42,8 +59,9 @@ def kubectl(*args: str, input_text: str | None = None) -> subprocess.CompletedPr
     )
 
 
-def apply_delay() -> None:
-    sql = APPLY_SQL.replace("\n", " ")
+def run_sql(sql: str) -> None:
+    """Run SQL against the catalog from a Job, as the store's database user."""
+    sql = sql.replace("\n", " ")
     job = f"""
 apiVersion: batch/v1
 kind: Job
@@ -84,7 +102,7 @@ spec:
               drop: ["ALL"]
             runAsNonRoot: true
             runAsUser: 999
-          command: ["sh", "-c", "psql -v ON_ERROR_STOP=1 -c \\"$DELAY_SQL\\" && echo DELAY_APPLIED"]
+          command: ["sh", "-c", "psql -v ON_ERROR_STOP=1 -c \\"$DELAY_SQL\\" && echo SQL_APPLIED"]
 """
     kubectl("delete", "job", "catalog-delay", "-n", NS, "--ignore-not-found=true")
     applied = kubectl("apply", "-f", "-", input_text=job)
@@ -93,11 +111,20 @@ spec:
     deadline = time.time() + 180
     while time.time() < deadline:
         logs = kubectl("logs", "job/catalog-delay", "-n", NS)
-        if "DELAY_APPLIED" in (logs.stdout or ""):
-            print("Database latency applied: catalog queries sleep 10 seconds.")
+        if "SQL_APPLIED" in (logs.stdout or ""):
             return
         time.sleep(3)
-    raise SystemExit("The latency command did not apply.")
+    raise SystemExit("The SQL did not apply.")
+
+
+def apply_delay() -> None:
+    run_sql(APPLY_SQL)
+    print("Database latency applied: catalog queries sleep 10 seconds.")
+
+
+def restore() -> None:
+    run_sql(RESTORE_SQL)
+    print("Catalog restored: catalog queries no longer sleep.")
 
 
 def store_slow() -> None:
@@ -141,6 +168,9 @@ def open_ticket() -> None:
 
 
 def main() -> None:
+    if sys.argv[1:] == ["stop"]:
+        restore()
+        return
     apply_delay()
     store_slow()
     open_ticket()

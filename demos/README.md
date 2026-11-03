@@ -10,6 +10,9 @@ the demo, and the scripts and manifests it runs.
 | [pen-test-manual](pen-test-manual) | The same layers by hand: an attacker pod next to the store, its five attacks blocked by the default deny and the Avi WAF, with the results in the terminal |
 | [platform-engineer-ui](platform-engineer-ui) | A five-minute UI walk as the platform engineer, starting in VCF Automation: the namespaces, cluster, database, VM and private AI model behind the music store, and the Terraform and Argo CD that set them up |
 | [storage-troubleshooting](storage-troubleshooting) | A slow checkout followed down in VCF Operations, from the shop's pods through the VKS worker VM, its host and vSAN, to an IOPS-limited storage policy on the cart and order disks |
+| [platform-engineer-automation](platform-engineer-automation) | The platform engineer's automation end to end: a Terraform change through the `platform-engineer` workflow, then a git change through Argo CD, until VKS adds a worker to the music store cluster |
+| [cloud-admin-automation](cloud-admin-automation) | The cloud admin's automation end to end: a change to the org's quota through the `cloud-admin` workflow and its Terraform roots, to VCF Automation |
+| [agentic-ops-automation](agentic-ops-automation) | The agentic ops engineer's automation end to end: grant an agent a tool in AgentMinder with the `agentic-ops` workflow, change its skill, `cf push` through `tanzu-apps`, and watch it call the VKS cluster in an incident |
 | [golden-path](golden-path) | One line of the shop's code, from a commit to production: GitHub Actions, a Tekton build on a trusted Tanzu Hub base image, Harbor, a deploy pull request, and Argo CD |
 
 ## What a demo folder holds
@@ -29,6 +32,11 @@ the demo, and the scripts and manifests it runs.
 
 Scripts take the context they need as an argument. They never default
 to one person's context, and they print no secret.
+
+What several demos share is in `lib/`: `lib/github.sh` opens and merges
+a pull request through the GitHub API, starts a workflow and waits for
+it. The demos that change `main` use it, so their `reset.sh` puts the lab
+back the same way the demo changed it.
 
 What runs all the time is not here: it is synced by Argo CD from
 `gitops/`, like the pen test's probes in
