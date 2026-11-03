@@ -30,7 +30,12 @@ What changed in this repository, newest first. The reasons are in
   the `ops` root's copy of `ops_password`.
 - `terraform/runner/README.md`: lists the secret
   `SECURITY_ADMIN_NSX_PASSWORD`.
-- `README.md`: the layout lists `terraform/security-admin/`.
+- `README.md`: the intro says what GOAD is and why it exists. The
+  persona table is one line per persona and what it owns, and the diagram
+  shows the handoffs between personas. The layout lists
+  `terraform/security-admin/`.
+- `docs/architecture.md`: "Who owns what", the detailed persona table
+  that was in the README.
 
 ## 2026-11-03 (Docs: public release, part 2)
 

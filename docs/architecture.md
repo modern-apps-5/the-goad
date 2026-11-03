@@ -1,6 +1,27 @@
 # Architecture
 
-What runs where, and the order the automation builds it in.
+Who owns what, what runs where, and the order the automation builds it
+in.
+
+## Who owns what
+
+| Persona | Tool | What it builds | Where |
+|---|---|---|---|
+| Cloud admin | Terraform | Stage 1: the org, VCF SSO, quota, networking, Avi load balancer, DSM policy | [terraform/cloud-admin/org](../terraform/cloud-admin/org) |
+| Cloud admin | Terraform | Stage 2: inside the org, the users and their roles, the Service Engine Group, and a project with a VKS cluster for AgentMinder | [terraform/cloud-admin/org-config](../terraform/cloud-admin/org-config) |
+| Cloud admin | Terraform | Stage 3: AgentMinder, installed on that cluster with Helm | [terraform/cloud-admin/agentminder](../terraform/cloud-admin/agentminder) |
+| Cloud admin | Terraform | VCF Operations content: platform observability dashboards and alerts | [terraform/cloud-admin/ops](../terraform/cloud-admin/ops) |
+| Platform engineer | Terraform | Supervisor Namespaces, the org's VM image, the secrets in Secret Store, Argo CD and the handoff to it, and the incident apps' Tanzu Platform space, `goad-qwen` and `k8s-mcp-cluster` | [terraform/platform-engineer](../terraform/platform-engineer) |
+| Platform engineer | Argo CD | A DSM PostgreSQL database, Private AI Services, and the Qwen model | [gitops/private-ai](../gitops/private-ai) |
+| Platform engineer | Argo CD | The shop's DSM catalog database, its VKS cluster, its users VM, and the endpoints that point the VKS cluster at the VM and at the catalog | [gitops/music-store](../gitops/music-store) |
+| Platform engineer | Argo CD | Inside the shop's VKS cluster: the ESO store, the Gateway certificate, and what the platform tools cluster watches it with | [gitops/music-store-platform](../gitops/music-store-platform) |
+| Platform engineer | Argo CD | The platform tools VKS cluster, and in it the incident demo's Zammad, Grafana and Prometheus | [gitops/platform-tools](../gitops/platform-tools), [gitops/platform-tools-apps](../gitops/platform-tools-apps) |
+| Platform engineer | Argo CD | The shop's containers, on the VKS cluster, published through Gateway API with Avi's WAF | [gitops/music-store-apps](../gitops/music-store-apps) |
+| Platform engineer | Argo CD, GitHub workflow `music-store-images` | The build of the shop's images: Tekton on the platform tools cluster, and a pull request with the new image tags | [gitops/platform-tools-builds](../gitops/platform-tools-builds), [.github/workflows/music-store-images.yml](../.github/workflows/music-store-images.yml) |
+| Agentic ops engineer | Terraform | The incident demo's agents and MCP servers registered in AgentMinder, their clients handed to the apps as Cloud Foundry services (`am-*`), and the agents' tool services (`sc-*`) | [terraform/agentic-ops](../terraform/agentic-ops) |
+| Agentic ops engineer | GitHub workflow `tanzu-apps` | The incident agents and MCP servers, as Cloud Foundry apps on Tanzu Platform | [tanzu/metal-music-app-agentic-system](../tanzu/metal-music-app-agentic-system) |
+| Developer | Code | The shop's source: store, cart, orders, and chat | [apps/music-store](../apps/music-store) |
+| Security admin | Terraform | The vDefend guardrails for the music store, pushed into its VKS cluster through Antrea. [docs/security-architecture.md](security-architecture.md) shows every layer of the shop's security | [terraform/security-admin](../terraform/security-admin) |
 
 ## What runs where
 
