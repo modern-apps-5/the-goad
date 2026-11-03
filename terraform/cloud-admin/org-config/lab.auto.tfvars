@@ -8,8 +8,7 @@ vcfa_url = "https://auto.gpu.set.lab"
 
 allow_unverified_ssl = true
 
-# The platform engineers' AD group. Its members administer default-project
-# and author kro RGDs in the project kro-authors.
+# The platform engineers' AD group. Its members administer default-project.
 platform_engineer_group = "ans-platform-engineer@set.lab"
 
 # The AD service account that terraform/platform-engineer logs in as, with

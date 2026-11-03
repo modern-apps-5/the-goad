@@ -104,7 +104,7 @@ It logs in to the org as `cloud-admin` and imports from VCF SSO the AD
 group `ans-platform-engineer@set.lab`, whose members become admins of the
 project `default-project`, and the AD service account
 `svc.platform_engineer@set.lab`. It also creates the Service Engine
-Group, the project `kro-authors` for kro APIs, the project `cloud-admin`,
+Group, the project `cloud-admin`,
 a namespace in it, and the VKS cluster `agentminder`. The cluster takes a
 while to come up.
 

@@ -4,6 +4,15 @@ What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
 
+## 2026-11-03 (Cloud admin: kro removed)
+
+### Removed
+
+- `terraform/cloud-admin/org-config/kro.tf`: the project `kro-authors`,
+  its Supervisor Namespace, and the platform engineer group's `edit` role
+  in it. The outputs `kro_authors_project` and `kro_authors_namespace`, and
+  the variable `kro_authors_project`, are removed too. Decision 51.
+
 ## 2026-11-03 (Docs: public release, part 3)
 
 ### Added
