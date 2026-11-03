@@ -1,0 +1,18 @@
+# Secrets for the agentic ops engineer's root. Copy to terraform.tfvars,
+# which git ignores.
+#
+# Shared by the team. If the demo is already built, copy the team's
+# terraform.tfvars and do not write your own.
+
+# AgentMinder's default tenant admin client. The cloud admin copies both
+# once from the Secret ssp-ssp-secret-defaulttenantclient in namespace ssp.
+# GitHub secrets AGENTIC_OPS_AGENTMINDER_CLIENT_ID and
+# AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET.
+agentminder_client_id     = "CHANGE-ME"
+agentminder_client_secret = "CHANGE-ME"
+
+# Bearer token between each diagnostic agent and its AgentMinder sidecar,
+# written to the sc-* services (tools.tf). GitHub secret
+# INCIDENT_SIDECAR_TOKEN. tanzu-apps.yml reads the same value, so change
+# it in both places at once.
+incident_sidecar_token = "CHANGE-ME"

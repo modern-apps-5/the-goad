@@ -1,6 +1,7 @@
 # The handoff to the incident apps: one user-provided service for each
-# diagnostic agent, in the space the platform engineer owns, with the
-# agent's AgentMinder client and its MCP server's gateway URL. The manifest
+# diagnostic agent, in the space the platform engineer owns (this root only
+# reads it), with the agent's AgentMinder client and its MCP server's
+# gateway URL. The manifest
 # (tanzu/metal-music-app-agentic-system/manifest.yml) binds each one to its
 # agent, and the sidecar's agentminder-env.sh turns it into the variables
 # the AgentMinder SDK reads. So the secrets go from AgentMinder to Cloud
@@ -9,7 +10,8 @@
 # A changed secret reaches an app when it restarts: cf restart <app>.
 #
 # The provider logs in with an access token, CF_ACCESS_TOKEN, that the
-# cf-token action gets as goad-deployer, as in terraform/platform-engineer.
+# cf-token action gets as goad-deployer, as in terraform/platform-engineer. The sc-* services
+# are in tools.tf.
 # On a machine: CF_ACCESS_TOKEN=$(~/.claude/skills/lab-creds/cf-token.py).
 provider "cloudfoundry" {
   api_url             = var.cf_api_url

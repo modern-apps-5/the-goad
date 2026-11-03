@@ -1,12 +1,11 @@
-# The cloud admin's four Terraform roots, on the lab's self-hosted runner.
+# The cloud admin's three Terraform roots, on the lab's self-hosted runner.
 # GitHub's own runners cannot reach VCF Automation or the lab's Gitea server.
 #
-# Four jobs, in order: org creates the org (terraform/cloud-admin/org),
+# Three jobs, in order: org creates the org (terraform/cloud-admin/org),
 # org-config configures things inside it (terraform/cloud-admin/org-config),
-# agentminder installs AgentMinder on the cluster org-config made
-# (terraform/cloud-admin/agentminder), and agentminder-registration
-# registers the incident demo's agents in it
-# (terraform/cloud-admin/agentminder-registration).
+# and agentminder installs AgentMinder on the cluster org-config made
+# (terraform/cloud-admin/agentminder). The agents' registration in
+# AgentMinder is the agentic ops engineer's: agentic-ops.yml.
 #
 # It runs only when a person starts it: Actions, this workflow, Run workflow.
 # It plans. It applies only if "apply" is ticked, and only on main. A pull
@@ -139,72 +138,3 @@ jobs:
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan
-
-  # Registers the incident demo's agents and MCP servers in AgentMinder, and
-  # puts each agent's client in a user-provided service in the incident
-  # apps' space (terraform/cloud-admin/agentminder-registration). See
-  # decision 41.
-  #
-  # AgentMinder returns each app's client secret when the app is read, and
-  # the restapi provider keeps the response in attributes it does not mark
-  # sensitive. A plan prints their old values when they change, and an error
-  # can print them too: "inconsistent result after apply" prints the whole
-  # response. So this job never prints Terraform's output. The summary lists
-  # only each resource and its action, and a failure prints only each
-  # error's title and resource.
-  agentminder-registration:
-    needs: agentminder
-    runs-on: [self-hosted, lab]
-    timeout-minutes: 30
-    defaults:
-      run:
-        shell: bash
-        working-directory: terraform/cloud-admin/agentminder-registration
-    env:
-      # cloud-admin, the user the org job made. Same value as there.
-      TF_VAR_cloud_admin_password: ${{ secrets.CLOUD_ADMIN_PASSWORD }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: hashicorp/setup-terraform@v4
-        with:
-          terraform_version: "~1.15"
-          terraform_wrapper: false
-      # cloudfoundry.tf: the cloudfoundry provider reads CF_ACCESS_TOKEN,
-      # which this sets, for the am-* user-provided services. The token
-      # lasts 30 minutes.
-      - uses: ./.github/actions/cf-token
-        with:
-          client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
-      - run: terraform init
-      # Prints only the lines that name an error and its resource, never a
-      # value.
-      - name: Error filter
-        run: |
-          mkdir -p "$RUNNER_TEMP/bin"
-          cat > "$RUNNER_TEMP/bin/errors-only" <<'EOF'
-          #!/usr/bin/env bash
-          grep -E '^(Error: |  with |When applying changes to [^ ,]+)' \
-            | sed -E 's/^(When applying changes to [^ ,]+).*/\1/'
-          echo "(Terraform's full error output is hidden: it can hold client secrets.)"
-          EOF
-          chmod +x "$RUNNER_TEMP/bin/errors-only"
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      - name: Plan
-        run: |
-          set -euo pipefail
-          terraform plan -no-color -lock-timeout=5m -out=tfplan > /dev/null 2> tf.err \
-            || { errors-only < tf.err; exit 1; }
-          {
-            echo '## agentminder-registration'
-            echo '```'
-            terraform show -json tfplan | jq -r '
-              [.resource_changes[] | select(.change.actions != ["no-op"])
-               | "\(.change.actions | join(",")) \(.address)"]
-              | if length == 0 then "No changes." else .[] end'
-            echo '```'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Apply
-        if: env.APPLY == 'true'
-        run: |
-          terraform apply -no-color -lock-timeout=5m tfplan > /dev/null 2> tf.err \
-            || { errors-only < tf.err; exit 1; }

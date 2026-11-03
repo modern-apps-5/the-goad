@@ -1,21 +1,22 @@
-# Cloud admin, stage 4: AgentMinder registration
+# Agentic ops engineer: AgentMinder registration
 
-The cloud admin's fourth Terraform root. It registers the incident demo's
+The agentic ops engineer's Terraform root. It registers the incident demo's
 agents and MCP servers in the AgentMinder that
-[../agentminder](../agentminder) installed. Apply `terraform/cloud-admin/org`,
-`org-config`, and `agentminder` first. The state is
-`goad-cloud-admin-agentminder-registration`. See
-[decision 41](../../../docs/decisions.md).
+[../cloud-admin/agentminder](../cloud-admin/agentminder) installed, and
+wires the agents' `am-*` and `sc-*` services. Apply the cloud admin's roots
+and `terraform/platform-engineer` first: AgentMinder and the space must
+exist. The state is `goad-agentic-ops`. See
+[decisions 41 and 50](../../docs/decisions.md).
 
 It is a separate root because the `restapi` provider's configuration needs
-AgentMinder running, and stage 3 creates it. One root could not plan a
-fresh build.
+AgentMinder running. One root could not plan a fresh build.
 
 | File | What it creates |
 |---|---|
-| `providers.tf` | Logs in to VCF Automation, gets the AgentMinder cluster's kubeconfig, reads the admin client from the cluster, and configures the `restapi` provider with it. |
+| `providers.tf` | Takes the admin client from two variables, gets a token from AgentMinder, and configures the `restapi` providers with it. |
 | `agentminder.tf` | The MCP resource servers, the clients, one role policy for each diagnostic client, and each client's entry in `AuthClientPolicy`. |
-| `cloudfoundry.tf` | One user-provided service for each diagnostic agent, in org `Goad`, space `metal-music-app-agentic-system`. |
+| `cloudfoundry.tf` | One `am-*` user-provided service for each diagnostic agent, in org `Goad`, space `metal-music-app-agentic-system`. |
+| `tools.tf` | The `sc-*` user-provided services: the orchestrator's tool and one for each diagnostic agent's sidecar. |
 | `outputs.tf` | `agent_clients` and `mcp_servers`, for people. |
 
 ## What it creates
@@ -35,21 +36,31 @@ fresh build.
   `agentminder-client` and holds `client_id`, `client_secret`, and
   `gateway_url`. The space is the platform engineer's: this root only
   reads it.
+- Four `sc-*` user-provided services, tagged `mcp-server`:
+  `sc-incident-response-agent-orch`, which points at the orchestrator, and
+  `sc-lb-diagnostic-agent-avi`, `sc-k8s-diagnostic-agent-k8s` and
+  `sc-vcf-diagnostic-agent-vcf`, which point at each agent's sidecar and
+  hold `incident_sidecar_token`. They were the platform engineer's, in
+  `tanzu.tf`. This root imports them with `import` blocks, and the
+  platform engineer's root has a `removed` block for each with
+  `destroy = false`. Either root can apply first and nothing is deleted.
+  Remove the blocks once they are in every state.
 
 ## Login
 
-The root logs in to VCF Automation as `cloud-admin`, with
-`cloud_admin_password`, as stage 3 does. It reads the state of
-[../org-config](../org-config) for the cluster names, and gets the
-AgentMinder cluster's kubeconfig with `vcfa_vks_cluster_kubeconfig`.
+The root logs in to AgentMinder as the default tenant's admin OAuth client.
+The `ssp` chart makes that client on its first install and keeps it in the
+Secret `ssp-ssp-secret-defaulttenantclient`, in the namespace `ssp` of the
+AgentMinder cluster. The root reads no cluster and no remote state. It takes
+the client as two sensitive variables, `agentminder_client_id` and
+`agentminder_client_secret`. The GitHub secrets are
+`AGENTIC_OPS_AGENTMINDER_CLIENT_ID` and
+`AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`.
 
-Then a `kubernetes_secret_v1` data source reads the `ssp` chart's Secret
-`ssp-ssp-secret-defaulttenantclient`, in the namespace `ssp`. That is the
-default tenant's admin OAuth client, and it configures the `restapi`
-provider. Stage 3 has no outputs for it and passes no secret through
-remote state.
-
-AgentMinder has no service accounts yet. When it has, use one here.
+The cloud admin copies the two values once, without printing them. The
+commands are in [../runner/README.md](../runner/README.md). The client has
+full admin in AgentMinder, so the agentic ops engineer does too. AgentMinder
+has no service accounts yet. When it has, use one here.
 
 The Cloud Foundry login is an access token, `CF_ACCESS_TOKEN`, that the
 `cf-token` action gets as `goad-deployer`.
@@ -63,14 +74,12 @@ The token comes from an `http` data source, not from restapi's
 
 ## Run it
 
-The remote state of `org-config` is read with the `http` backend. A data
-source cannot read `backend.hcl`, so the token must also be in the
-environment, with the Cloud Foundry token.
+The root reads no remote state, so it needs no `TF_HTTP_PASSWORD`.
+`backend.hcl` is still needed for the state itself.
 
 ```sh
-cp terraform.tfvars.example terraform.tfvars   # cloud_admin_password; copy the team's if the demo is built
+cp terraform.tfvars.example terraform.tfvars   # the admin client and the sidecar token; copy the team's if the demo is built
 cp backend.hcl.example backend.hcl             # then put the state token in it
-export TF_HTTP_PASSWORD=<the same token>
 export CF_ACCESS_TOKEN=$(~/.claude/skills/lab-creds/cf-token.py)
 terraform init -backend-config=backend.hcl
 terraform plan -out=tfplan >/dev/null
@@ -90,11 +99,12 @@ secret. Use the commands above, as the workflow does. Do the same for
 
 ## In GitHub
 
-Actions, `cloud-admin`, **Run workflow**. This root is its fourth job,
-`agentminder-registration`, after `agentminder`. Tick `apply` to apply. It
-applies only on `main`. The job's summary lists each resource and its
-action, and nothing else. It runs the `cf-token` action, and uses the
-repository secrets `CLOUD_ADMIN_PASSWORD` and `GITEA_STATE_TOKEN`.
+Actions, `agentic-ops`, **Run workflow**. Tick `apply` to apply. It applies
+only on `main`. The job's summary lists each resource and its action, and
+nothing else. It runs the `cf-token` action, and uses the repository
+secrets `AGENTIC_OPS_AGENTMINDER_CLIENT_ID`,
+`AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`, `INCIDENT_SIDECAR_TOKEN`,
+`TANZU_HUB_CLIENT_ASSERTION` and `GITEA_STATE_TOKEN`.
 
 ## Outputs
 
@@ -119,6 +129,17 @@ would still carry the values. See decision 41.
 Anyone with the Gitea state token can read the client secrets in this
 root's state, and anyone who can read the `am-*` services can read them
 there. Secret Store is a later step.
+
+## The move from cloud-admin
+
+This root was `terraform/cloud-admin/agentminder-registration`, with the state
+`goad-cloud-admin-agentminder-registration`. Resource addresses did not
+change. Move the state once, by hand, before the merge. Initialize the
+old state, with the old address in `backend.tf`. Then change the address,
+lock address and unlock address to `goad-agentic-ops` and run
+`terraform init -migrate-state -backend-config=backend.hcl`. The first plan must show no changes except
+the `sc-*` imports. Keep the old state in Gitea until that plan is clean,
+then delete it.
 
 ## The one-time import
 

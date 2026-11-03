@@ -8,9 +8,9 @@
 #   terraform init -backend-config=backend.hcl
 terraform {
   backend "http" {
-    address        = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-cloud-admin-agentminder-registration"
-    lock_address   = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-cloud-admin-agentminder-registration/lock"
-    unlock_address = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-cloud-admin-agentminder-registration/lock"
+    address        = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-agentic-ops"
+    lock_address   = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-agentic-ops/lock"
+    unlock_address = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-agentic-ops/lock"
     lock_method    = "POST"
     unlock_method  = "DELETE"
     username       = "goad-terraform"

@@ -1,9 +1,0 @@
-# Secrets for the cloud admin's AgentMinder registration root. Copy to
-# terraform.tfvars, which git ignores.
-#
-# Shared by the team. If the demo is already built, copy the team's
-# terraform.tfvars and do not write your own.
-
-# Password of the org's one local user (cloud_admin_username). The same
-# value as cloud_admin_password in terraform/cloud-admin/org.
-cloud_admin_password = "CHANGE-ME"

@@ -254,12 +254,6 @@ variable "incident_k8s_token" {
   sensitive   = true
 }
 
-variable "incident_sidecar_token" {
-  type        = string
-  description = "Bearer token between each diagnostic agent and its AgentMinder sidecar. GitHub secret INCIDENT_SIDECAR_TOKEN; tanzu-apps.yml sets the same value as AGENTMINDER_SIDECAR_TOKEN."
-  sensitive   = true
-}
-
 # --- The music store's image builds ---
 
 variable "music_store_robot_username" {
