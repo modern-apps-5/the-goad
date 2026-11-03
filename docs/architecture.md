@@ -69,6 +69,13 @@ themselves are Cloud Foundry apps in
 [tanzu/metal-music-app-agentic-system](../tanzu/metal-music-app-agentic-system),
 and `scripts/incident-walk.sh` starts a walk.
 
+Tanzu Platform's runtime is a VKS cluster on the same Supervisor. The
+apps that `cf push` sends to it run on that cluster, so the incident
+agents run on VKS like the music store, with Tanzu Platform as
+the platform as a service on top. The foundation and its runtime cluster
+exist before GOAD is built: this repository makes only the space, its
+services, and the apps.
+
 ## Automation flow
 
 Six Terraform roots, from a machine or from GitHub, then Argo CD and the
@@ -127,7 +134,7 @@ flowchart TD
     end
 
     subgraph tanzu_apps["6. Workflow tanzu-apps: tanzu/metal-music-app-agentic-system"]
-        incident_apps["The nine incident apps, cf push, then network policies"]
+        incident_apps["The nine incident apps, cf push, then network policies. They run on Tanzu Platform's VKS runtime cluster"]
     end
 
     subgraph security_admin["7. Security admin: terraform/security-admin"]

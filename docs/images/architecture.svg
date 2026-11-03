@@ -178,4 +178,6 @@
   <text x="1076" y="112" text-anchor="middle" class="edgetext">identities and tool policies</text>
   <path d="M1035,420 L1005,420 L1005,458 L740,458 L740,478" class="dash"/>
   <text x="872" y="451" text-anchor="middle" class="edgetext">model calls</text>
+  <rect x="1195" y="582" width="200" height="24" rx="5" fill="#f4f7fb" stroke="#9fb3cf"/>
+  <text x="1295" y="599" text-anchor="middle" class="tag">VKS runtime cluster</text>
 </svg>

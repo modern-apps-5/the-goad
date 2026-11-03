@@ -26,9 +26,10 @@ The lab must already have:
   addon repository.
 - Avi's `System-WAF-Policy`, set to enforcement if the shop's WAF must
   block.
-- A Tanzu Platform foundation with the org `Goad`, and the Tanzu Hub
-  account `goad-deployer` that the workflows log in as. The incident apps
-  run there.
+- A Tanzu Platform foundation with its runtime on a VKS cluster, the org
+  `Goad`, and the Tanzu Hub account `goad-deployer` that the workflows
+  log in as. The incident apps run there: a `cf push` places them on the
+  runtime's VKS cluster.
 - NSX with vDefend, for the security admin's guardrails, and VCF
   Operations, for the cloud admin's dashboards and for VCF SSO.
 - An Active Directory in VCF SSO, with a group for the platform engineers

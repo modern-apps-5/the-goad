@@ -32,8 +32,12 @@ What changed in this repository, newest first. The reasons are in
   `SECURITY_ADMIN_NSX_PASSWORD`.
 - `README.md`: the intro says what GOAD is and why it exists. The
   persona table is one line per persona and what it owns, and the diagram
-  is an architecture picture, `docs/images/architecture.svg`. The layout lists
+  is an architecture picture, `docs/images/architecture.svg`. The
+  repository layout moves to `CONTRIBUTING.md`, and lists
   `terraform/security-admin/`.
+- The README, `docs/architecture.md`, `docs/build.md`, the incident apps'
+  README, and the picture say that Tanzu Platform's runtime is a VKS
+  cluster, where the apps pushed to it run.
 - `docs/architecture.md`: "Who owns what", the detailed persona table
   that was in the README.
 

@@ -10,7 +10,8 @@ that a modern application needs, side by side in one platform:
 - PostgreSQL databases from Data Services Manager
 - A private AI model on Private AI Services
 - A platform as a service for AI workloads on Tanzu Platform, where the
-  AI agents run
+  AI agents run. Tanzu Platform's runtime is a VKS cluster: the apps
+  pushed to it run there
 - Governance for those agents in AgentMinder: their identities, and
   which tools each one may call
 - Networking, load balancing, and security from NSX, vDefend, and Avi
@@ -48,8 +49,9 @@ each persona builds, with which tool, and where it is in this repository.
 Users reach the music store through Avi's load balancer and web firewall.
 The store runs on a VKS cluster, with its users service on a VM, its
 catalog in a DSM PostgreSQL database, and its chat on a private model in
-Private AI Services. When something breaks, AI agents on Tanzu Platform
-read the incident ticket and diagnose it. Every tool call they make goes
+Private AI Services. When something breaks, AI agents on Tanzu Platform,
+running on its VKS runtime cluster, read the incident ticket and diagnose
+it. Every tool call they make goes
 through AgentMinder, which decides which agent may call which tool.
 
 [docs/architecture.md](docs/architecture.md) has every resource behind it,
@@ -58,42 +60,14 @@ and how the automation builds them.
 ## Build it
 
 GOAD needs a VCF Automation 9.1 region on a Supervisor, with Avi, Data
-Services Manager, Private AI Services, and a Tanzu Platform foundation.
+Services Manager, Private AI Services, and a Tanzu Platform foundation
+with its runtime on a VKS cluster.
 [docs/build.md](docs/build.md) lists everything the lab needs, then builds
 GOAD from an empty org, one persona at a time.
 
 This repository names one lab's addresses and policies. To build GOAD in
 another lab, change the lab values first: see
 [docs/build.md](docs/build.md#things-to-know).
-
-## Repository layout
-
-```
-terraform/cloud-admin/org/     Stage 1, provider (System) org scope: creates the org
-terraform/cloud-admin/org-config/  Stage 2, inside the org: users, roles, Service Engine Group, kro-authors, AgentMinder's cluster
-terraform/cloud-admin/agentminder/ Stage 3, AgentMinder on that cluster, with Helm
-terraform/cloud-admin/ops/      VCF Operations content: platform observability dashboards (dashboards/*.json) and alerts
-terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD handoff, Tanzu Platform space
-  manifests/                   Manifests that Terraform applies
-terraform/agentic-ops/         The incident demo's agents registered in AgentMinder, and the am-* and sc-* services
-terraform/security-admin/      The vDefend guardrails for the music store, in NSX
-terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
-gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
-gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster
-apps/music-store/              The developer's code: store, cart, order, chat. The platform engineer builds it into images
-gitops/music-store-apps/       The shop's containers, deployed into the VKS cluster by the platform engineer, from the built images
-gitops/platform-tools-builds/  The image build: Tekton pipeline, tasks, and the Dockerfile template, in the platform tools cluster
-gitops/platform-tools-apps/    What runs in the platform tools cluster: the incident demo's Zammad, Grafana, Prometheus
-tanzu/<space>/                 Cloud Foundry apps that tanzu-apps.yml pushes into that space of org Goad
-scripts/                       What a person runs by hand: setup once, the SDK mirror, and the incident walk
-demos/<demo>/                  One demo each: its run guide end to end, and the scripts the presenter runs
-.github/workflows/             One Terraform workflow for each persona, tanzu-apps.yml, and music-store-images.yml
-.github/actions/cf-login/      Installs the cf CLI and logs in to Tanzu Platform as goad-deployer
-.github/actions/cf-token/      Gets a Tanzu Platform token for goad-deployer, for Terraform
-docs/                          Design, script, plan, decisions
-```
-
-[CONTRIBUTING.md](CONTRIBUTING.md) says where a new file goes.
 
 ## Documents
 
@@ -113,6 +87,7 @@ docs/                          Design, script, plan, decisions
 |---|---|
 | [docs/build.md](docs/build.md) | What the lab needs, and the first build, step by step |
 | [docs/github-workflows.md](docs/github-workflows.md) | Running the Terraform roots and the app pushes from GitHub Actions |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | The repository layout, and where a new file goes |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, the shared secret files, and how to set up a machine |
 | [terraform/runner/README.md](terraform/runner/README.md) | The self-hosted runner that the workflows run on, and how to build it |
 

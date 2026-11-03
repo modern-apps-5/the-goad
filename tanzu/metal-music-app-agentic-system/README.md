@@ -1,8 +1,10 @@
 # Metal Music incident apps
 
 The nine Cloud Foundry apps of the incident demo, in Tanzu Platform org
-`Goad`, space `metal-music-app-agentic-system`, foundation `goad`. Each
-directory is one app, pushed as it is. `manifest.yml` lists them all.
+`Goad`, space `metal-music-app-agentic-system`, foundation `goad`. The
+foundation's runtime is a VKS cluster on the lab's Supervisor, and each
+app runs on that cluster. Each directory is one app,
+pushed as it is. `manifest.yml` lists them all.
 
 [.github/workflows/tanzu-apps.yml](../../.github/workflows/tanzu-apps.yml)
 pushes them on every change to this directory on `main`, and from the
