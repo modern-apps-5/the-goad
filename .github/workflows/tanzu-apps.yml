@@ -56,6 +56,7 @@ env:
 jobs:
   cli:
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 15
     defaults:
       run:
@@ -80,6 +81,7 @@ jobs:
     needs: cli
     name: push ${{ matrix.app }}
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -174,6 +176,7 @@ jobs:
   network-policies:
     needs: push
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 10
     defaults:
       run:

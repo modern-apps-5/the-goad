@@ -57,3 +57,6 @@ secrets in scope, and this repository is public. So:
   action has a new release.
 - A workflow from a pull request by anyone outside the organization waits
   for a maintainer's approval before it runs.
+- Every job on the self-hosted runner sets `environment: lab`. The lab's
+  secrets are environment secrets in `lab`, not repository secrets, and
+  `lab` deploys only from `main`. A new job on the runner sets it too.

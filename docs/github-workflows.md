@@ -24,8 +24,12 @@ gh workflow run cloud-admin.yml -f apply=true   # plan, then apply
 ```
 
 A run plans, and the plan is on the run's summary page. It applies only
-with `apply`, and only on `main`: a run on another branch can plan and
-cannot apply.
+with `apply`, and only on `main`.
+
+Every job that runs on the lab's runner uses the GitHub environment
+`lab`, which holds the lab's secrets and only deploys from `main`. A run
+of these workflows on another branch stops before it starts, and never
+sees a secret. To try a workflow change, merge it, then run a plan.
 
 `tanzu-apps` runs on every push to `main` that changes
 `tanzu/metal-music-app-agentic-system`, the workflow itself, or the

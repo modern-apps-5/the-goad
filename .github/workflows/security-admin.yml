@@ -38,6 +38,7 @@ env:
 jobs:
   terraform:
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 30
     defaults:
       run:
