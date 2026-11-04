@@ -17,6 +17,11 @@ What changed in this repository, newest first. The reasons are in
   `tf-plan`. Their logs and summaries no longer print the full plan, whose
   attribute values are public in a public repository. `agentic-ops`
   already did this.
+- `CONTRIBUTING.md`: the rule for changes to `main`.
+
+Repository settings changed at the same time: the `main` ruleset now needs
+a pull request with one approval. Maintainers and admins can bypass the
+approval when they merge, but not push to `main` directly.
 
 ## 2026-11-03 (Workflows: locked down for a public repository)
 
