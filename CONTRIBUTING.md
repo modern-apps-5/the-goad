@@ -60,3 +60,12 @@ secrets in scope, and this repository is public. So:
 - Every job on the self-hosted runner sets `environment: lab`. The lab's
   secrets are environment secrets in `lab`, not repository secrets, and
   `lab` deploys only from `main`. A new job on the runner sets it too.
+
+## Changes to `main`
+
+Every change to `main` goes through a pull request: nobody pushes to it
+directly, force-pushes it, or deletes it. A pull request needs one
+approval. A maintainer or admin can merge their own pull request without
+one, by bypassing the rule when they merge. `main` is what the workflows
+apply to the lab, so this keeps every change to the lab reviewed or owned
+by a maintainer.

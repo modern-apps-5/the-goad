@@ -1,0 +1,35 @@
+# Plan a Terraform root to tfplan, and show only what changes: the action
+# and address of each resource, in the log and on the run's summary page.
+#
+# The repository is public, so its run logs and summaries are public too.
+# A full plan prints attribute values: addresses, names, and settings of
+# the lab. The saved tfplan still has the full plan for the apply step.
+# Errors still go to the log in full.
+name: tf-plan
+description: Plan a Terraform root and show only the changed resource addresses.
+inputs:
+  working-directory:
+    description: The Terraform root to plan.
+    required: true
+  title:
+    description: The heading on the run's summary page.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        TITLE: ${{ inputs.title }}
+      run: |
+        set -euo pipefail
+        terraform plan -no-color -lock-timeout=5m -out=tfplan > /dev/null
+        {
+          echo "## $TITLE"
+          echo '```'
+          terraform show -json tfplan | jq -r '
+            [.resource_changes[]? | select(.change.actions != ["no-op"])
+             | "\(.change.actions | join(",")) \(.address)"]
+            | if length == 0 then "No changes." else .[] end'
+          echo '```'
+        } | tee -a "$GITHUB_STEP_SUMMARY"

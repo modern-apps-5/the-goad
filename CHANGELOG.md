@@ -14,6 +14,25 @@ What changed in this repository, newest first. The reasons are in
 
 Repository settings changed at the same time: the environment `lab` was
 created, with `main` as its only deployment branch.
+## 2026-11-04 (Workflows: plans show only what changes)
+
+### Added
+
+- `.github/actions/tf-plan`: plans a Terraform root and shows, in the log
+  and on the run's summary page, only the action and address of each
+  changed resource. The saved plan that the apply step uses is unchanged.
+
+### Changed
+
+- `cloud-admin`, `platform-engineer`, and `security-admin` plan with
+  `tf-plan`. Their logs and summaries no longer print the full plan, whose
+  attribute values are public in a public repository. `agentic-ops`
+  already did this.
+- `CONTRIBUTING.md`: the rule for changes to `main`.
+
+Repository settings changed at the same time: the `main` ruleset now needs
+a pull request with one approval. Maintainers and admins can bypass the
+approval when they merge, but not push to `main` directly.
 
 ## 2026-11-03 (Workflows: locked down for a public repository)
 

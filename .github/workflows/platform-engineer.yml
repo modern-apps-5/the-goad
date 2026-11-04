@@ -85,9 +85,10 @@ jobs:
           client-assertion: ${{ secrets.TANZU_HUB_CLIENT_ASSERTION }}
       - run: terraform init
       - name: Plan
-        run: |
-          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
-          { echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/tf-plan
+        with:
+          working-directory: terraform/platform-engineer
+          title: platform-engineer
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan
