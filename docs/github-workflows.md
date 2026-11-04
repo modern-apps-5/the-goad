@@ -23,7 +23,11 @@ gh workflow run cloud-admin.yml                 # plan
 gh workflow run cloud-admin.yml -f apply=true   # plan, then apply
 ```
 
-A run plans, and the plan is on the run's summary page. It applies only
+A run plans, and the run's summary page lists what the plan changes: the
+action and address of each resource. The log and the summary leave out
+attribute values, because the repository is public and so are its runs.
+To see a full plan, run `terraform plan` on a machine set up as in
+[terraform-state.md](terraform-state.md). A run applies only
 with `apply`, and only on `main`: a run on another branch can plan and
 cannot apply.
 
