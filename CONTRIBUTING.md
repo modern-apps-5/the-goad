@@ -57,3 +57,12 @@ secrets in scope, and this repository is public. So:
   action has a new release.
 - A workflow from a pull request by anyone outside the organization waits
   for a maintainer's approval before it runs.
+
+## Changes to `main`
+
+Every change to `main` goes through a pull request: nobody pushes to it
+directly, force-pushes it, or deletes it. A pull request needs one
+approval. A maintainer or admin can merge their own pull request without
+one, by bypassing the rule when they merge. `main` is what the workflows
+apply to the lab, so this keeps every change to the lab reviewed or owned
+by a maintainer.

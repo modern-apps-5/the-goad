@@ -79,9 +79,10 @@ jobs:
           terraform_wrapper: false
       - run: terraform init
       - name: Plan
-        run: |
-          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
-          { echo '## org'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/tf-plan
+        with:
+          working-directory: terraform/cloud-admin/org
+          title: org
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan
@@ -105,9 +106,10 @@ jobs:
           terraform_wrapper: false
       - run: terraform init
       - name: Plan
-        run: |
-          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
-          { echo '## org-config'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/tf-plan
+        with:
+          working-directory: terraform/cloud-admin/org-config
+          title: org-config
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan
@@ -132,9 +134,10 @@ jobs:
           terraform_wrapper: false
       - run: terraform init
       - name: Plan
-        run: |
-          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
-          { echo '## ops'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/tf-plan
+        with:
+          working-directory: terraform/cloud-admin/ops
+          title: ops
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan
@@ -161,9 +164,10 @@ jobs:
           terraform_wrapper: false
       - run: terraform init
       - name: Plan
-        run: |
-          terraform plan -no-color -lock-timeout=5m -out=tfplan | tee plan.txt
-          { echo '## agentminder'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/tf-plan
+        with:
+          working-directory: terraform/cloud-admin/agentminder
+          title: agentminder
       - name: Apply
         if: env.APPLY == 'true'
         run: terraform apply -no-color -lock-timeout=5m tfplan
