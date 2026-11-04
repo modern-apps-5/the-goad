@@ -55,6 +55,7 @@ jobs:
   # error's title and resource.
   terraform:
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 30
     defaults:
       run:

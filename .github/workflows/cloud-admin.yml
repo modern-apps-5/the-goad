@@ -49,6 +49,7 @@ env:
 jobs:
   org:
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 30
     defaults:
       run:
@@ -90,6 +91,7 @@ jobs:
   org-config:
     needs: org
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 60
     defaults:
       run:
@@ -118,6 +120,7 @@ jobs:
   # It needs nothing the other jobs make, so it runs beside them.
   ops:
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 15
     defaults:
       run:
@@ -145,6 +148,7 @@ jobs:
   agentminder:
     needs: org-config
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 60
     defaults:
       run:

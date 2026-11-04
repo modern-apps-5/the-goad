@@ -121,7 +121,7 @@ means that the App does not have the permission.
 
 ### 4. The workflows' secrets
 
-The workflows read these repository secrets. Most are the team's shared
+The workflows read these secrets, from the GitHub environment `lab`. Most are the team's shared
 values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.md).
 
 | Secret | Where the value is | Read by |
@@ -147,7 +147,7 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 | `SECURITY_ADMIN_NSX_PASSWORD` | `nsx_password` in `terraform/security-admin/terraform.tfvars` | `security-admin` |
 | `TANZU_HUB_CLIENT_ID`, `TANZU_HUB_CLIENT_ASSERTION` | The Tanzu Hub login of `goad-deployer` | `platform-engineer`, `agentic-ops` and `tanzu-apps`, through the `cf-login` and `cf-token` actions |
 
-Set each one with `gh secret set <name> --repo modern-apps-5/the-goad`.
+Set each one with `gh secret set <name> --env lab --repo modern-apps-5/the-goad`.
 For the deploy key, add `< terraform/platform-engineer/.secrets/gitops-deploy-key`.
 
 The two `AGENTIC_OPS_AGENTMINDER_*` secrets are the cloud admin's to copy,

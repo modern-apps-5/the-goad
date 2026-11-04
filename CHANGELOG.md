@@ -3,6 +3,17 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-04 (Workflows: the lab environment)
+
+### Changed
+
+- Every job on the self-hosted runner in `.github/workflows/` uses the
+  GitHub environment `lab`, which deploys only from `main`. A run on any
+  other branch stops before it gets a secret.
+- `docs/github-workflows.md` and `CONTRIBUTING.md` describe it.
+
+Repository settings changed at the same time: the environment `lab` was
+created, with `main` as its only deployment branch.
 ## 2026-11-04 (Workflows: plans show only what changes)
 
 ### Added

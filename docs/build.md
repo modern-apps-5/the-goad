@@ -187,7 +187,7 @@ Again two files:
   Private AI Services user `admin`; the music store's and the platform
   tools' passwords and keys, which Terraform writes to Secret Store; and
   the incident apps' keys for their Cloud Foundry services. In GitHub
-  each is a repository secret: `terraform.tfvars.example` names them. If
+  each is a secret in the environment `lab`: `terraform.tfvars.example` names them. If
   the demo is already built, copy the team's file.
 
 ```sh
@@ -365,7 +365,7 @@ the database, Private AI Services, and the model; for `music-store` and
 
 ## The secrets you make
 
-The `terraform.tfvars` files and the GitHub repository secrets hold the
+The `terraform.tfvars` files and the secrets in the GitHub environment `lab` hold the
 same values. [terraform/runner/README.md](../terraform/runner/README.md)
 maps each GitHub secret to its `terraform.tfvars` value. On a first build,
 this is where each value comes from.

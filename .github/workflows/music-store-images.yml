@@ -42,6 +42,7 @@ env:
 jobs:
   build:
     runs-on: [self-hosted, lab]
+    environment: lab
     timeout-minutes: 45
     defaults:
       run:
