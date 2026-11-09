@@ -1557,3 +1557,49 @@ goad entry, or leaves it: a uid with no project matches no one.
 Look again if: a demo needs platform engineers to publish their own APIs
 on the Supervisor. Restore `kro.tf` from git history; the new project gets
 a new uid for the service's values.
+
+## 52. The security admin virtually patches the users VM with Distributed IDPS
+
+The demo sends a public exploit, the Apache path traversal of
+CVE-2021-41773 and CVE-2021-42013, to the users VM `music-users`. The VM
+runs Python, not Apache, so the exploit does no harm; it shows that the
+request reaches the workload. The security admin protects the VM with
+vDefend Distributed IDPS, in `terraform/security-admin/idps.tf`. The
+objects are in the goad org's NSX project `goad`: a group, an IDPS
+profile that rejects the six signatures for those CVEs, a policy in the
+ThreatRules category, and the rule `users-vm-inbound`.
+
+Why IDPS: the VM is not a pod, so Antrea policy (decision 49) does not
+reach it. Traffic from the cluster to the VM is east-west, so it does
+not pass the Avi WAF (decision 43) either.
+
+Why the group matches the tag `app|users-service` and not an IP or a
+name: VM Operator copies the VM label in `gitops/music-store/users-vm.yaml`
+to the segment port. The group follows the VM if it is rebuilt with a new
+address or name.
+
+Why Terraform keeps DETECT and the demo flips the rule through the NSX
+API: the API call is fast on stage, and a Terraform apply is not. The
+flip is drift, and the next apply of the security-admin root puts the rule
+back to DETECT. Verified in the lab: in detect mode the exploit gets HTTP
+404 from the VM and NSX logs events for signatures 2034125 and 1116173. In
+prevent mode NSX resets the connection within a second, and `/health`
+still gets 200.
+
+Why the cluster switch is a lab prerequisite and not Terraform: per-cluster
+DFW and IDPS cover every VM on the vSphere cluster MGMT-cl01, not only
+the music store. One GOAD root should not turn it on for the whole lab.
+The policy's precondition stops the plan if IDPS is off. It needs the
+licence vDefend Firewall with ATP, and IDPS fails with error 610134 until
+the cluster's DFW is on.
+
+Cost: prevent mode also resets any medium or higher signature match on
+that VM, not only the six CVE signatures. IDPS sees VM vNIC traffic only,
+not pod to pod traffic inside a VKS node or in the tunnel between nodes.
+Signature updates from vTIS fail without a VCF subscription ID, so the
+shipped bundle IDPSSignatures.3822 is the one in use (issue #113). The
+pen test has no check for this control yet.
+
+Look again if: signature auto-update works (issue #113), a pen test check
+6 for the VM is added, or the hop from Avi to the store gets IDPS too
+(issue #114).

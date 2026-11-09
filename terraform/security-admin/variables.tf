@@ -42,6 +42,19 @@ variable "music_store_namespace" {
   default     = "music-store"
 }
 
+# --- Distributed IDPS on the users VM ---
+
+variable "nsx_project_name" {
+  type        = string
+  description = "Display name of the goad org's NSX project, where the users VM's IDPS policy goes."
+  default     = "goad"
+}
+
+variable "idps_cluster_config_id" {
+  type        = string
+  description = "NSX IDPS cluster config of the region's vSphere cluster, <vCenter UUID>:<cluster MoRef>. The plan stops if IDPS is off there."
+}
+
 # --- What may reach the shop's front end ---
 
 variable "frontend_source_cidrs" {

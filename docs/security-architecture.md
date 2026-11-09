@@ -2,8 +2,9 @@
 
 How the music store is secured: who owns each policy, where it is
 written, how it reaches the cluster, and which traffic it decides. The
-reasons are in [decision 49](decisions.md) (layered network policy) and
-[decision 43](decisions.md) (Gateway API and the WAF).
+reasons are in [decision 49](decisions.md) (layered network policy),
+[decision 43](decisions.md) (Gateway API and the WAF) and
+[decision 52](decisions.md) (IDPS on the users VM).
 
 ## The picture
 
@@ -174,6 +175,30 @@ nothing, so it sees what any other pod sees. A probe from
 | 4 | PHP injection through Avi | HTTP 403 | Avi WAF |
 | 5 | A clean request through Avi | HTTP 200 | Layer 1, `frontend-from-avi` |
 
+## The users VM: Distributed IDPS
+
+The users VM is not a pod, so Antrea policy does not reach it. The
+security admin protects it with vDefend Distributed IDPS, written in
+[terraform/security-admin/idps.tf](../terraform/security-admin/idps.tf).
+The objects are in the goad org's NSX project `goad`.
+
+| Object | Name | Holds |
+|---|---|---|
+| Group | `music-users` | VMs whose segment port has the tag `app\|users-service`, copied from the VM label in `gitops/music-store/users-vm.yaml` |
+| IDPS profile | `music-users` | Critical, high and medium signatures, with six CVE-2021-41773 and CVE-2021-42013 signatures set to reject |
+| IDPS policy | `music-users` | The rule `users-vm-inbound` |
+
+Terraform keeps the rule in detect: a match is logged, the traffic
+passes. The prevent mode resets the connection. The demo
+[vdefend-virtual-patching](../demos/vdefend-virtual-patching) switches
+the rule to prevent through the NSX API, and the next apply puts it
+back to detect.
+
+IDPS inspects traffic on VM vNICs only. It does not see pod to pod
+traffic inside a VKS node or in the tunnel between nodes. It needs IDPS
+turned on for the vSphere cluster, a lab prerequisite: see
+[build.md](build.md).
+
 ## Other controls
 
 Not network policy, but part of the same picture:
@@ -195,8 +220,11 @@ Not network policy, but part of the same picture:
 
 - **Egress.** No layer restricts traffic out of `music-store`. The calls
   to the users VM and the DSM catalog leave the cluster unchecked.
-- **The users VM and the catalog.** They are not pods, so they have no
-  Antrea group. vDefend DFW on the users VM is not built.
+- **Who reaches the users VM and the catalog.** They are not pods, so
+  they have no Antrea group. IDPS inspects the users VM's traffic, but
+  no firewall rule restricts who reaches it beyond the project defaults.
+  vDefend DFW on the users VM is not built. IDPS on the catalog is not
+  built.
 - **vDefend SSP** (anomaly detection, for the security incident video)
   is not built.
 - **Pod Security admission.** GOAD sets no Pod Security labels on

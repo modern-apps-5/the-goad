@@ -3,6 +3,23 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-09 (vDefend Distributed IDPS for the users VM)
+
+### Added
+
+- `terraform/security-admin/idps.tf`: a vDefend Distributed IDPS policy
+  for the users VM `music-users`, in the goad org's NSX project `goad`.
+  The rule `users-vm-inbound` is in detect mode.
+- `demos/vdefend-virtual-patching`: an exploit against the users VM,
+  logged in detect mode and reset in prevent mode.
+- Decision 52.
+
+### Changed
+
+- `docs/build.md` lists per-cluster DFW and IDPS as a lab prerequisite.
+- `docs/security-architecture.md` and `terraform/security-admin/README.md`
+  describe the IDPS policy.
+
 ## 2026-11-04 (Workflows: the lab environment)
 
 ### Changed

@@ -32,6 +32,12 @@ The lab must already have:
   runtime's VKS cluster.
 - NSX with vDefend, for the security admin's guardrails, and VCF
   Operations, for the cloud admin's dashboards and for VCF SSO.
+- Distributed Firewall and IDPS turned on for the vSphere cluster that
+  runs the VM Service VMs, with a signature bundle loaded. In NSX
+  Manager: Security, IDS/IPS & Malware Prevention, Settings. Turn on
+  the cluster's DFW first: IDPS fails with error 610134 without it. The
+  licence is vDefend Firewall with ATP. This is not in Terraform. See
+  [decision 52](decisions.md).
 - An Active Directory in VCF SSO, with a group for the platform engineers
   and a service account for the platform engineer's automation.
 - A Terraform state backend. GOAD uses a Gitea server's Terraform state
@@ -273,7 +279,9 @@ terraform apply
 ```
 
 It writes the music store's vDefend rules in NSX, and NSX pushes them into
-the cluster as Antrea policies. See
+the cluster as Antrea policies. It also writes the IDPS policy for the
+users VM. Its plan stops with an error if IDPS is off for the vSphere
+cluster. See
 [its README](../terraform/security-admin/README.md) and
 [security-architecture.md](security-architecture.md).
 

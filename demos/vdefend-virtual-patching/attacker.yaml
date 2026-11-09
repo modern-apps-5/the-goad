@@ -1,0 +1,28 @@
+# The attacker pod for the virtual patching demo
+# (demos/vdefend-virtual-patching/README.md): a pod in namespace
+# music-store, with no shop labels and no API access. attack.sh applies
+# this and sends its requests from it.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vpatch-attacker
+  namespace: music-store
+  labels:
+    app: vpatch-attacker
+spec:
+  automountServiceAccountToken: false
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: attacker
+      # curl; the same image the repository's Jobs use.
+      image: alpine/k8s:1.34.1
+      command: ["sleep", "infinity"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]

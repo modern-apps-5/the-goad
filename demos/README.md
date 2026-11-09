@@ -14,6 +14,7 @@ the demo, and the scripts and manifests it runs.
 | [cloud-admin-automation](cloud-admin-automation) | The cloud admin's automation end to end: a change to the org's quota through the `cloud-admin` workflow and its Terraform roots, to VCF Automation |
 | [agentic-ops-automation](agentic-ops-automation) | The agentic ops engineer's automation end to end: grant an agent a tool in AgentMinder with the `agentic-ops` workflow, change its skill, `cf push` through `tanzu-apps`, and watch it call the VKS cluster in an incident |
 | [golden-path](golden-path) | One line of the shop's code, from a commit to production: GitHub Actions, a Tekton build on a trusted Tanzu Hub base image, Harbor, a deploy pull request, and Argo CD |
+| [vdefend-virtual-patching](vdefend-virtual-patching) | An exploit against the users VM (Apache CVE-2021-41773) logged in detect mode and reset in prevent mode by vDefend Distributed IDPS, while the VM's health check still answers |
 
 ## What a demo folder holds
 
