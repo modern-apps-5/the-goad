@@ -3,13 +3,15 @@
 The security admin's Terraform. It writes layer 1 of the music store's
 network policy in NSX Manager, as vDefend rules, and NSX pushes them into
 the VKS cluster `music-store` as Antrea ClusterNetworkPolicies through the
-cluster's Antrea NSX integration (decision 49).
+cluster's Antrea NSX integration (decision 49). It also writes the
+vDefend Distributed IDPS policy for the users VM (decision 52).
 
 | File | What it creates |
 |---|---|
 | `services.tf` | The ports the security admin's rules name. Today only the store's front end, TCP 5000. |
 | `groups.tf` | One Antrea group per shop service (`store`, `cart`, `order`, `chat`), matched on the pod labels `app-name`, `env` and `service-name`. |
 | `policy.tf` | The parent security policy `music-store` in the Application category, its tie to the cluster's container cluster, and the rule `frontend-from-avi`. |
+| `idps.tf` | The IDPS policy for the users VM `music-users`, in the goad org's NSX project `goad`: a group, a profile, a policy and the rule `users-vm-inbound`. |
 
 ## The three layers
 
@@ -46,6 +48,32 @@ Rules for this layer:
   every remaining Antrea tier, the developer's included.
 - Never edit the pushed policy with `kubectl`. The ccp-adapter puts it
   back. Change it here.
+
+## IDPS for the users VM
+
+`idps.tf` protects the users VM, which Antrea policy does not reach. All
+objects are in the NSX project `goad`.
+
+- Group `music-users`: the SegmentPort tag `app|users-service`. VM
+  Operator copies it from the VM label in
+  `gitops/music-store/users-vm.yaml`, so the group follows the VM, not
+  its IP or name.
+- Profile `music-users`: severities critical, high and medium, with the
+  six CVE-2021-41773 and CVE-2021-42013 signatures set to reject.
+- Policy `music-users`, category ThreatRules, with the rule
+  `users-vm-inbound`.
+
+Terraform keeps the rule in DETECT. Matches are logged and traffic is
+not stopped. The demo `demos/vdefend-virtual-patching` flips the rule to
+DETECT_PREVENT through the NSX API, so it is fast on stage. That is
+drift: the next apply of this root puts the rule back to DETECT.
+
+The policy needs IDPS turned on for the vSphere cluster. The plan stops
+with an error if it is off. That switch covers the whole cluster, so it
+is a lab prerequisite and not in this Terraform: see
+[docs/build.md](../../docs/build.md). IDPS sees traffic on VM vNICs
+only. It does not see pod to pod traffic inside a VKS node or in the
+tunnel between nodes.
 
 ## Apply
 
