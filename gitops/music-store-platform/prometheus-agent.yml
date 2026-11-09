@@ -4,7 +4,7 @@
 # - probes of the shop's in-cluster names, which only this cluster can
 #   resolve, through the blackbox exporter beside it;
 # - the kube-state-metrics series the boards use;
-# - the pen test's five checks, through the blackbox exporter in pen-test
+# - the pen test's six checks, through the blackbox exporter in pen-test
 #   (pen-test.yaml). Their labels are pen_test, the check, and expect,
 #   what a pass is. Not check or id, which the other boards read.
 global:
@@ -85,7 +85,7 @@ scrape_configs:
         replacement: pod
       - target_label: expect
         replacement: drop
-  # Checks 2 to 5. Each target names its own module.
+  # Checks 2 to 6. Each target names its own module.
   - job_name: pen-test
     metrics_path: /probe
     static_configs:
@@ -97,6 +97,11 @@ scrape_configs:
         labels: {pen_test: phpi, expect: "403", __param_module: pen_test_waf}
       - targets: ["https://music.goad.gpu.set.lab/"]
         labels: {pen_test: clean, expect: "200", __param_module: pen_test_clean}
+      # Check 6, the exploit from demos/vdefend-virtual-patching to the
+      # users VM. The VM does not run Apache, so it answers 404 when the
+      # request reaches it.
+      - targets: ["http://users-service.music-store.svc:5003/cgi-bin/.%2e/.%2e/.%2e/.%2e/etc/passwd"]
+        labels: {pen_test: vpatch, expect: reset, __param_module: pen_test_vpatch}
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

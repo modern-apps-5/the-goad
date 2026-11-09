@@ -159,7 +159,8 @@ error if the integration is off.
 
 ## What the pen test proves
 
-The pen test runs five checks against the shop, in two forms: an
+The pen test runs five checks against the shop, and one against the
+users VM, in two forms: an
 attacker pod started by hand ([demos/pen-test-manual](../demos/pen-test-manual)),
 and an always-on blackbox exporter in namespace `pen-test`
 ([pen-test.yaml](../gitops/music-store-platform/pen-test.yaml)) whose
@@ -174,6 +175,11 @@ nothing, so it sees what any other pod sees. A probe from
 | 3 | SQL injection through Avi | HTTP 403 | Avi WAF |
 | 4 | PHP injection through Avi | HTTP 403 | Avi WAF |
 | 5 | A clean request through Avi | HTTP 200 | Layer 1, `frontend-from-avi` |
+| 6 | A CVE-2021-41773 exploit to the users VM, east-west | Connection reset | vDefend IDPS, prevent |
+
+Check 6 is on the board only; the manual pen test does not send it. It
+fails while the IDPS rule is in detect, which is the baseline: the
+board shows the VM is exposed until the virtual patch is on.
 
 ## The users VM: Distributed IDPS
 
@@ -192,7 +198,7 @@ Terraform keeps the rule in detect: a match is logged, the traffic
 passes. The prevent mode resets the connection. The demo
 [vdefend-virtual-patching](../demos/vdefend-virtual-patching) switches
 the rule to prevent through the NSX API, and the next apply puts it
-back to detect.
+back to detect. Pen test check 6 shows the switch on the board.
 
 IDPS inspects traffic on VM vNICs only. It does not see pod to pod
 traffic inside a VKS node or in the tunnel between nodes. It needs IDPS

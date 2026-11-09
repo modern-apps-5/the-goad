@@ -23,7 +23,7 @@ The checks run all the time, from a blackbox exporter in namespace
 `pen-test` (`gitops/music-store-platform/pen-test.yaml`), every 30
 seconds. Nothing has to be started for the board.
 
-## The five checks
+## The checks
 
 | # | Check | With the policy and the WAF | Decided by |
 |---|---|---|---|
@@ -32,6 +32,12 @@ seconds. Nothing has to be started for the board.
 | 3 | Through Avi, SQL injection | HTTP 403 | WAF |
 | 4 | Through Avi, PHP injection | HTTP 403 | WAF |
 | 5 | Through Avi, clean request | HTTP 200 | vDefend allows Avi to the store |
+| 6 | East-west, a CVE-2021-41773 exploit to the users VM | connection reset | vDefend IDPS, prevent |
+
+Check 6 belongs to the other security demo,
+[vdefend-virtual-patching](../vdefend-virtual-patching). It is red
+while the IDPS rule is in detect, the baseline, and violet while the
+virtual patch is on. `flip.sh` does not change it.
 
 Each check on the board shows the HTTP status code it got. A check that
 gets through when it should not is red and shows its code, so with the
@@ -90,13 +96,14 @@ logged in as yourself.
    ```
 
    It prints whether each layer is there, the state of its
-   Application, and the five checks. Both layers must be present and all
-   five checks `1` before the demo starts:
+   Application, and the checks. Both layers must be present and
+   checks 1 to 5 `1` before the demo starts. `vpatch`, check 6, is `0`
+   unless the virtual patch is on:
 
    ```
    Default deny:   present; Application music-store-platform Synced, Healthy
    Avi WAF:        present; Application music-store-apps Synced, Healthy
-   Pen test:       clean=1 phpi=1 pod=1 service=1 sqli=1
+   Pen test:       clean=1 phpi=1 pod=1 service=1 sqli=1 vpatch=0
    ```
 
    If the session expires, `vcf context refresh goad`.
