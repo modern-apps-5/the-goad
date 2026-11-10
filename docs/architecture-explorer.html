@@ -1,0 +1,366 @@
+<title>GOAD Architecture Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: the persona hand-off strip across the top, then the architecture drawing with the layer rail on its left and a panel on its right. The drawing is eight stacked layers that line up into one picture; picking a layer peels off the ones above it. A persona lens keeps the whole drawing but lights only what that persona builds or uses. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --ink: #17202a; --muted: #56616d; --line: #c9d1d9; --wire: #7b8794; --chip: #eef1f4;
+  --admin: #1f5fa8; --admin-soft: #e3ecf7; --pe: #0f7b6c; --pe-soft: #def1ed; --sec: #8a2f4a; --sec-soft: #f4e2e7;
+  --inc: #6e5c0e; --inc-soft: #f3edd4; --dev: #a24b16; --dev-soft: #f7e6da; --base: #4a5866; --base-soft: #eef1f4;
+  --avi: #0e7490;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif; --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161b; --surface: #182028; --ink: #e6eaee; --muted: #9aa5b1; --line: #34404b; --wire: #7d8a97; --chip: #222a33;
+  --admin: #7fb0ea; --admin-soft: #1c2b3d; --pe: #5cc9b6; --pe-soft: #16302b; --sec: #e98aa6; --sec-soft: #3a1c26;
+  --inc: #d9c060; --inc-soft: #322c12; --dev: #f0a06a; --dev-soft: #3a2518; --base: #a9b6c3; --base-soft: #202830;
+  --avi: #4fc3d9; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11161b; --surface: #182028; --ink: #e6eaee; --muted: #9aa5b1; --line: #34404b; --wire: #7d8a97; --chip: #222a33;
+  --admin: #7fb0ea; --admin-soft: #1c2b3d; --pe: #5cc9b6; --pe-soft: #16302b; --sec: #e98aa6; --sec-soft: #3a1c26;
+  --inc: #d9c060; --inc-soft: #322c12; --dev: #f0a06a; --dev-soft: #3a2518; --base: #a9b6c3; --base-soft: #202830;
+  --avi: #4fc3d9; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--f-body); }
+.wrap { max-width: 110rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 26px 56px; display: grid; gap: 14px; }
+h1 { font: 700 clamp(1.8rem, 4vw, 2.4rem)/1.1 var(--f-display); margin: 0; }
+p { margin: 0; max-width: 80ch; }
+button { font: inherit; color: inherit; }
+.eyebrow { font: 600 0.72rem/1 var(--f-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); }
+header { display: grid; gap: 8px; }
+.o-lab { --c: var(--base); --soft: var(--base-soft); } .o-admin { --c: var(--admin); --soft: var(--admin-soft); }
+.o-pe { --c: var(--pe); --soft: var(--pe-soft); } .o-sec { --c: var(--sec); --soft: var(--sec-soft); }
+.o-inc { --c: var(--inc); --soft: var(--inc-soft); } .o-dev { --c: var(--dev); --soft: var(--dev-soft); }
+
+/* Persona hand-off strip */
+.flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr 1fr; gap: 8px; align-items: stretch; }
+@media (max-width: 900px) { .flow { grid-template-columns: 1fr 1fr; } .flow .arrow { display: none; } }
+.pc { border: 1.5px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 12px; text-align: left; cursor: pointer; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.pc b { font: 700 0.98rem/1.2 var(--f-display); color: var(--c); }
+.pc span { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+.pc:hover { border-color: var(--c); }
+.pc[aria-pressed="true"] { border-color: var(--c); background: var(--soft); box-shadow: 0 0 0 2px var(--c); }
+.pc:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+.stack2 { display: grid; gap: 8px; }
+.arrow { align-self: center; color: var(--muted); font-size: 0.72rem; text-align: center; line-height: 1.2; }
+.arrow::before { content: "→"; display: block; font-size: 1.3rem; color: var(--wire); }
+
+
+.main { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 21rem; gap: 12px; align-items: start; }
+@media (max-width: 1150px) { .main { grid-template-columns: 9.5rem minmax(0, 1fr); } .panel { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .main { grid-template-columns: 1fr; } }
+.rail { list-style: none; margin: 0; padding: 8px; display: grid; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; position: sticky; top: env(safe-area-inset-top, 0px); }
+@media (max-width: 700px) { .rail { display: flex; overflow-x: auto; position: static; } }
+.rail .hint { font-size: 0.7rem; color: var(--muted); padding: 4px 6px 6px; line-height: 1.35; }
+.rail button { width: 100%; text-align: left; border: 0; background: transparent; border-radius: 7px; padding: 6px 8px; cursor: pointer; font: 600 0.86rem/1.2 var(--f-display); white-space: nowrap; }
+.rail button:hover { background: var(--chip); }
+.rail button[aria-current="true"] { background: var(--admin-soft); color: var(--admin); }
+.rail button.off { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.rail .all button { border-top: 1px dashed var(--line); border-radius: 0 0 7px 7px; margin-top: 4px; }
+
+.canvas { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; position: relative; min-width: 0; }
+.scroller { overflow: hidden; cursor: grab; touch-action: none; }
+.scroller.dragging { cursor: grabbing; }
+.dragging .stack, .dragging .lyr { transition: none; }
+.cam { position: absolute; z-index: 5; bottom: 8px; right: 10px; display: flex; gap: 6px; align-items: center; }
+.cam button { min-width: 34px; height: 34px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; font: 600 0.95rem/1 var(--f-body); cursor: pointer; padding: 0 10px; }
+.cam button:hover { background: var(--chip); }
+.cam .zl { font: 500 0.75rem/1 var(--f-mono); color: var(--muted); min-width: 3.2em; text-align: right; }
+.cam-hint { position: absolute; z-index: 5; left: 12px; bottom: 10px; font-size: 0.74rem; color: var(--muted); background: color-mix(in srgb, var(--surface) 85%, transparent); padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+.stage { position: relative; min-width: 0; perspective: 3000px; transition: height 500ms; }
+.stack { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 50%; transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(var(--sc, 1)); transition: transform 700ms cubic-bezier(.25,.7,.2,1); }
+.lyr { position: absolute; inset: 0; transform-style: preserve-3d; transform: translateZ(0); transition: transform 700ms cubic-bezier(.25,.7,.2,1), opacity 400ms; pointer-events: none; }
+.lyr svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; font-family: var(--f-body); overflow: visible; }
+.lyr svg * { pointer-events: auto; }
+.lyr.peeled { opacity: 0; transform: translateZ(260px); }
+.lyr.peeled svg * { pointer-events: none; }
+.lyr.below { opacity: 0.4; }
+@media (prefers-reduced-motion: reduce) { .stack, .lyr { transition: none; } }
+
+/* Drawing */
+.lyr text { fill: var(--ink); }
+.lyr .t { font: 600 13.5px var(--f-body); }
+.lyr .s { font: 11.5px var(--f-body); fill: var(--muted); }
+.lyr .lbl { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.lyr .frm > rect { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.lyr .frm .ft { font: 700 15px var(--f-display); fill: var(--ink); }
+.lyr .frm .fs { font: 400 12px var(--f-body); fill: var(--muted); }
+.lyr .frm.inst > rect { stroke-dasharray: none; stroke-width: 2; fill: color-mix(in srgb, var(--bg) 40%, var(--surface)); }
+.lyr .frm.inst .ft { font-size: 17px; }
+.lyr .frm.mgmt > rect { stroke: var(--base); stroke-dasharray: none; fill: var(--surface); }
+.lyr .frm.sup > rect { stroke: var(--base); stroke-dasharray: none; fill: none; }
+.lyr .frm.clu > rect { stroke: var(--base); stroke-dasharray: none; fill: none; }
+.lyr .frm.org > rect { stroke: var(--admin); stroke-width: 2; fill: color-mix(in srgb, var(--admin-soft) 45%, var(--surface)); stroke-dasharray: none; }
+.lyr .frm.org .ft, .lyr .frm.proj .ft { fill: var(--admin); }
+.lyr .frm.proj > rect { stroke: var(--admin); }
+.lyr .frm.proj .ft { font-size: 13px; }
+.lyr .cmp > rect { fill: var(--soft); stroke: var(--c); stroke-width: 1.5; }
+.lyr .cmp.ghost > rect { fill: none; stroke-dasharray: 4 4; stroke: var(--line); }
+.lyr .cmp.ghost .t { fill: var(--muted); font-weight: 400; font-size: 12px; }
+.lyr .ns > rect { fill: color-mix(in srgb, var(--soft) 55%, var(--surface)); stroke: var(--c); stroke-width: 1.8; }
+.lyr .ns .t { fill: var(--c); font-weight: 700; }
+.lyr .dfw > rect { fill: color-mix(in srgb, var(--sec-soft) 60%, transparent); stroke: var(--sec); stroke-width: 2; stroke-dasharray: 6 4; }
+.lyr .dfw .t { fill: var(--sec); }
+.lyr .node rect, .lyr .node circle { fill: var(--surface); stroke: var(--c, var(--pe)); stroke-width: 1.4; }
+.lyr .node text { font: 700 10px var(--f-body); fill: var(--c, var(--pe)); }
+.lyr .vip rect { fill: var(--surface); stroke: var(--wire); stroke-width: 1.5; }
+.lyr .vip text { font: 600 11px var(--f-body); }
+.lyr .net { fill: none; stroke: var(--wire); stroke-width: 1.6; }
+.lyr .net.bus { stroke-width: 4; stroke-linecap: round; }
+.lyr .net.strong { stroke-width: 2.6; }
+.lyr .avirail { stroke: var(--avi); stroke-width: 3; fill: none; stroke-linecap: round; }
+.lyr .avitick { stroke: var(--avi); stroke-width: 1.6; stroke-dasharray: 3 3; }
+.lyr .avit { font: 700 13px var(--f-body); fill: var(--avi); }
+.lyr .avi { cursor: pointer; }
+.lyr .avise > rect { stroke: var(--avi); stroke-width: 2.2; }
+.lyr .frm.region > rect { stroke: var(--base); stroke-width: 2; stroke-dasharray: 10 6; fill: none; }
+.lyr .orgbox > rect { fill: color-mix(in srgb, var(--admin-soft) 60%, var(--surface)); stroke: var(--admin); stroke-width: 2; }
+.lyr .orgbox .t { fill: var(--admin); font-weight: 700; }
+.lyr .proj-chip rect { fill: var(--surface); stroke: var(--admin); stroke-width: 1; stroke-dasharray: 4 3; }
+.lyr .uses { fill: none; stroke: var(--admin); stroke-width: 2; stroke-dasharray: 6 4; }
+.lyr .ah-use { fill: var(--admin); }
+.lyr .uset { fill: var(--admin); font-weight: 600; }
+.lyr .brk polyline { fill: none; stroke: var(--admin); stroke-width: 1.6; }
+.lyr .brk text { fill: var(--admin); font-weight: 600; }
+.lyr [data-t] { cursor: pointer; }
+.lyr .cmp:hover > rect, .lyr .ns:hover > rect { stroke-width: 2.8; }
+.lyr g:focus-visible { outline: none; } .lyr g:focus-visible > rect { stroke: var(--ink); stroke-width: 3; }
+.lyr .sel > rect { stroke: var(--ink); stroke-width: 3; }
+
+/* Persona lens */
+.lyr [data-p] { transition: opacity 250ms; }
+.lens .lyr [data-p]:not(.on) { opacity: 0.13; }
+.lens .lyr .frm[data-p]:not(.on) { opacity: 0.4; }
+.lens .lyr .on > rect { stroke: var(--lens); stroke-width: 2.6; }
+.lens .lyr .vip.on rect { stroke: var(--lens); }
+.lens .lyr .net.on { stroke: var(--lens); }
+
+
+/* Panel */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.panel .k { font: 600 0.7rem/1 var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.panel h2 { font: 700 1.3rem/1.15 var(--f-display); margin: 0; color: var(--c, var(--ink)); }
+.panel h3 { font: 600 0.78rem/1.2 var(--f-body); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin: 4px 0 0; }
+.panel p { font-size: 0.9rem; }
+.panel ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; font-size: 0.87rem; }
+.panel code { font-size: 0.8rem; background: var(--chip); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.panel .el { border-top: 1px dashed var(--line); padding-top: 10px; display: grid; gap: 4px; }
+.panel .el b { font: 700 1.02rem/1.2 var(--f-display); color: var(--c); }
+.panel .el .who { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c); }
+.about { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+</style>
+
+<main class="wrap">
+  <header>
+    <div class="eyebrow">The Grandmother of All Demos</div>
+    <h1>GOAD Architecture Explorer</h1>
+    <p class="lede">The whole GOAD architecture in one drawing, built from layers. Pick a persona to light the part they build and use, without losing the rest. Pick a layer to peel off everything above it.</p>
+  </header>
+
+  <div class="flow" id="flow" role="group" aria-label="Personas, in hand-off order">
+    <button class="pc o-admin" data-p="admin" aria-pressed="false"><b>Cloud admin</b><span>Org, networking, quota, AgentMinder</span></button>
+    <div class="arrow">org, login,<br>SE group</div>
+    <button class="pc o-pe" data-p="pe" aria-pressed="false"><b>Platform engineer</b><span>Namespaces, clusters, databases, model, Argo CD</span></button>
+    <div class="arrow">store, space,<br>model</div>
+    <div class="stack2">
+      <button class="pc o-dev" data-p="dev" aria-pressed="false"><b>Developer</b><span>The shop's code, nothing else</span></button>
+      <button class="pc o-inc" data-p="inc" aria-pressed="false"><b>Agentic ops</b><span>Incident agents and MCP servers</span></button>
+    </div>
+    <button class="pc o-sec" data-p="sec" aria-pressed="false"><b>Security admin</b><span>Guards the shop: vDefend, IDPS, WAF</span></button>
+  </div>
+
+
+  <div class="main">
+    <ol class="rail" id="rail" aria-label="Layers, top to bottom"></ol>
+    <div class="canvas"><div class="cam" aria-label="Camera"><span class="zl" id="zl">100%</span><button id="z-out" title="Zoom out" aria-label="Zoom out">&minus;</button><button id="z-in" title="Zoom in" aria-label="Zoom in">+</button><button id="z-reset" title="Reset the view">Reset</button></div><div class="cam-hint">Drag to pan · Scroll or pinch to zoom · Double-click to zoom in</div><div class="scroller" id="scroller"><div class="stage" id="stage"><div class="stack" id="stack">
+<div class="lyr" data-layer="physical" style="--i:0"><svg viewBox="0 0 1600 1205"><g class="frm o-lab inst" data-p="admin"><rect x="20" y="116" width="1560" height="1078" rx="10"/><text class="ft lbl" x="34" y="136">VCF 9.1 instance<tspan class="fs" dx="10">one region · one zone · one vSphere cluster</tspan></text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="ESX host 1" data-own="lab" data-p="" data-d="One of six ESX hosts: compute for every VM, disks for vSAN, a node of the Supervisor." data-mgr="S"><rect x="44" y="1046" width="242" height="84" rx="6"/><text class="t" x="54" y="1065">ESX host 1</text><text class="s" x="54" y="1081">compute · vSAN disks</text><text class="s" x="54" y="1095">Supervisor node</text></g><polyline class="net" data-p="" points="165,1130 165,1160"/><g class="cmp o-lab " tabindex="0" role="button" data-t="ESX host 2" data-own="lab" data-p="" data-d="One of six ESX hosts: compute for every VM, disks for vSAN, a node of the Supervisor." data-mgr="S"><rect x="298" y="1046" width="242" height="84" rx="6"/><text class="t" x="308" y="1065">ESX host 2</text><text class="s" x="308" y="1081">compute · vSAN disks</text><text class="s" x="308" y="1095">Supervisor node</text></g><polyline class="net" data-p="" points="419,1130 419,1160"/><g class="cmp o-lab " tabindex="0" role="button" data-t="ESX host 3" data-own="lab" data-p="" data-d="One of six ESX hosts: compute for every VM, disks for vSAN, a node of the Supervisor." data-mgr="S"><rect x="552" y="1046" width="242" height="84" rx="6"/><text class="t" x="562" y="1065">ESX host 3</text><text class="s" x="562" y="1081">compute · vSAN disks</text><text class="s" x="562" y="1095">Supervisor node</text></g><polyline class="net" data-p="" points="673,1130 673,1160"/><g class="cmp o-lab " tabindex="0" role="button" data-t="ESX host 4" data-own="lab" data-p="" data-d="One of six ESX hosts: compute for every VM, disks for vSAN, a node of the Supervisor." data-mgr="S"><rect x="806" y="1046" width="242" height="84" rx="6"/><text class="t" x="816" y="1065">ESX host 4</text><text class="s" x="816" y="1081">compute · vSAN disks</text><text class="s" x="816" y="1095">Supervisor node</text></g><polyline class="net" data-p="" points="927,1130 927,1160"/><g class="cmp o-lab " tabindex="0" role="button" data-t="ESX host 5" data-own="lab" data-p="" data-d="One of six ESX hosts: compute for every VM, disks for vSAN, a node of the Supervisor." data-mgr="S"><rect x="1060" y="1046" width="242" height="84" rx="6"/><text class="t" x="1070" y="1065">ESX host 5</text><text class="s" x="1070" y="1081">compute · vSAN disks</text><text class="s" x="1070" y="1095">Supervisor node</text></g><polyline class="net" data-p="" points="1181,1130 1181,1160"/><g class="cmp o-lab " tabindex="0" role="button" data-t="ESX host 6" data-own="lab" data-p="" data-d="One of six ESX hosts: compute for every VM, disks for vSAN, a node of the Supervisor." data-mgr="S"><rect x="1314" y="1046" width="242" height="84" rx="6"/><text class="t" x="1324" y="1065">ESX host 6</text><text class="s" x="1324" y="1081">compute · vSAN disks</text><text class="s" x="1324" y="1095">Supervisor node</text></g><polyline class="net" data-p="" points="1435,1130 1435,1160"/><polyline class="net bus" data-p="" points="44,1160 1556,1160"/><text class="lbl s" data-p="" x="50" y="1180" text-anchor="start">Top-of-rack uplinks: management, vMotion, vSAN, external VLAN trunks</text></svg></div>
+<div class="lyr" data-layer="vsphere" style="--i:1"><svg viewBox="0 0 1600 1205"><g class="frm o-lab clu" data-t="vSphere cluster" data-d="One cluster, HA and DRS on. Runs every VM in this drawing. Supervisor capacity: about 910 GHz and 2.3 TiB of memory." data-own="lab" data-p="admin" tabindex="0" role="button"><rect x="30" y="922" width="1540" height="222" rx="10"/><text class="ft lbl" x="44" y="942">vSphere cluster<tspan class="fs" dx="10">HA + DRS · management and workloads share it</tspan></text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Distributed switch" data-own="lab" data-p="" data-d="One VDS: portgroups for management, vMotion, vSAN and the external VLAN connections. NSX VPC segments ride on it." data-mgr="V"><rect x="44" y="948" width="1512" height="36" rx="6"/><text class="t" x="54" y="967">Distributed switch</text><text class="s" x="210" y="971">management · vMotion · vSAN · external VLAN connections · NSX VPC segments</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="vSAN datastore" data-own="lab" data-p="admin pe" data-d="About 168 TiB raw from the hosts&#x27; disks. The AutoRAID policy is the storage class GOAD uses; GOAD&#x27;s quota is about 6.9 TiB." data-mgr="V"><rect x="44" y="992" width="1512" height="36" rx="6"/><text class="t" x="54" y="1011">vSAN datastore</text><text class="s" x="190" y="1015">~168 TiB raw · AutoRAID policy · every GOAD cluster, VM and database disk</text></g></svg></div>
+<div class="lyr" data-layer="management" style="--i:2"><svg viewBox="0 0 1600 1205"><g class="frm o-lab mgmt" data-p=""><rect x="30" y="152" width="305" height="610" rx="10"/><text class="ft lbl" x="44" y="172">Management components<tspan class="fs" dx="10">appliance VMs</tspan></text></g><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="SDDC Manager" data-own="lab" data-p="" data-d="Brings up and upgrades the hosts, vCenter and NSX." data-mgr="S"><rect x="44" y="186" width="270" height="58" rx="6"/><text class="t" x="54" y="205">SDDC Manager</text><text class="s" x="54" y="221">VCF lifecycle</text></g><polyline class="net" data-p="" points="314,215 355,215"/><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="vCenter" data-own="lab" data-p="inc" data-d="vCenter 9.1. Runs the cluster and, through Workload Management, the Supervisor. The vcf-mcp server reads it." data-mgr="V"><rect x="44" y="256" width="270" height="58" rx="6"/><text class="t" x="54" y="275">vCenter</text><text class="s" x="54" y="291">vSphere · Workload Management</text></g><polyline class="net" data-p="" points="314,285 355,285"/><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="NSX Manager ×3" data-own="lab" data-p="sec admin" data-d="NSX 9.1. Owns the DTGW, the VPCs, the distributed firewall and IDPS. The security admin&#x27;s Terraform writes the vDefend policy here." data-mgr="N"><rect x="44" y="326" width="270" height="58" rx="6"/><text class="t" x="54" y="345">NSX Manager ×3</text><text class="s" x="54" y="361">VPCs · DTGW · DFW · IDPS</text></g><polyline class="net" data-p="" points="314,355 355,355"/><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="Avi Controller" data-own="lab" data-p="admin sec inc" data-d="The region&#x27;s load balancer in tenant managed mode. Service engines, Avi DNS, the WAF policy. The avi-mcp server reads it." data-mgr="A"><rect x="44" y="396" width="270" height="58" rx="6"/><text class="t" x="54" y="415">Avi Controller</text><text class="s" x="54" y="431">load balancer · DNS · WAF</text></g><polyline class="net" data-p="" points="314,425 355,425"/><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="VCF Automation ×3" data-own="lab" data-p="admin pe" data-d="Organizations, projects, quotas, the tenant portal. The cloud admin&#x27;s and platform engineer&#x27;s Terraform talk to it." data-mgr="Au"><rect x="44" y="466" width="270" height="58" rx="6"/><text class="t" x="54" y="485">VCF Automation ×3</text><text class="s" x="54" y="501">orgs · projects · quota</text></g><polyline class="net" data-p="" points="314,495 355,495"/><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="VCF Identity Broker" data-own="lab" data-p="admin" data-d="VCF SSO. Reads users and groups from Active Directory." data-mgr="I"><rect x="44" y="536" width="270" height="58" rx="6"/><text class="t" x="54" y="555">VCF Identity Broker</text><text class="s" x="54" y="571">VCF SSO, backed by AD</text></g><polyline class="net" data-p="" points="314,565 355,565"/><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="VCF Operations ×3" data-own="lab" data-p="admin" data-d="Watches every layer. The cloud admin adds GOAD&#x27;s dashboards and alerts." data-mgr="O"><rect x="44" y="606" width="270" height="58" rx="6"/><text class="t" x="54" y="625">VCF Operations ×3</text><text class="s" x="54" y="641">health · capacity · dashboards</text></g><polyline class="net" data-p="" points="314,635 355,635"/><g class="cmp o-lab mgr" tabindex="0" role="button" data-t="DSM appliance" data-own="lab" data-p="admin pe" data-d="Data Services Manager. The cloud admin sets the DSM policy; the platform engineer asks for databases." data-mgr="D"><rect x="44" y="676" width="270" height="58" rx="6"/><text class="t" x="54" y="695">DSM appliance</text><text class="s" x="54" y="711">PostgreSQL clusters</text></g><polyline class="net" data-p="" points="314,705 355,705"/><polyline class="net strong" data-p="" points="355,190 355,948"/><text class="lbl s" transform="translate(368 600) rotate(90)">management network</text></svg></div>
+<div class="lyr" data-layer="network" style="--i:3"><svg viewBox="0 0 1600 1205"><polyline class="net bus" data-p="admin" points="380,196 1555,196"/><text class="lbl s" data-p="admin" x="1550" y="182" text-anchor="end">External VLAN · Distributed VLAN Connection · IP block for VIPs</text><g class="avi" data-p="admin sec pe inc dev" data-t="Avi load balancing" data-own="admin" data-mgr="A" tabindex="0" role="button" data-d="Every VIP on the external VLAN is an Avi virtual service. Avi places it on the service engines of goad-se-group in the VPC's services subnet, and they load balance to the namespaces: the shop's Gateway API, Zammad and Grafana ingresses, AgentMinder, Private AI. The Supervisor API and Tanzu Platform use Avi the same way."><line class="avirail" x1="440" y1="226" x2="1500" y2="226"/><polyline class="avirail" points="1320,226 1320,316"/><text class="avit lbl" x="1332" y="248">Avi load balancer</text><text class="s lbl" x="1332" y="263">every VIP is an Avi</text><text class="s lbl" x="1332" y="277">virtual service</text></g><g class="vip" data-p="pe"><line class="avitick" x1="470" y1="206" x2="470" y2="226"/><rect x="406.0" y="186" width="128" height="20" rx="10"/><text x="470" y="200" text-anchor="middle">API · Harbor</text></g><g class="vip" data-p="pe inc"><line class="avitick" x1="623" y1="206" x2="623" y2="226"/><rect x="568.0" y="186" width="110" height="20" rx="10"/><text x="623" y="200" text-anchor="middle">Private AI</text></g><g class="vip" data-p="pe dev sec"><line class="avitick" x1="830" y1="206" x2="830" y2="226"/><rect x="802.0" y="186" width="56" height="20" rx="10"/><text x="830" y="200" text-anchor="middle">Shop</text></g><g class="vip" data-p="pe inc"><line class="avitick" x1="1030" y1="206" x2="1030" y2="226"/><rect x="948.0" y="186" width="164" height="20" rx="10"/><text x="1030" y="200" text-anchor="middle">Zammad · Grafana</text></g><g class="vip" data-p="inc"><line class="avitick" x1="1217" y1="206" x2="1217" y2="226"/><rect x="1171.0" y="186" width="92" height="20" rx="10"/><text x="1217" y="200" text-anchor="middle">Hub · CF</text></g><g class="vip" data-p="admin inc"><line class="avitick" x1="1440" y1="206" x2="1440" y2="226"/><rect x="1380.5" y="186" width="119" height="20" rx="10"/><text x="1440" y="200" text-anchor="middle">AgentMinder</text></g><g class="cmp o-lab ghost" tabindex="0" role="button" data-t="Other orgs&#x27; VPCs" data-own="lab" data-p="" data-d="Other organizations in the region have their own VPCs on the same DTGW."><rect x="490" y="246" width="130" height="42" rx="6"/><text class="t" x="500" y="265">Other orgs&#x27; VPCs</text></g><polyline class="net" data-p="" points="620,267 640,267"/><g class="cmp o-lab " tabindex="0" role="button" data-t="Distributed transit gateway" data-own="lab" data-p="admin" data-d="The DTGW joins every VPC in the region to the external VLAN. There is no Tier-0 router and no NSX Edge node." data-mgr="N"><rect x="640" y="236" width="260" height="56" rx="6"/><text class="t" x="650" y="255">Distributed transit gateway</text><text class="s" x="650" y="271">no Tier-0 · no edge nodes</text></g><polyline class="net" data-p="admin" points="770,206 770,236"/><g class="cmp o-lab " tabindex="0" role="button" data-t="VNA cluster" data-own="lab" data-p="admin" data-d="The virtual network appliance cluster that works with the DTGW for the region." data-mgr="N"><rect x="920" y="236" width="180" height="56" rx="6"/><text class="t" x="930" y="255">VNA cluster</text><text class="s" x="930" y="271">appliances for the DTGW</text></g><line class="net strong" x1="900" y1="260" x2="920" y2="260"/><line class="net strong" x1="900" y1="268" x2="920" y2="268"/><g class="cmp o-admin " tabindex="0" role="button" data-t="VPC · org goad" data-own="admin" data-p="admin pe" data-d="The goad org&#x27;s VPC, made by the cloud admin&#x27;s org and regional networking. Every namespace gets its subnets here." data-mgr="N"><rect x="640" y="318" width="260" height="52" rx="6"/><text class="t" x="650" y="337">VPC · org goad</text><text class="s" x="650" y="353">one VPC, private subnets</text></g><polyline class="net" data-p="admin" points="770,292 770,318"/><polyline class="net" data-p="admin pe" points="770,370 770,400"/><g class="cmp o-admin avise" tabindex="0" role="button" data-t="Avi load balancer: SEs ×2" data-own="admin" data-p="admin sec pe" data-d="Two Avi service engines of goad-se-group on the VPC&#x27;s services subnet. They load balance every GOAD VIP to the namespaces behind it, and run the shop&#x27;s WAF rule." data-mgr="A"><rect x="1130" y="316" width="210" height="56" rx="6"/><text class="t" x="1140" y="335">Avi load balancer: SEs ×2</text><text class="s" x="1140" y="351">L4/L7 + WAF · goad-se-group</text></g><polyline class="net" data-p="admin" points="1235,372 1235,400"/><polyline class="net bus" data-p="admin pe" points="400,400 1545,400"/><text class="lbl s" data-p="admin pe" x="406" y="392" text-anchor="start">VPC subnets</text><polyline class="net" data-p="pe" points="490,400 490,512"/><polyline class="net" data-p="pe" points="623,400 623,512"/><polyline class="net" data-p="pe sec dev" points="770,400 770,512"/><polyline class="net" data-p="pe" points="1030,400 1030,512"/><polyline class="net" data-p="inc" points="1160,400 1160,512"/><polyline class="net" data-p="admin" points="1440,400 1440,512"/><polyline class="net" data-p="dev" points="830,92 830,186"/></svg></div>
+<div class="lyr" data-layer="supervisor" style="--i:4"><svg viewBox="0 0 1600 1205"><g class="frm o-lab region" data-t="Region" data-d="The region is the provider&#x27;s: one zone backed by the vSphere cluster, one Supervisor, and the NSX networking. Orgs get a quota in it; goad is one of several orgs that use it." data-own="lab" data-p="admin pe" tabindex="0" role="button"><rect x="372" y="148" width="1196" height="768" rx="10"/><text class="ft lbl" x="386" y="168">Region<tspan class="fs" dx="10">one zone = the vSphere cluster · Supervisor + NSX, shared by every org</tspan></text></g><g class="frm o-lab sup" data-t="Supervisor" data-d="The Supervisor turns the cluster into Kubernetes. Namespaces hold VKS clusters, VM Service VMs and vSphere Pods." data-own="lab" data-p="pe" tabindex="0" role="button"><rect x="380" y="420" width="1180" height="488" rx="10"/><text class="ft lbl" x="394" y="440">Supervisor<tspan class="fs" dx="10">Kubernetes 1.34 · namespaces of every org run here</tspan></text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Control plane ×3" data-own="lab" data-p="pe" data-d="Three Supervisor control plane VMs. The API VIP sits on the external VLAN." data-mgr="V"><rect x="392" y="804" width="188" height="92" rx="6"/><text class="t" x="402" y="823">Control plane ×3</text><text class="s" x="402" y="839">Kubernetes 1.34</text><text class="s" x="402" y="853">API VIP on the external VLAN</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="goad-runner" data-own="pe" data-p="pe admin inc sec" data-d="A vSphere Namespace outside the org. Two runner pods run every GOAD workflow from inside the lab."><rect x="592" y="804" width="128" height="92" rx="6"/><text class="t" x="602" y="823">goad-runner</text><text class="s" x="602" y="839">GitHub runner ×2</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Harbor" data-own="lab" data-p="admin pe dev" data-d="The Supervisor&#x27;s registry. The cloud admin&#x27;s Terraform adds the projects music-store and tanzu-platform-content."><rect x="728" y="804" width="128" height="92" rx="6"/><text class="t" x="738" y="823">Harbor</text><text class="s" x="738" y="839">images · models</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Argo CD Service" data-own="lab" data-p="pe" data-d="Runs the platform engineer&#x27;s Argo CD instance."><rect x="864" y="804" width="128" height="92" rx="6"/><text class="t" x="874" y="823">Argo CD Service</text><text class="s" x="874" y="839">Argo CD instances</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Secret Store" data-own="lab" data-p="pe" data-d="The vault injector. Terraform writes KeyValueSecrets; ESO in the clusters reads them."><rect x="1000" y="804" width="128" height="92" rx="6"/><text class="t" x="1010" y="823">Secret Store</text><text class="s" x="1010" y="839">KV secrets</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Private AI Services" data-own="lab" data-p="pe" data-d="Runs the Qwen model from images in Harbor."><rect x="1136" y="804" width="128" height="92" rx="6"/><text class="t" x="1146" y="823">Private AI Services</text><text class="s" x="1146" y="839">model serving</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="DSM operator" data-own="lab" data-p="pe" data-d="Turns PostgresCluster resources into DSM databases." data-mgr="D"><rect x="1272" y="804" width="128" height="92" rx="6"/><text class="t" x="1282" y="823">DSM operator</text><text class="s" x="1282" y="839">Postgres in namespaces</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="VKS" data-own="lab" data-p="pe" data-d="The VKS Supervisor Service: creates, scales and upgrades VKS clusters. Addons such as ESO and cert-manager are installed into each cluster and run there, not on the Supervisor."><rect x="1408" y="804" width="128" height="92" rx="6"/><text class="t" x="1418" y="823">VKS</text><text class="s" x="1418" y="839">cluster lifecycle</text></g></svg></div>
+<div class="lyr" data-layer="tenancy" style="--i:5"><svg viewBox="0 0 1600 1205"><defs><marker id="arr-use" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-use"/></marker></defs><g class="cmp orgbox o-admin" tabindex="0" role="button" data-t="Organization goad" data-own="admin" data-p="admin pe" data-mgr="Au" data-d="A VCF Automation tenant, made by terraform/cloud-admin/org. It does not contain the Supervisor: it gets a quota in the region, a VPC in the region's NSX, and its projects create Supervisor Namespaces there. Two projects: default-project for the platform engineers, cloud-admin for the cloud admin's tools."><rect x="960" y="22" width="600" height="80" rx="8"/><text class="t" x="972" y="42">Organization goad</text><text class="s" x="1110" y="42">VCF Automation tenant · SSO from AD</text><g class="proj-chip"><rect x="972" y="52" width="270" height="40" rx="5"/><text class="s" x="982" y="68">project default-project</text><text class="s" x="982" y="83">platform engineers&#39; AD group</text></g><g class="proj-chip"><rect x="1252" y="52" width="140" height="40" rx="5"/><text class="s" x="1262" y="68">project cloud-admin</text><text class="s" x="1262" y="83">cloud admin&#39;s tools</text></g><g class="proj-chip"><rect x="1402" y="52" width="146" height="40" rx="5"/><text class="s" x="1412" y="68">region quota</text><text class="s" x="1412" y="83">CPU · memory · classes</text></g></g><g data-p="admin pe"><polyline class="uses" points="1545,102 1545,150" marker-end="url(#arr-use)"/><text class="s lbl uset" x="1538" y="132" text-anchor="end">uses the region: quota, VPC, namespaces</text></g><g class="brk" data-p="admin pe"><polyline points="404,506 404,496 1330,496 1330,506"/><text class="s lbl" x="412" y="490">org goad · project default-project</text></g><g class="brk" data-p="admin"><polyline points="1342,506 1342,496 1540,496 1540,506"/><text class="s lbl" x="1350" y="490">org goad · project cloud-admin</text></g><g class="ns o-pe" tabindex="0" role="button" data-t="ns platform" data-own="pe" data-p="pe" data-d="Supervisor Namespace from terraform/platform-engineer. Argo CD runs here as vSphere Pods." data-mgr="Au"><rect x="408" y="512" width="124" height="262" rx="7"/><text class="t" x="418" y="532">ns platform</text><text class="s" x="418" y="547">pod subnet</text></g><g class="ns o-pe" tabindex="0" role="button" data-t="ns private-ai" data-own="pe" data-p="pe inc" data-d="Supervisor Namespace from terraform/platform-engineer. Private AI Services runs the Qwen model here." data-mgr="Au"><rect x="542" y="512" width="162" height="262" rx="7"/><text class="t" x="552" y="532">ns private-ai</text><text class="s" x="552" y="547">VM subnet</text></g><g class="ns o-pe" tabindex="0" role="button" data-t="ns music-store" data-own="pe" data-p="pe dev sec inc" data-d="Supervisor Namespace from terraform/platform-engineer. Argo CD builds everything in it from gitops/music-store." data-mgr="Au"><rect x="714" y="512" width="232" height="262" rx="7"/><text class="t" x="724" y="532">ns music-store</text><text class="s" x="724" y="547">node subnet + VM subnet</text></g><g class="ns o-pe" tabindex="0" role="button" data-t="ns platform-tools" data-own="pe" data-p="pe inc" data-d="Supervisor Namespace from terraform/platform-engineer." data-mgr="Au"><rect x="956" y="512" width="148" height="262" rx="7"/><text class="t" x="966" y="532">ns platform-tools</text><text class="s" x="966" y="547">node subnet</text></g><g class="ns o-lab" tabindex="0" role="button" data-t="ns Tanzu Platform" data-own="lab" data-p="inc pe" data-d="Tanzu Platform&#x27;s namespace. The foundation exists before GOAD; the platform engineer adds the space, the agentic ops engineer the apps." data-mgr="Au"><rect x="1114" y="512" width="206" height="262" rx="7"/><text class="t" x="1124" y="532">ns Tanzu Platform</text><text class="s" x="1124" y="547">foundation + runtime subnets</text></g><g class="ns o-admin" tabindex="0" role="button" data-t="ns agentminder" data-own="admin" data-p="admin inc" data-d="Supervisor Namespace from terraform/cloud-admin/org-config, in the project cloud-admin." data-mgr="Au"><rect x="1348" y="512" width="184" height="262" rx="7"/><text class="t" x="1358" y="532">ns agentminder</text><text class="s" x="1358" y="547">node subnet</text></g></svg></div>
+<div class="lyr" data-layer="workloads" style="--i:6"><svg viewBox="0 0 1600 1205"><g class="node" data-p="pe"><circle cx="428" cy="578" r="9"/></g><g class="node" data-p="pe"><circle cx="454" cy="578" r="9"/></g><g class="node" data-p="pe"><circle cx="480" cy="578" r="9"/></g><g class="node" data-p="pe"><circle cx="506" cy="578" r="9"/></g><text class="s" data-p="pe" x="418" y="610" text-anchor="start">vSphere Pods</text><g class="cmp o-pe " tabindex="0" role="button" data-t="Argo CD" data-own="pe" data-p="pe" data-d="The platform engineer&#x27;s Argo CD instance. Syncs gitops/ on main into private-ai, music-store and platform-tools, and into the two VKS clusters."><rect x="416" y="624" width="108" height="58" rx="6"/><text class="t" x="426" y="643">Argo CD</text><text class="s" x="426" y="659">syncs gitops/</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="model VM" data-own="pe" data-p="pe inc dev" data-d="The model endpoint qwen-14b-xlarge. OpenAI-compatible API for the shop&#x27;s chat and the incident agents."><rect x="550" y="560" width="146" height="44" rx="6"/><text class="t" x="560" y="579">model VM</text><text class="s" x="560" y="595">Qwen 14B · xlarge class</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="PAIS VMs ×4" data-own="pe" data-p="pe" data-d="Private AI Services control VMs."><rect x="550" y="612" width="146" height="44" rx="6"/><text class="t" x="560" y="631">PAIS VMs ×4</text><text class="s" x="560" y="647">API, ingress, monitors</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="pais-db" data-own="pe" data-p="pe" data-d="The DSM PostgresCluster for Private AI Services." data-mgr="D"><rect x="550" y="664" width="146" height="44" rx="6"/><text class="t" x="560" y="683">pais-db</text><text class="s" x="560" y="699">DSM PostgreSQL</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="VKS music-store" data-own="pe" data-p="pe dev sec inc" data-d="1 control plane and 2 workers. The ESO and cert-manager addons run inside this cluster. Runs the shop&#x27;s containers behind the Gateway metal-store. The k8s-mcp server reads it."><rect x="722" y="560" width="146" height="120" rx="6"/><text class="t" x="732" y="579">VKS music-store</text><g class="node"><rect x="732" y="590" width="26" height="22" rx="4"/><text x="745.0" y="605" text-anchor="middle">CP</text></g><g class="node"><rect x="763" y="590" width="26" height="22" rx="4"/><text x="776.0" y="605" text-anchor="middle">W</text></g><g class="node"><rect x="794" y="590" width="26" height="22" rx="4"/><text x="807.0" y="605" text-anchor="middle">W</text></g><text class="s" x="732" y="634">store · cart · order · chat</text><text class="s" x="732" y="650">Gateway API on Avi + WAF</text><text class="s" x="732" y="666">addons: ESO · cert-manager</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="users" data-own="pe" data-p="pe dev sec" data-d="music-users: Ubuntu 24.04 from VM Service. IDPS watches it."><rect x="876" y="560" width="62" height="56" rx="6"/><text class="t" x="886" y="579">users</text><text class="s" x="886" y="595">VM</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="catalog" data-own="pe" data-p="pe dev" data-d="The shop&#x27;s catalog: a DSM PostgresCluster." data-mgr="D"><rect x="876" y="624" width="62" height="56" rx="6"/><text class="t" x="886" y="643">catalog</text><text class="s" x="886" y="659">DSM</text></g><g class="cmp dfw o-sec" tabindex="0" role="button" data-t="vDefend" data-own="sec" data-p="sec" data-mgr="N" data-d="The security admin's vDefend policy music-store: NSX distributed firewall rules pushed into the cluster as Antrea policies, and IDPS on the users VM."><rect x="718" y="690" width="224" height="78" rx="6"/><text class="t" x="728" y="710">vDefend</text><text class="s" x="728" y="726">DFW rules into the cluster</text><text class="s" x="728" y="740">as Antrea policies</text><text class="s" x="728" y="754">IDPS on the users VM</text></g><g class="cmp o-pe " tabindex="0" role="button" data-t="VKS platform-tools" data-own="pe" data-p="pe inc" data-d="1 control plane and 2 workers. The ESO addon runs inside this cluster. Runs the incident demo&#x27;s tools and the image builds."><rect x="964" y="560" width="132" height="120" rx="6"/><text class="t" x="974" y="579">VKS platform-tools</text><g class="node"><rect x="974" y="590" width="26" height="22" rx="4"/><text x="987.0" y="605" text-anchor="middle">CP</text></g><g class="node"><rect x="1005" y="590" width="26" height="22" rx="4"/><text x="1018.0" y="605" text-anchor="middle">W</text></g><g class="node"><rect x="1036" y="590" width="26" height="22" rx="4"/><text x="1049.0" y="605" text-anchor="middle">W</text></g><text class="s" x="974" y="634">Zammad · Grafana</text><text class="s" x="974" y="650">Prometheus</text><text class="s" x="974" y="666">Tekton · addon: ESO</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="CF + Hub" data-own="lab" data-p="inc" data-d="About 60 VM Service VMs: Cloud Foundry, Tanzu Hub, and the GenAI and Postgres tiles."><rect x="1122" y="560" width="92" height="120" rx="6"/><text class="t" x="1132" y="579">CF + Hub</text><text class="s" x="1132" y="595">~60 VMs</text><text class="s" x="1132" y="609">VM Service</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="runtime" data-own="lab" data-p="inc" data-d="Tanzu Platform&#x27;s runtime VKS cluster: 1 control plane, 3 workers."><rect x="1220" y="560" width="92" height="120" rx="6"/><text class="t" x="1230" y="579">runtime</text><text class="s" x="1230" y="595">VKS</text><g class="node"><rect x="1228" y="620" width="17" height="22" rx="4"/><text x="1236.5" y="635" text-anchor="middle">CP</text></g><g class="node"><rect x="1248" y="620" width="17" height="22" rx="4"/><text x="1256.5" y="635" text-anchor="middle">W</text></g><g class="node"><rect x="1268" y="620" width="17" height="22" rx="4"/><text x="1276.5" y="635" text-anchor="middle">W</text></g><g class="node"><rect x="1288" y="620" width="17" height="22" rx="4"/><text x="1296.5" y="635" text-anchor="middle">W</text></g></g><g class="cmp o-inc " tabindex="0" role="button" data-t="Incident apps ×9" data-own="inc" data-p="inc" data-d="The agentic ops engineer&#x27;s agents and MCP servers in the space metal-music-app-agentic-system. They call Qwen, AgentMinder and Zammad, and read Kubernetes, Avi and vCenter through MCP."><rect x="1122" y="690" width="190" height="70" rx="6"/><text class="t" x="1132" y="709">Incident apps ×9</text><text class="s" x="1132" y="725">agents + MCP servers</text><text class="s" x="1132" y="739">cf push by tanzu-apps</text></g><g class="cmp o-admin " tabindex="0" role="button" data-t="VKS agentminder" data-own="admin" data-p="admin inc" data-d="1 control plane and 2 workers. AgentMinder installed with Helm: agent identity and MCP tool policy."><rect x="1356" y="560" width="176" height="120" rx="6"/><text class="t" x="1366" y="579">VKS agentminder</text><g class="node"><rect x="1366" y="590" width="26" height="22" rx="4"/><text x="1379.0" y="605" text-anchor="middle">CP</text></g><g class="node"><rect x="1397" y="590" width="26" height="22" rx="4"/><text x="1410.0" y="605" text-anchor="middle">W</text></g><g class="node"><rect x="1428" y="590" width="26" height="22" rx="4"/><text x="1441.0" y="605" text-anchor="middle">W</text></g><text class="s" x="1366" y="634">AgentMinder (Helm)</text><text class="s" x="1366" y="650">agent identity</text><text class="s" x="1366" y="666">MCP tool policy</text></g></svg></div>
+<div class="lyr" data-layer="outside" style="--i:7"><svg viewBox="0 0 1600 1205"><g class="cmp o-lab " tabindex="0" role="button" data-t="Active Directory" data-own="lab" data-p="admin" data-d="The lab&#x27;s directory. VCF SSO reads users and groups from it." data-mgr="I"><rect x="40" y="34" width="180" height="58" rx="6"/><text class="t" x="50" y="53">Active Directory</text><text class="s" x="50" y="69">users and groups</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Gitea" data-own="lab" data-p="admin pe inc sec" data-d="Terraform state registry, one state per root. The runner reads and writes it."><rect x="240" y="34" width="170" height="58" rx="6"/><text class="t" x="250" y="53">Gitea</text><text class="s" x="250" y="69">Terraform state</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="GitHub · the-goad" data-own="lab" data-p="admin pe inc sec dev" data-d="The repository and its workflows. Every change starts as a commit here."><rect x="430" y="34" width="190" height="58" rx="6"/><text class="t" x="440" y="53">GitHub · the-goad</text><text class="s" x="440" y="69">code, gitops/, workflows</text></g><g class="cmp o-lab " tabindex="0" role="button" data-t="Shop users" data-own="lab" data-p="dev" data-d="People using the music store. Avi DNS resolves the shop&#x27;s name to its VIP."><rect x="750" y="34" width="160" height="58" rx="6"/><text class="t" x="760" y="53">Shop users</text><text class="s" x="760" y="69">a browser</text></g></svg></div>
+    </div></div></div></div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <p class="about">Read from the lab on 2026-11-09, with names from the-goad's Terraform and docs. Addresses and lab IDs are left out on purpose. Scroll or pinch to zoom, drag to pan.</p>
+</main>
+
+<script>
+(function () {
+  var body = document.body, stage = document.getElementById("stage"), stack = document.getElementById("stack"), rail = document.getElementById("rail"), panel = document.getElementById("panel");
+  var LY = [["outside", "Outside", "git, directory, users"], ["workloads", "Workloads", "what runs"], ["tenancy", "Tenancy", "org, projects, namespaces"], ["supervisor", "Supervisor", "Kubernetes, services"],
+            ["network", "Network", "VLAN, DTGW, VPC, Avi"], ["management", "Management", "appliances"], ["vsphere", "vSphere", "cluster, VDS, vSAN"], ["physical", "Physical", "hosts, uplinks"]];
+  var ORDER = ["physical", "vsphere", "management", "network", "supervisor", "tenancy", "workloads", "outside"];
+  var OWN = { lab: "The lab, before GOAD", admin: "Cloud admin", pe: "Platform engineer", inc: "Agentic ops engineer", sec: "Security admin", dev: "Developer" };
+  var MGR = { S: "SDDC Manager", V: "vCenter", N: "NSX Manager", A: "Avi Controller", Au: "VCF Automation", I: "VCF Identity Broker", O: "VCF Operations", D: "DSM" };
+  var PERSONA = {
+    admin: { name: "Cloud admin", what: "Sets up the organization and the shared services every other persona builds on.",
+      builds: ["Org goad: VCF SSO, quota, VM classes, storage", "Org and regional networking: the VPC on the DTGW", "Avi setting and Service Engine Group goad-se-group", "DSM PostgreSQL policy, Harbor projects", "Project cloud-admin, VKS agentminder, AgentMinder", "VCF Operations dashboards and alerts"],
+      tools: ["terraform/cloud-admin/org", "terraform/cloud-admin/org-config", "terraform/cloud-admin/agentminder", "terraform/cloud-admin/ops"],
+      hands: "To the platform engineer: a login, the project default-project, and the SE group. To agentic ops: AgentMinder." },
+    pe: { name: "Platform engineer", what: "Turns the org into environments: namespaces, clusters, databases, the model, and the golden path.",
+      builds: ["Namespaces platform, private-ai, music-store, platform-tools", "Argo CD, and the handoff to it", "VKS clusters music-store and platform-tools", "The users VM, the DSM databases, the Qwen model", "Secrets in Secret Store, the Tanzu space", "Image builds with Tekton"],
+      tools: ["terraform/platform-engineer", "Argo CD: gitops/*", "workflow music-store-images"],
+      hands: "To the developer: a running store fed from apps/. To agentic ops: the Tanzu space, goad-qwen and k8s-mcp-cluster." },
+    dev: { name: "Developer", what: "Writes the shop's code. Never builds or deploys it.",
+      builds: ["apps/music-store: store, cart, order, chat"],
+      tools: ["apps/music-store", "GitHub pull requests"],
+      hands: "Nothing: the platform engineer's pipeline builds and deploys every commit." },
+    inc: { name: "Agentic ops engineer", what: "The developer for agents: incident agents, their MCP servers, and their identities in AgentMinder.",
+      builds: ["Nine incident apps on Tanzu Platform", "AgentMinder MCP servers, clients and policies", "Services am-* and sc-* in the space"],
+      tools: ["terraform/agentic-ops", "workflow tanzu-apps", "tanzu/metal-music-app-agentic-system"],
+      hands: "The agents call Qwen, AgentMinder and Zammad, and read Kubernetes, Avi and vCenter through MCP." },
+    sec: { name: "Security admin", what: "Guards the shop at the network and the web layer.",
+      builds: ["vDefend policy music-store, pushed as Antrea policies", "IDPS on the users VM", "WAF enforcement on the shop's route"],
+      tools: ["terraform/security-admin", "NSX Manager", "Avi WAF policy"],
+      hands: "Runs after Argo CD builds the shop's cluster." }
+  };
+  var state = { cur: "outside", persona: null };
+
+  rail.innerHTML = '<li class="hint">Pick a layer to peel off the ones above it.</li>' + LY.map(function (l) {
+    return '<li><button data-l="' + l[0] + '" title="' + l[2] + '">' + l[1] + "</button></li>";
+  }).join("") + '<li class="all"><button data-l="all">Whole drawing</button></li>';
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function size() {
+    var w = stage.clientWidth;
+    stage.style.height = Math.round(w * 1205 / 1600) + "px";
+  }
+  var scroller = document.getElementById("scroller"), cam;
+  function home() { return { sc: 1, tx: 0, ty: 0 }; }
+  function camera() {
+    stack.style.setProperty("--sc", cam.sc);
+    stack.style.setProperty("--tx", cam.tx + "px");
+    stack.style.setProperty("--ty", cam.ty + "px");
+    document.getElementById("zl").textContent = Math.round(cam.sc * 100) + "%";
+  }
+  // Zoom by factor k, keeping the stage point (px, py) under the pointer fixed; centre when no point is given.
+  function zoom(k, px, py) {
+    var sc = Math.min(6, Math.max(0.25, cam.sc * k)); k = sc / cam.sc;
+    var ox = stage.clientWidth / 2, oy = stage.clientHeight / 2;
+    if (px == null) { px = ox; py = oy; }
+    cam.tx = (px - ox) - k * (px - ox - cam.tx);
+    cam.ty = (py - oy) - k * (py - oy - cam.ty);
+    cam.sc = sc; camera();
+  }
+  function local(e) { var r = stage.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  scroller.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var p = local(e), d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    scroller.classList.add("dragging"); zoom(Math.exp(-d * (e.ctrlKey ? 0.01 : 0.0018)), p[0], p[1]);
+    clearTimeout(zoom.t); zoom.t = setTimeout(function () { scroller.classList.remove("dragging"); }, 120);
+  }, { passive: false });
+  var ptrs = {}, drag = null, moved = false;
+  scroller.addEventListener("pointerdown", function (e) {
+    if (e.button !== 0 && e.pointerType === "mouse" && e.button !== 1) return;
+    ptrs[e.pointerId] = [e.clientX, e.clientY];
+    drag = { x: e.clientX, y: e.clientY, cam: Object.assign({}, cam) };
+    moved = false;
+  });
+  window.addEventListener("pointermove", function (e) {
+    if (!ptrs[e.pointerId]) return;
+    var prev = ptrs[e.pointerId]; ptrs[e.pointerId] = [e.clientX, e.clientY];
+    var ids = Object.keys(ptrs);
+    if (ids.length === 2) {
+      var a = ptrs[ids[0]], b = ptrs[ids[1]], o = ids[0] == e.pointerId ? b : a;
+      var d0 = Math.hypot(prev[0] - o[0], prev[1] - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]);
+      var r = stage.getBoundingClientRect(), mx = (e.clientX + o[0]) / 2 - r.left, my = (e.clientY + o[1]) / 2 - r.top;
+      cam.tx += (e.clientX - prev[0]) / 2; cam.ty += (e.clientY - prev[1]) / 2;
+      if (d0 > 0) zoom(d1 / d0, mx, my); else camera();
+      moved = true; scroller.classList.add("dragging"); return;
+    }
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!moved && Math.hypot(dx, dy) < 5) return;
+    if (!moved) { moved = true; scroller.classList.add("dragging"); try { scroller.setPointerCapture(e.pointerId); } catch (x) {} }
+    cam.tx = drag.cam.tx + dx; cam.ty = drag.cam.ty + dy;
+    camera();
+  });
+  function up(e) {
+    delete ptrs[e.pointerId];
+    if (!Object.keys(ptrs).length) { scroller.classList.remove("dragging"); drag = null; }
+    else { var id = Object.keys(ptrs)[0]; drag = { x: ptrs[id][0], y: ptrs[id][1], cam: Object.assign({}, cam) }; }
+  }
+  window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+  // A drag that moved is not a click on whatever box it started over.
+  scroller.addEventListener("click", function (e) { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  scroller.addEventListener("dblclick", function (e) {
+    if (e.target.closest("[data-t]")) return;
+    var p = local(e); zoom(1.8, p[0], p[1]);
+  });
+  document.getElementById("z-in").addEventListener("click", function () { zoom(1.3); });
+  document.getElementById("z-out").addEventListener("click", function () { zoom(1 / 1.3); });
+  document.getElementById("z-reset").addEventListener("click", function () { cam = home(); camera(); });
+  function apply() {
+    var ci = ORDER.indexOf(state.cur), whole = state.cur === "outside";
+    Array.prototype.forEach.call(stack.querySelectorAll(".lyr"), function (l) {
+      var i = ORDER.indexOf(l.dataset.layer);
+      var peeled = i > ci;
+      l.classList.toggle("peeled", peeled);
+      l.classList.toggle("below", !whole && i < ci);
+      l.classList.toggle("cur", !whole && i === ci);
+    });
+    Array.prototype.forEach.call(rail.querySelectorAll("button"), function (b) {
+      var all = b.dataset.l === "all";
+      b.setAttribute("aria-current", String(all ? whole : (!whole && b.dataset.l === state.cur)));
+      b.classList.toggle("off", !all && ORDER.indexOf(b.dataset.l) > ci);
+    });
+    size();
+  }
+  rail.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    var l = b.dataset.l === "all" || b.dataset.l === state.cur ? "outside" : b.dataset.l;
+    state.cur = l; apply();
+  });
+
+  function lens(p) {
+    state.persona = p;
+    body.classList.toggle("lens", !!p);
+    if (p) body.style.setProperty("--lens", getComputedStyle(document.querySelector('.pc[data-p="' + p + '"]')).getPropertyValue("--c"));
+    Array.prototype.forEach.call(document.querySelectorAll(".pc"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.p === p)); });
+    Array.prototype.forEach.call(stack.querySelectorAll("[data-p]"), function (el) {
+      el.classList.toggle("on", !!p && (" " + el.dataset.p + " ").indexOf(" " + p + " ") >= 0);
+    });
+    renderPanel(null);
+  }
+  document.getElementById("flow").addEventListener("click", function (e) {
+    var b = e.target.closest(".pc"); if (!b) return;
+    lens(state.persona === b.dataset.p ? null : b.dataset.p);
+  });
+
+  var sel = null;
+  function renderPanel(g) {
+    var h = "";
+    if (state.persona) {
+      var P = PERSONA[state.persona];
+      h += '<div class="o-' + state.persona + '" style="display:grid;gap:8px"><div class="k">Persona lens</div><h2>' + esc(P.name) + "</h2><p>" + esc(P.what) + "</p>" +
+        "<h3>Builds</h3><ul>" + P.builds.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" +
+        "<h3>Works in</h3><ul>" + P.tools.map(function (x) { return "<li><code>" + esc(x) + "</code></li>"; }).join("") + "</ul>" +
+        "<h3>Hands off</h3><p>" + esc(P.hands) + "</p></div>";
+    } else {
+      h += '<div class="k">How to use it</div><h2>Whole architecture</h2><p>Every part GOAD runs on, from the hosts to the people. Lit boxes under a persona lens are what that persona builds or uses.</p><p>Click any box for what it is, who builds it, and what manages it.</p>';
+    }
+    if (g) {
+      var own = g.dataset.own || "lab", m = g.dataset.mgr;
+      h += '<div class="el o-' + own + '"><span class="who">' + esc(OWN[own] || OWN.lab) + (m && !g.classList.contains("mgr") ? " · managed by " + esc(MGR[m]) : "") + "</span><b>" + esc(g.dataset.t) + "</b><p>" + esc(g.dataset.d || "") + "</p></div>";
+    }
+    panel.innerHTML = h;
+  }
+  stack.addEventListener("click", function (e) {
+    var g = e.target.closest("[data-t]"); if (!g) return;
+    if (sel) sel.classList.remove("sel");
+    sel = g; g.classList.add("sel");
+    renderPanel(g);
+  });
+  stack.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.t) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
+  });
+  window.addEventListener("resize", size);
+  cam = home(); camera(); apply(); lens(null);
+})();
+</script>

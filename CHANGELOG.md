@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-10 (Architecture explorer)
+
+### Added
+
+- `docs/architecture-explorer.html`: the whole GOAD architecture from the
+  hosts up as one layered drawing, with a persona lens and a layer rail
+  that peels off the layers above the one picked. The README links it.
+
 ## 2026-11-09 (Pen test check 6: the virtual patch on the board)
 
 ### Added
