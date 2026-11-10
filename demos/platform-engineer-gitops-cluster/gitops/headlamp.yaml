@@ -1,7 +1,14 @@
-# Headlamp, a Kubernetes UI in the browser, on the VKS cluster vks-addons, from the VKS addon. Default values.
+# Headlamp, a Kubernetes UI in the browser, on the VKS cluster vks-addons,
+# from the VKS addon. Default values. It needs cert-manager
+# (cert-manager.yaml).
+#
+# 0.45.0+vmware.2-vks.1 is the release in VKS Add-ons v3.8.0+20261021,
+# the same repository release as cert-manager 1.21.2. The release notes
+# give only the version: the name is in the form of cert-manager.yaml's,
+# and not yet checked against vcf addon available list headlamp.
 #
 # The release is pinned. A ClusterAddon does not move to a newer release
-# by itself. README.md says how to find the release to put here.
+# by itself.
 apiVersion: addons.kubernetes.vmware.com/v1alpha1
 kind: AddonInstall
 metadata:
@@ -11,7 +18,7 @@ spec:
     name: headlamp
   releaseFilter:
     ref:
-      name: RELEASE_FROM_LAB
+      name: headlamp.kubernetes.vmware.com.0.45.0-vmware.2-vks.1
   crossNamespaceSelection: Blocked
   stopMatchingBehavior: Delete
   clusters:

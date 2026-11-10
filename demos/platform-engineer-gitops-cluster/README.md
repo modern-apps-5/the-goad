@@ -26,9 +26,9 @@ This demo changes `main`. `deploy.sh` merges one pull request, and
 
 > **Not yet run in the lab.** The cluster comes from
 > `gitops/platform-tools/cluster.yaml`, and the `AddonInstall` objects from
-> `gitops/platform-tools/cert-manager.yaml`. The add-on name `headlamp`,
-> the names of the Prometheus and Telegraf pods, and the times below are
-> not checked yet. Do a full run first.
+> `gitops/platform-tools/cert-manager.yaml`. Headlamp's release name, the
+> names of the Prometheus and Telegraf pods, and the times below are not
+> checked yet. Do a full run first.
 
 ## Steps
 
@@ -79,19 +79,20 @@ ARGO_CONTEXT=goad:platform-<suffix>:default-project
 
 If the session expires, `vcf context refresh goad`.
 
-### Pin Headlamp's release
+### Check Headlamp's release
 
-`gitops/headlamp.yaml` in this folder has `RELEASE_FROM_LAB` where the
-release goes. The scripts stop until it is replaced. Use a release the
-lab has, in any Supervisor Namespace context:
+`gitops/headlamp.yaml` in this folder pins
+`headlamp.kubernetes.vmware.com.0.45.0-vmware.2-vks.1`, Headlamp
+0.45.0+vmware.2-vks.1 from VKS Add-ons v3.8.0+20261021. The release notes
+give only the version, so check that the lab has a release by that name,
+in any Supervisor Namespace context:
 
 ```bash
 vcf context use "$ARGO_CONTEXT"
 vcf addon available list headlamp
 ```
 
-`gitops/platform-tools/cert-manager.yaml` shows the form of the name.
-Commit the file through a pull request.
+If the name differs, change the file through a pull request.
 
 ### Check the lab
 
@@ -231,7 +232,6 @@ demos/platform-engineer-gitops-cluster/check.sh "$ARGO_CONTEXT"
 
 ## Troubleshooting
 
-- **`These files have no release yet`**: see "Pin Headlamp's release".
 - **The plan in `deploy.sh` has more than three additions**: someone
   changed the lab or `main` since `check.sh`, and the run applied their
   change too. Find out whose it is.
