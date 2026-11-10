@@ -11,6 +11,7 @@ the rest.
 | Headlamp | A Kubernetes UI in the browser |
 | Prometheus | Metrics and alerting |
 | Telegraf | An agent that collects metrics |
+| cert-manager | Certificates. Headlamp does not work without it |
 
 The point: a new cluster and everything on it is a reviewed change in git.
 Argo CD keeps it that way, and the add-ons come from VCF, so nobody finds,
@@ -22,8 +23,8 @@ This demo changes `main`. `deploy.sh` merges one pull request, and
 > **Not yet run in the lab.** The cluster comes from
 > `gitops/platform-tools/cluster.yaml`, and the `AddonInstall` objects from
 > `gitops/platform-tools/cert-manager.yaml`. The names `headlamp`,
-> `prometheus` and `telegraf`, Headlamp's need for cert-manager, and the
-> times below are not checked yet. Do a full run first.
+> `prometheus` and `telegraf` and the times below are not checked yet. Do
+> a full run first.
 
 ## Steps
 
@@ -167,7 +168,8 @@ vcf context use "$CLUSTER_CONTEXT"
 vcf addon install list --cluster-name vks-addons
 ```
 
-Wait until every add-on shows `READY` `True`.
+Wait until every add-on shows `READY` `True`. The four install at the
+same time, and Headlamp may show `False` until cert-manager is ready.
 
 **Show**: the list, all `True`.
 
