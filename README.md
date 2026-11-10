@@ -77,6 +77,7 @@ another lab, change the lab values first: see
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | What runs where, and the full automation flow |
 | [docs/automation-walkthrough.html](docs/automation-walkthrough.html) | How the automation works, persona by persona, as a page to open in a browser. It shows each persona's ownership, including the agentic ops engineer's |
+| [docs/architecture-explorer.html](docs/architecture-explorer.html) | The whole GOAD architecture from the hosts up, as one drawing in layers: vSphere, NSX VPCs on the distributed transit gateway, Avi, the Supervisor, the org and its namespaces, and what runs in them. Pick a persona to light what they build, or peel off layers. A page to open in a browser |
 | [docs/security-architecture.md](docs/security-architecture.md) | The music store's security layers: who owns each, how it reaches the cluster, what traffic it decides |
 | [docs/decisions.md](docs/decisions.md) | Choices made while building, and why |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
