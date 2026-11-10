@@ -119,7 +119,10 @@ two paths around Avi end at a wall while the default deny is on.
 
 1. Show the board with every path as intended: the paths around Avi
    blocked, the attacks through Avi stopped by the WAF, and the clean
-   request let through.
+   request let through. The path to the users VM, bottom left, is red:
+   it stays red until the
+   [vdefend-virtual-patching](../vdefend-virtual-patching) demo patches
+   the VM.
 
 2. Take the default deny out:
 
