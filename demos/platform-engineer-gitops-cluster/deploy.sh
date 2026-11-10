@@ -51,7 +51,7 @@ else
       "Add $(basename "$file") to gitops/vks-addons"
   done
   merge_branch "$branch" "Demo: a VKS cluster with add-ons, managed by Argo CD" \
-    "The namespace vks-addons, and its VKS cluster with cert-manager, Headlamp, Prometheus and Telegraf. Opened by demos/platform-engineer-gitops-cluster/deploy.sh."
+    "The namespace vks-addons, and its VKS cluster with Headlamp and cert-manager, and the platform-observability label for Prometheus and Telegraf. Opened by demos/platform-engineer-gitops-cluster/deploy.sh."
 fi
 
 echo "Applying terraform/platform-engineer."

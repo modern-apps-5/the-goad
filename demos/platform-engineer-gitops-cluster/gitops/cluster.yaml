@@ -9,13 +9,16 @@ apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: vks-addons
-  # Each label selects the cluster for the AddonInstall of the same name
-  # in this directory.
+  # The platform-observability Supervisor Service onboards labelled
+  # clusters to VCF Operations and installs its collectors, Prometheus and
+  # Telegraf. The addon also needs helm-controller, which VKS already turns
+  # on for every cluster. headlamp.yaml installs Headlamp on clusters with
+  # the second label, and cert-manager.yaml cert-manager, which Headlamp
+  # needs, with the third.
   labels:
-    addons.kubernetes.vmware.com/cert-manager: enabled
+    addons.kubernetes.vmware.com/platform-observability: enabled
     addons.kubernetes.vmware.com/headlamp: enabled
-    addons.kubernetes.vmware.com/prometheus: enabled
-    addons.kubernetes.vmware.com/telegraf: enabled
+    addons.kubernetes.vmware.com/cert-manager: enabled
 spec:
   # serviceDomain must be set: the helm-controller addon release new
   # clusters get reads it in its template and fails without it.

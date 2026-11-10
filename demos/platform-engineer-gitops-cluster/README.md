@@ -1,17 +1,21 @@
 # Platform engineer: a VKS cluster with add-ons, managed by Argo CD
 
-One command builds a new VKS cluster from git, with its add-ons: Headlamp,
-Prometheus and Telegraf, and cert-manager, which Headlamp needs. One pull
-request adds the namespace and the manifests, the `platform-engineer`
-workflow makes the namespace and the Argo CD Application, and Argo CD does
-the rest.
+One command builds a new VKS cluster from git, with Headlamp, Prometheus
+and Telegraf. One pull request adds the namespace and the manifests, the
+`platform-engineer` workflow makes the namespace and the Argo CD
+Application, and Argo CD does the rest.
 
-| Add-on | What it adds |
-|---|---|
-| Headlamp | A Kubernetes UI in the browser |
-| Prometheus | Metrics and alerting |
-| Telegraf | An agent that collects metrics |
-| cert-manager | Certificates. Headlamp does not work without it |
+| Add-on | What it adds | How the cluster gets it |
+|---|---|---|
+| Headlamp | A Kubernetes UI in the browser | An `AddonInstall`, `gitops/headlamp.yaml` |
+| cert-manager | Certificates. Headlamp does not work without it | An `AddonInstall`, `gitops/cert-manager.yaml` |
+| Prometheus | Metrics and alerting | The label `addons.kubernetes.vmware.com/platform-observability: enabled` |
+| Telegraf | An agent that collects metrics | The same label |
+
+The platform-observability Supervisor Service installs Prometheus and
+Telegraf on every cluster with its label, and onboards the cluster to VCF
+Operations. The music store and platform tools clusters have the same
+label.
 
 The point: a new cluster and everything on it is a reviewed change in git.
 Argo CD keeps it that way, and the add-ons come from VCF, so nobody finds,
@@ -22,9 +26,9 @@ This demo changes `main`. `deploy.sh` merges one pull request, and
 
 > **Not yet run in the lab.** The cluster comes from
 > `gitops/platform-tools/cluster.yaml`, and the `AddonInstall` objects from
-> `gitops/platform-tools/cert-manager.yaml`. The names `headlamp`,
-> `prometheus` and `telegraf` and the times below are not checked yet. Do
-> a full run first.
+> `gitops/platform-tools/cert-manager.yaml`. The add-on name `headlamp`,
+> the names of the Prometheus and Telegraf pods, and the times below are
+> not checked yet. Do a full run first.
 
 ## Steps
 
@@ -75,22 +79,19 @@ ARGO_CONTEXT=goad:platform-<suffix>:default-project
 
 If the session expires, `vcf context refresh goad`.
 
-### Pin the add-on releases
+### Pin Headlamp's release
 
-`gitops/headlamp.yaml`, `gitops/prometheus.yaml` and `gitops/telegraf.yaml`
-in this folder have `RELEASE_FROM_LAB` where the release goes. The scripts
-stop until it is replaced. Use the releases the lab has, in any Supervisor
-Namespace context:
+`gitops/headlamp.yaml` in this folder has `RELEASE_FROM_LAB` where the
+release goes. The scripts stop until it is replaced. Use a release the
+lab has, in any Supervisor Namespace context:
 
 ```bash
 vcf context use "$ARGO_CONTEXT"
 vcf addon available list headlamp
-vcf addon available list prometheus
-vcf addon available list telegraf
 ```
 
-`gitops/platform-tools/cert-manager.yaml` shows the form of the name. Commit
-the three files through a pull request.
+`gitops/platform-tools/cert-manager.yaml` shows the form of the name.
+Commit the file through a pull request.
 
 ### Check the lab
 
@@ -118,12 +119,13 @@ Open `gitops/` in this folder: `cluster.yaml` and `headlamp.yaml`.
 
 **Show**
 
-- The labels on the `Cluster`.
+- The labels on the `Cluster`. `platform-observability` brings Prometheus
+  and Telegraf, with nothing else in git.
 - The `AddonInstall`: the add-on, its pinned release, and the label that
   selects the cluster.
 
-**Why**: the cluster is one short manifest, and each add-on is another.
-Adding an add-on to a cluster is one label.
+**Why**: the cluster is one short manifest. An add-on is a label, and
+at most one more manifest.
 
 ### 2. Deploy
 
@@ -146,7 +148,7 @@ Tab 2, Application `vks-addons`. Tab 3, namespace `vks-addons-<suffix>`.
 
 **Show**
 
-- The `Cluster` and the four `AddonInstall` objects, Synced.
+- The `Cluster` and the two `AddonInstall` objects, Synced.
 - The cluster coming up in VCF Automation.
 
 **Why**: Argo CD reports the `Cluster` Healthy only when it is ready.
@@ -155,7 +157,8 @@ Delete an `AddonInstall` by hand, and Argo CD puts it back.
 ### 4. The add-ons
 
 Argo CD reports an `AddonInstall` as soon as it exists, so look at the
-add-ons themselves. Make the context for the new namespace:
+add-ons themselves. Make the contexts for the new namespace and for the
+cluster:
 
 ```bash
 vcf context refresh goad
@@ -166,14 +169,24 @@ CLUSTER_CONTEXT=goad:vks-addons-<suffix>:default-project
 demos/platform-engineer-gitops-cluster/status.sh "$ARGO_CONTEXT" "$CLUSTER_CONTEXT"
 vcf context use "$CLUSTER_CONTEXT"
 vcf addon install list --cluster-name vks-addons
+
+vcf cluster kubeconfig get vks-addons
+kubectl config get-contexts
+
+WORKLOAD_CONTEXT=<the context for the cluster vks-addons>
+
+kubectl --context "$WORKLOAD_CONTEXT" get pods -A | grep -iE 'headlamp|cert-manager|prometheus|telegraf'
 ```
 
-Wait until every add-on shows `READY` `True`. The four install at the
-same time, and Headlamp may show `False` until cert-manager is ready.
+Wait until `cert-manager` and `headlamp` show `READY` `True`. They install
+at the same time, and Headlamp may show `False` until cert-manager is
+ready. Prometheus and Telegraf come up in the cluster once
+platform-observability has onboarded it.
 
-**Show**: the list, all `True`.
+**Show**: the add-ons `True`, and the pods of all four.
 
-**Why**: VKS installs and reports each add-on the same way.
+**Why**: two `AddonInstall` objects and one label, and the cluster has a
+UI, metrics and a metrics agent.
 
 ### 5. See the cluster in Headlamp
 
@@ -181,12 +194,6 @@ This step reads the cluster. It is the one step done by hand, and the
 login goes away with the cluster.
 
 ```bash
-vcf cluster kubeconfig get vks-addons
-kubectl config get-contexts
-
-WORKLOAD_CONTEXT=<the context for the cluster vks-addons>
-
-kubectl --context "$WORKLOAD_CONTEXT" get pods -A | grep -iE 'headlamp|prometheus|telegraf'
 kubectl --context "$WORKLOAD_CONTEXT" -n headlamp get svc
 kubectl --context "$WORKLOAD_CONTEXT" create clusterrolebinding headlamp-view \
   --serviceaccount=headlamp:headlamp --clusterrole=view
@@ -224,7 +231,7 @@ demos/platform-engineer-gitops-cluster/check.sh "$ARGO_CONTEXT"
 
 ## Troubleshooting
 
-- **`These files have no release yet`**: see "Pin the add-on releases".
+- **`These files have no release yet`**: see "Pin Headlamp's release".
 - **The plan in `deploy.sh` has more than three additions**: someone
   changed the lab or `main` since `check.sh`, and the run applied their
   change too. Find out whose it is.
@@ -239,12 +246,10 @@ demos/platform-engineer-gitops-cluster/check.sh "$ARGO_CONTEXT"
 - **`AddonInstall` is Synced but the add-on is missing**: a wrong release
   name or a label that does not match. Compare the file with
   `vcf addon available list <add-on>`.
-- **Prometheus stays `Pending` on its volume**: the cluster has no default
-  storage class. Give the add-on the storage class in an `AddonConfig`, the
-  way `gitops/music-store/antrea-nsx.yaml` sets values.
-- **Telegraf runs but sends nothing**: its default values may have no
-  useful output. `vcf addon available get telegraf -o telegraf-values.yaml`
-  shows them; set an output in an `AddonConfig`.
+- **No Prometheus or Telegraf pods**: check that the `Cluster` has the
+  label `addons.kubernetes.vmware.com/platform-observability: enabled`,
+  and that the platform-observability Supervisor Service is running on the
+  Supervisor. Its addon also needs helm-controller in the cluster.
 - **`vks-addons` stays in `Provisioning`**: the namespace may be out of
   memory or storage: `kubectl --context "$CLUSTER_CONTEXT" get machines`,
   then `describe` the one that is stuck.
