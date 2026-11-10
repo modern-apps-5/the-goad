@@ -3,6 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-10 (Demo: a VKS cluster with add-ons, managed by Argo CD)
+
+### Added
+
+- `demos/platform-engineer-gitops-cluster`: one command builds a VKS
+  cluster from git, with the add-ons Headlamp, Prometheus and Telegraf.
+  Not yet run in the lab.
+- `demos/lib/github.sh`: `on_main`, `add_file` and `delete_file`.
+
 ## 2026-11-09 (vDefend Distributed IDPS for the users VM)
 
 ### Added

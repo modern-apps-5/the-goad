@@ -1,0 +1,21 @@
+# cert-manager on the VKS cluster vks-addons, from the VKS addon, the same
+# release as the music store cluster's. Headlamp needs it.
+#
+# The release is pinned. A ClusterAddon does not move to a newer release
+# by itself.
+apiVersion: addons.kubernetes.vmware.com/v1alpha1
+kind: AddonInstall
+metadata:
+  name: cert-manager
+spec:
+  addonRef:
+    name: cert-manager
+  releaseFilter:
+    ref:
+      name: cert-manager.kubernetes.vmware.com.1.21.2-vmware.1-vks.1
+  crossNamespaceSelection: Blocked
+  stopMatchingBehavior: Delete
+  clusters:
+    - selector:
+        matchLabels:
+          addons.kubernetes.vmware.com/cert-manager: enabled

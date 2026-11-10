@@ -1,0 +1,9 @@
+# Keeps one object in this directory while reset.sh takes the cluster
+# away. Argo CD's automated sync does not prune when git has nothing left
+# for the Application, so with this file gone too the cluster would stay.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vks-addons-demo
+data:
+  demo: platform-engineer-gitops-cluster
