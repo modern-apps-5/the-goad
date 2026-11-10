@@ -18,14 +18,14 @@
       "id": 1,
       "type": "canvas",
       "title": "Can a pod in the cluster reach the shop around the WAF?",
-      "description": "Five probes every 30 seconds from namespace pen-test of the music store cluster (gitops/music-store-platform/pen-test.yaml). Green: the check came out as decision 49 wants.",
+      "description": "Six probes every 30 seconds from namespace pen-test of the music store cluster (gitops/music-store-platform/pen-test.yaml). Green: the check came out as decision 49 wants.",
       "transparent": true,
       "datasource": {
         "type": "prometheus",
         "uid": "goad-prometheus"
       },
       "gridPos": {
-        "h": 19,
+        "h": 26,
         "w": 24,
         "x": 0,
         "y": 0
@@ -224,6 +224,71 @@
           "range": false,
           "format": "time_series",
           "legendFormat": "clean_code",
+          "editorMode": "code"
+        },
+        {
+          "refId": "P",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"vpatch\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "vpatch",
+          "editorMode": "code"
+        },
+        {
+          "refId": "Q",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"vpatch\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "vpatch_path",
+          "editorMode": "code"
+        },
+        {
+          "refId": "R",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"vpatch\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "vpatch_through",
+          "editorMode": "code"
+        },
+        {
+          "refId": "S",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"vpatch\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "vpatch_wall",
+          "editorMode": "code"
+        },
+        {
+          "refId": "T",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_status_code{pen_test=\"vpatch\"}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "vpatch_code",
           "editorMode": "code"
         }
       ],
@@ -744,6 +809,173 @@
                 "value": 0
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vpatch"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "⛔ CVE exploit: reset by vDefend",
+                        "color": "#a78bfa",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "⚠ CVE exploit reached the VM",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vpatch_path"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "reset",
+                        "color": "#a78bfa",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "open",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vpatch_through"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "reset",
+                        "color": "transparent",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "open",
+                        "color": "#ff5d73",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vpatch_wall"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "vDefend IDPS · Detect & Prevent",
+                        "color": "#a78bfa",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "vDefend IDPS · Detect only",
+                        "color": "#334155",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vpatch_code"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "⛔ CVE exploit: reset by vDefend",
+                        "color": "#a78bfa",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "prefix:⚠ CVE exploit reached the VM, HTTP "
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
           }
         ]
       },
@@ -963,6 +1195,28 @@
                   "color": {
                     "fixed": "#4c8dff",
                     "field": "service_path"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                },
+                {
+                  "targetName": "vDefend IDPS",
+                  "source": {
+                    "x": 0,
+                    "y": -1
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 1
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "vpatch_path"
                   },
                   "size": {
                     "fixed": 3,
@@ -1560,6 +1814,255 @@
                 "width": 260,
                 "height": 40
               }
+            },
+            {
+              "type": "text",
+              "name": "Sends vpatch",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#94a3b8"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "sends CVE-2021-41773, east-west"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 135,
+                "top": 500,
+                "width": 300,
+                "height": 24
+              }
+            },
+            {
+              "type": "metric-value",
+              "name": "Check vpatch",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 14,
+                "color": {
+                  "fixed": "#0b1220"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "vpatch_code",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "vpatch",
+                  "fixed": "#475569"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 20
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 135,
+                "top": 535,
+                "width": 340,
+                "height": 44
+              }
+            },
+            {
+              "type": "metric-value",
+              "name": "vDefend IDPS",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "vpatch_wall",
+                  "fixed": ""
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "vpatch_wall",
+                  "fixed": "#475569"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 20,
+                "top": 600,
+                "width": 210,
+                "height": 30
+              },
+              "connections": [
+                {
+                  "targetName": "Users VM",
+                  "source": {
+                    "x": 0,
+                    "y": -1
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 1
+                  },
+                  "path": "straight",
+                  "direction": "forward",
+                  "color": {
+                    "fixed": "#4c8dff",
+                    "field": "vpatch_through"
+                  },
+                  "size": {
+                    "fixed": 3,
+                    "min": 1,
+                    "max": 10
+                  }
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "name": "Users VM",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 16,
+                "color": {
+                  "fixed": "#e8eef6"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "Users VM music-users :5003"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "#111827"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#4c8dff"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 20,
+                "top": 690,
+                "width": 210,
+                "height": 90
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "Layer IDPS",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#a78bfa"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "◀ virtual patch: IDPS on the VM's vNIC, no change to the VM (patch.sh on)"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 245,
+                "top": 603,
+                "width": 600,
+                "height": 24
+              }
+            },
+            {
+              "type": "text",
+              "name": "VM note",
+              "config": {
+                "align": "center",
+                "valign": "middle",
+                "size": 12,
+                "color": {
+                  "fixed": "#94a3b8"
+                },
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "VM Service VM in Supervisor Namespace music-store-<suffix>: no Antrea policy, no WAF in its path"
+                }
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              },
+              "placement": {
+                "left": 245,
+                "top": 723,
+                "width": 640,
+                "height": 24
+              }
             }
           ],
           "background": {
@@ -1598,7 +2101,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 26
       },
       "targets": [
         {
@@ -1664,6 +2167,19 @@
           "range": true,
           "format": "time_series",
           "legendFormat": "5 · Clean request",
+          "editorMode": "code"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "goad-prometheus"
+          },
+          "expr": "pen_test_pass{pen_test=\"vpatch\"}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "legendFormat": "6 · CVE exploit to the users VM",
           "editorMode": "code"
         }
       ],

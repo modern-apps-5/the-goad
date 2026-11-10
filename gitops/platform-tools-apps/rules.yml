@@ -13,11 +13,19 @@ groups:
       # The pen test's checks, from the probes in namespace pen-test of the
       # music store cluster (gitops/music-store-platform/pen-test.yaml).
       # 1 when a check comes out as decision 49 wants: around Avi, no
-      # answer (status code 0); through Avi, the code in expect.
+      # answer (status code 0); through Avi, the code in expect. Check 6,
+      # the CVE exploit to the users VM, passes only when vDefend IDPS
+      # resets it: no status code, and the probe ends in under 5 seconds, so a
+      # VM that is down and times out is not a pass. It fails while the
+      # virtual patch is off (demos/vdefend-virtual-patching).
       - record: pen_test_pass
         expr: >-
           max by (pen_test) (probe_http_status_code{pen_test!="", expect="drop"} == bool 0)
-          or max by (pen_test) (probe_success{pen_test!="", expect!="drop"})
+          or max by (pen_test) (
+            (probe_http_status_code{pen_test!="", expect="reset"} == bool 0)
+            * on (pen_test, instance) (probe_duration_seconds{pen_test!="", expect="reset"} < bool 5)
+          )
+          or max by (pen_test) (probe_success{pen_test!="", expect!~"drop|reset"})
       # The HTTP status code each check got, 0 for no answer. The board
       # shows it on the checks.
       - record: pen_test_status_code
