@@ -1138,7 +1138,7 @@
               },
               "connections": [
                 {
-                  "targetName": "Avi WAF",
+                  "targetName": "Avi HTTPRoute",
                   "source": {
                     "x": 1,
                     "y": 0.6
@@ -1228,7 +1228,7 @@
             },
             {
               "type": "rectangle",
-              "name": "Avi WAF",
+              "name": "Avi HTTPRoute",
               "config": {
                 "align": "center",
                 "valign": "middle",
@@ -1238,7 +1238,7 @@
                 },
                 "text": {
                   "mode": "fixed",
-                  "fixed": "Avi WAF · music.goad.gpu.set.lab"
+                  "fixed": "Avi HTTPRoute · music.goad.gpu.set.lab"
                 }
               },
               "background": {
