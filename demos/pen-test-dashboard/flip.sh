@@ -106,7 +106,7 @@ layer_state() {
     then "present" else "absent" end'
 }
 
-# The five checks, from the recording rule pen_test_pass: 1 is a pass.
+# The checks, from the recording rule pen_test_pass: 1 is a pass.
 checks() {
   curl -sf -m 10 "$PROMETHEUS/api/v1/query" --data-urlencode 'query=pen_test_pass' |
     jq -r '.data.result[] | "\(.metric.pen_test)=\(.value[1])"' | sort | tr '\n' ' '

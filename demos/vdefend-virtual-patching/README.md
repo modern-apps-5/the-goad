@@ -24,7 +24,7 @@ the request reached the workload.
 | 2. IDPS on the VM | NSX Manager, project `goad`, Distributed Rules |
 | 3. The exploit lands | Terminal |
 | 4. Detected | NSX Manager, Events |
-| 5. Virtual patch | Terminal, then NSX Manager |
+| 5. Virtual patch | Terminal, then NSX Manager, then Grafana |
 | 6. The exploit is blocked | Terminal, then NSX Manager, Events |
 | 7. It's code | GitHub |
 
@@ -89,6 +89,10 @@ The second command also starts the attacker pod, so step 3 is quick.
 2. NSX Manager, `https://nsx01.gpu.set.lab`, project `goad` in the
    project picker at the top, Security, IDS/IPS & Malware Prevention.
 3. GitHub: `terraform/security-admin/idps.tf`.
+4. Grafana, `http://grafana.goad.gpu.set.lab/d/goad-pen-test`, as
+   `admin`. The bottom-left path is pen test check 6: the same exploit
+   from namespace `pen-test`, every 30 seconds. Red while the rule is in
+   Detect.
 
 ## Run the demo
 
@@ -162,6 +166,12 @@ Tab 2, Distributed Rules, refresh.
 
 **Show**: rule `users-vm-inbound` is now Detect & Prevent.
 
+Tab 4, within a minute.
+
+**Show**: the bar `vDefend IDPS` turns from Detect only to Detect &
+Prevent, the path to the users VM stops at it and turns violet, and
+check 6 in the history turns from red to violet.
+
 **Why**: the patch is a policy on the VM's vNIC. Nothing on the VM
 changes, and it takes effect in seconds.
 
@@ -219,6 +229,9 @@ If you forget `off`, the next `security-admin` apply puts `DETECT` back.
   policy.
 - **`patch.sh`: certificate error.** Set `NSX_CACERT`, see Before the
   demo.
+- **Events before step 3.** Pen test check 6 sends the exploit every 30
+  seconds, so the events are already there. Their source is the
+  `pen-test` probe; `attack.sh` adds more.
 - **No event in step 4.** IDPS is off for the vSphere cluster, or the
   group `music-users` has no member: in NSX Manager, open the group's
   members. The VM must carry the label `app: users-service`

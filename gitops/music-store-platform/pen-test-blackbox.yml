@@ -29,3 +29,13 @@ modules:
       preferred_ip_protocol: ip4
       tls_config:
         insecure_skip_verify: true
+  # Check 6, a CVE-2021-41773 exploit to the users VM, east-west. vDefend
+  # Distributed IDPS on the VM's vNIC resets the connection when the
+  # virtual patch is on (terraform/security-admin/idps.tf). A reset is
+  # status code 0 and fails fast; the short timeout keeps a VM that does
+  # not answer apart from a reset, in rules.yml.
+  pen_test_vpatch:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4

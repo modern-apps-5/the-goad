@@ -3,15 +3,29 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
-## 2026-11-10 (Demo: a VKS cluster with add-ons, managed by Argo CD)
+## 2026-11-10 (Architecture explorer)
 
 ### Added
 
-- `demos/platform-engineer-gitops-cluster`: one command builds a VKS
-  cluster from git, with Headlamp and cert-manager as VKS add-ons, and
-  Prometheus and Telegraf from the platform-observability label.
-  Not yet run in the lab.
-- `demos/lib/github.sh`: `on_main`, `add_file` and `delete_file`.
+- `docs/architecture-explorer.html`: the whole GOAD architecture from the
+  hosts up as one layered drawing, with a persona lens and a layer rail
+  that peels off the layers above the one picked. The README links it.
+
+## 2026-11-09 (Pen test check 6: the virtual patch on the board)
+
+### Added
+
+- Pen test check 6: the always-on probe in namespace `pen-test` sends the
+  CVE-2021-41773 exploit to the users VM every 30 seconds. It passes when
+  vDefend IDPS resets the connection, so it is red while the rule is in
+  detect and violet while the virtual patch is on.
+- The Grafana board "Pen test" draws the path to the users VM through
+  the IDPS bar, and has check 6 in its history.
+
+### Changed
+
+- `demos/vdefend-virtual-patching`, `demos/pen-test-dashboard` and
+  `docs/security-architecture.md` describe check 6.
 
 ## 2026-11-09 (vDefend Distributed IDPS for the users VM)
 
