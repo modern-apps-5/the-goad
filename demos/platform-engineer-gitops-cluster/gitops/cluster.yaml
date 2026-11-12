@@ -1,0 +1,65 @@
+# The VKS cluster of the demo platform-engineer-gitops-cluster.
+#
+# No namespace: Argo CD (Application A) applies this into the Supervisor
+# Namespace that deploy.sh registers as a destination, whichever one you
+# reuse. The class, the Kubernetes version, the VM classes and the
+# storage class are the same as the music store cluster's
+# (gitops/music-store/cluster.yaml). The Argo CD that VCF ships reports a
+# Cluster Healthy only when it is ready.
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: pe-gitops-cluster
+  # The platform-observability Supervisor Service onboards labelled
+  # clusters to VCF Operations and installs its collectors, Prometheus and
+  # Telegraf. The addon also needs helm-controller, which VKS already turns
+  # on for every cluster. headlamp.yaml installs Headlamp on clusters with
+  # the second label, and cert-manager.yaml cert-manager, which Headlamp
+  # needs, with the third.
+  labels:
+    addons.kubernetes.vmware.com/platform-observability: enabled
+    addons.kubernetes.vmware.com/headlamp: enabled
+    addons.kubernetes.vmware.com/cert-manager: enabled
+spec:
+  # serviceDomain must be set: the helm-controller addon release new
+  # clusters get reads it in its template and fails without it.
+  clusterNetwork:
+    serviceDomain: cluster.local
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+  topology:
+    classRef:
+      name: builtin-generic-v3.7.0
+      namespace: vmware-system-vks-public
+    version: v1.36.2+vmware.2
+    controlPlane:
+      replicas: 1
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+    workers:
+      machineDeployments:
+        - class: node-pool
+          name: workers
+          replicas: 2
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+          variables:
+            overrides:
+              - name: vmClass
+                value: best-effort-large
+    variables:
+      - name: vmClass
+        value: best-effort-medium
+      - name: storageClass
+        value: mgmt-cl01-optimal-datastore-default-policy-autoraid
+      - name: bootstrapAddons
+        value:
+          cniRef:
+            name: antrea
+            namespace: vmware-system-vks-public

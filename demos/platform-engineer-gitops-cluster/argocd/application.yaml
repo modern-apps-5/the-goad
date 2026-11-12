@@ -1,0 +1,38 @@
+# Application A: the VKS cluster and its add-ons, from git.
+#
+# Argo CD syncs the manifests in gitops/ (the Cluster pe-gitops-cluster and the
+# AddonInstalls for Headlamp and cert-manager) into the Supervisor
+# Namespace registered by managedentity-namespace.yaml. The
+# platform-observability label on the Cluster brings Prometheus and
+# Telegraf through the Supervisor Service, with nothing else in git.
+#
+# The finalizer makes a delete of this Application prune the cluster and
+# the add-ons: reset.sh relies on it. deploy.sh fills __ARGO_NS__,
+# __REPO_URL__, __REVISION__ and __NAMESPACE__. The destination name
+# vks-addons-ns is the clusterName in managedentity-namespace.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vks-addons
+  namespace: __ARGO_NS__
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: __REPO_URL__
+    targetRevision: __REVISION__
+    path: demos/platform-engineer-gitops-cluster/gitops
+  destination:
+    name: vks-addons-ns
+    namespace: __NAMESPACE__
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      backoff:
+        duration: 1m
+        factor: 2
+        maxDuration: 10m

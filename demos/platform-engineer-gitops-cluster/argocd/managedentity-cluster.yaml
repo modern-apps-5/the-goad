@@ -1,0 +1,25 @@
+# The point of the demo: register the VKS cluster itself as an Argo CD
+# target, using the ManagedEntity CRD. deploy.sh applies this only after
+# Application A reports the cluster Healthy.
+#
+# Once this exists, Argo CD has a destination named vks-addons-cluster, and
+# an Application can deploy workloads into the cluster (test/application.yaml
+# does, as a test). The add-ons do not come this way: they are installed by
+# the Supervisor from the AddonInstalls and the label, not through this
+# target.
+#
+# deploy.sh fills __ARGO_NS__ (where Argo CD runs), __NAMESPACE__ (where the
+# Cluster object is) and __PROJECT__.
+apiVersion: argocd-service.vsphere.vmware.com/v1alpha1
+kind: ManagedEntity
+metadata:
+  name: vks-addons-cluster
+  namespace: __ARGO_NS__
+spec:
+  clusterName: vks-addons-cluster
+  targetRef:
+    apiGroup: cluster.x-k8s.io
+    kind: Cluster
+    name: pe-gitops-cluster
+    namespace: __NAMESPACE__
+    project: __PROJECT__

@@ -44,6 +44,28 @@ edit_file() {
     gh api -X PUT "repos/$REPO/contents/$path" --input - >/dev/null
 }
 
+# Succeeds if a file or directory is on main.
+on_main() {
+  gh api "repos/$REPO/contents/$1?ref=main" --silent 2>/dev/null
+}
+
+# Commit a new file to a branch, from a local file.
+add_file() {
+  local branch=$1 path=$2 source=$3 message=$4
+  base64 < "$source" | tr -d '\n' > "$DEMO_TMP/new.b64"
+  jq -n --arg message "$message" --arg branch "$branch" --rawfile content "$DEMO_TMP/new.b64" \
+    '{message: $message, branch: $branch, content: $content}' |
+    gh api -X PUT "repos/$REPO/contents/$path" --input - >/dev/null
+}
+
+# Delete a file from a branch.
+delete_file() {
+  local branch=$1 path=$2 message=$3 sha
+  sha=$(gh api "repos/$REPO/contents/$path?ref=$branch" --jq .sha) || return 1
+  gh api -X DELETE "repos/$REPO/contents/$path" \
+    -f "message=$message" -f "branch=$branch" -f "sha=$sha" >/dev/null
+}
+
 # Open a pull request from a branch to main, merge it, and delete the
 # branch. Sets MERGE_SHA to the merge commit.
 merge_branch() {
