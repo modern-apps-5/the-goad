@@ -1,0 +1,35 @@
+# Application B: a test only, not part of the demo. It proves the cluster
+# target works by deploying a tiny workload into the VKS cluster through the
+# Argo CD destination vks-addons-cluster that managedentity-cluster.yaml
+# registered.
+#
+# test-app.sh applies this; test-app.sh --delete removes it. The finalizer
+# makes the delete prune the workload. deploy.sh does not touch it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vks-addons-test
+  namespace: __ARGO_NS__
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: __REPO_URL__
+    targetRevision: __REVISION__
+    path: demos/platform-engineer-gitops-cluster/test/manifests
+  destination:
+    name: vks-addons-cluster
+    namespace: demo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

@@ -1,45 +1,45 @@
 #!/usr/bin/env bash
-# Check the lab before the demo: every add-on has a release, the demo is
-# not on main or in Argo CD, and the platform engineer's Terraform plans
-# no change.
+# Check the lab before the demo: the contexts resolve, every add-on has a
+# release, and the demo is not already deployed. No Terraform, changes
+# nothing.
 #
-#   demos/platform-engineer-gitops-cluster/check.sh <argo context>
+#   demos/platform-engineer-gitops-cluster/check.sh <argo context> [namespace context]
 #
-# <argo context> is your vcf context for the Supervisor Namespace
-# platform-<suffix>, where Argo CD runs: see README.md. It starts the
-# workflow platform-engineer as a plan only, so it takes a few minutes. It
-# changes nothing.
-#
-# Needs gh, kubectl and jq. Prints no secret.
+# Needs kubectl. Prints no secret.
 set -euo pipefail
-here=$(cd "$(dirname "$0")" && pwd)
-. "$here/../lib/github.sh"
+. "$(cd "$(dirname "$0")" && pwd)/common.sh"
 
-ARGO_CONTEXT=${1:?usage: $0 <argo context>}
+ARGO_CONTEXT=${1:?usage: $0 <argo context> [namespace context]}
+NS_CONTEXT=${2:-}
 ARGO_NS=$(context_namespace "$ARGO_CONTEXT")
-[[ -n $ARGO_NS ]] || { echo "Context $ARGO_CONTEXT has no namespace: see README.md" >&2; exit 2; }
+[[ -n $ARGO_NS ]] || die "Context $ARGO_CONTEXT has no namespace: see README.md"
 
 ok=true
 
-if grep -l RELEASE_FROM_LAB "$here"/gitops/*.yaml; then
+if grep -l RELEASE_FROM_LAB "$here"/gitops/*.yaml 2>/dev/null; then
   ok=false
   echo "These files have no release yet: see README.md."
 fi
 
-if on_main gitops/vks-addons; then
+if kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get application "$APP" >/dev/null 2>&1; then
   ok=false
-  echo "gitops/vks-addons is on main: run reset.sh."
+  echo "Application $APP already exists: run reset.sh."
 fi
 
-app=$(kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get application vks-addons --ignore-not-found -o name)
-if [[ -n $app ]]; then
-  ok=false
-  echo "Application vks-addons exists: run reset.sh."
-fi
+for entity in "$NS_ENTITY" "$CLUSTER_ENTITY"; do
+  if kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get managedentity "$entity" >/dev/null 2>&1; then
+    ok=false
+    echo "ManagedEntity $entity already exists: run reset.sh."
+  fi
+done
 
-echo "Planning terraform/platform-engineer, without apply."
-run_workflow platform-engineer.yml -f apply=false
-plan_summary "$RUN_ID" || { ok=false; echo "The plan has changes. Find out whose they are before the demo."; }
+if [[ -n $NS_CONTEXT ]]; then
+  ns=$(context_namespace "$NS_CONTEXT")
+  if [[ -n $ns ]] && kubectl --context "$NS_CONTEXT" -n "$ns" get cluster "$CLUSTER" >/dev/null 2>&1; then
+    ok=false
+    echo "Cluster $CLUSTER already exists in $ns: run reset.sh."
+  fi
+fi
 
 echo
 $ok && echo "Ready for the demo." || { echo "Not ready."; exit 1; }

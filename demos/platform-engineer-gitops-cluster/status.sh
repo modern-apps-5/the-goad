@@ -1,65 +1,65 @@
 #!/usr/bin/env bash
-# Where the demo stands: main, Argo CD's Application vks-addons, the
-# cluster and its add-ons.
+# Where the demo stands: the Argo CD Applications, the two ManagedEntity
+# targets, the cluster and its add-ons.
 #
-#   demos/platform-engineer-gitops-cluster/status.sh <argo context> [cluster context] [watch]
+#   demos/platform-engineer-gitops-cluster/status.sh <argo context> [namespace context] [watch]
 #
-# <argo context> is your vcf context for platform-<suffix>. [cluster
-# context] is the one for vks-addons-<suffix>, which exists once the
-# workflow has made the namespace: see README.md. Without it, only main
-# and Argo CD are shown. "watch" prints the state again every 15 seconds,
-# until Ctrl-C.
+# <argo context>      vcf context for platform-<suffix>, where Argo CD runs.
+# [namespace context] vcf context for the namespace the cluster is in. Adds
+#                     the cluster phase and the AddonInstalls. Omit for the
+#                     Applications and targets only.
+# [watch]             print the state again every 15 seconds, until Ctrl-C.
 #
-# Needs gh, kubectl and jq. Prints no secret.
+# Needs kubectl and jq. Prints no secret.
 set -euo pipefail
-here=$(cd "$(dirname "$0")" && pwd)
-. "$here/../lib/github.sh"
+. "$(cd "$(dirname "$0")" && pwd)/common.sh"
 
-ARGO_CONTEXT=${1:?usage: $0 <argo context> [cluster context] [watch]}
-CLUSTER_CONTEXT=${2:-}
+ARGO_CONTEXT=${1:?usage: $0 <argo context> [namespace context] [watch]}
+NS_CONTEXT=${2:-}
 WATCH=${3:-}
-if [[ $CLUSTER_CONTEXT == watch ]]; then
-  CLUSTER_CONTEXT=
-  WATCH=watch
-fi
+if [[ $NS_CONTEXT == watch ]]; then NS_CONTEXT=; WATCH=watch; fi
 
 ARGO_NS=$(context_namespace "$ARGO_CONTEXT")
-[[ -n $ARGO_NS ]] || { echo "Context $ARGO_CONTEXT has no namespace: see README.md" >&2; exit 2; }
+[[ -n $ARGO_NS ]] || die "Context $ARGO_CONTEXT has no namespace: see README.md"
+
+app_line() {
+  local app json
+  json=$(kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get application "$1" --ignore-not-found -o json)
+  if [[ -n $json ]]; then
+    jq -r --arg a "$1" '"Application:  \($a) \(.status.sync.status), \(.status.health.status), at \(.status.sync.revision[0:7])"' <<<"$json"
+  else
+    echo "Application:  $1 none"
+  fi
+}
+
+entity_line() {
+  if kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get managedentity "$1" >/dev/null 2>&1; then
+    echo "ManagedEntity: $1 present"
+  else
+    echo "ManagedEntity: $1 none"
+  fi
+}
 
 show() {
-  if on_main gitops/vks-addons/cluster.yaml; then
-    echo "On main:      gitops/vks-addons/cluster.yaml is there"
-  else
-    echo "On main:      no cluster"
-  fi
+  app_line "$APP"
+  app_line "$TEST_APP"
+  entity_line "$NS_ENTITY"
+  entity_line "$CLUSTER_ENTITY"
 
-  local app
-  app=$(kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get application vks-addons --ignore-not-found -o json)
-  if [[ -n $app ]]; then
-    jq -r '"Argo CD:      vks-addons \(.status.sync.status), \(.status.health.status), at \(.status.sync.revision[0:7])"' <<<"$app"
-  else
-    echo "Argo CD:      no Application"
-  fi
-
-  [[ -n $CLUSTER_CONTEXT ]] || return 0
+  [[ -n $NS_CONTEXT ]] || return 0
   local ns cluster
-  ns=$(context_namespace "$CLUSTER_CONTEXT")
-  cluster=$(kubectl --context "$CLUSTER_CONTEXT" -n "$ns" get cluster vks-addons --ignore-not-found -o json)
+  ns=$(context_namespace "$NS_CONTEXT")
+  cluster=$(kubectl --context "$NS_CONTEXT" -n "$ns" get cluster "$CLUSTER" --ignore-not-found -o json)
   if [[ -n $cluster ]]; then
-    jq -r '"Cluster:      phase \(.status.phase), workers desired \(.status.workers.desiredReplicas), ready \(.status.workers.readyReplicas)"' <<<"$cluster"
+    jq -r '"Cluster:      phase \(.status.phase), workers desired \(.status.workers.desiredReplicas // 0), ready \(.status.workers.readyReplicas // 0)"' <<<"$cluster"
   else
     echo "Cluster:      none"
   fi
-  kubectl --context "$CLUSTER_CONTEXT" -n "$ns" get addoninstalls
+  kubectl --context "$NS_CONTEXT" -n "$ns" get addoninstalls 2>/dev/null || true
 }
 
 if [[ $WATCH == watch ]]; then
-  while :; do
-    date +%T
-    show
-    echo
-    sleep 15
-  done
+  while :; do date +%T; show; echo; sleep 15; done
 else
   show
 fi

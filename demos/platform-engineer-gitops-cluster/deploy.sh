@@ -1,68 +1,53 @@
 #!/usr/bin/env bash
-# Build the demo's VKS cluster from git: one pull request, one Terraform
-# run, and then Argo CD.
+# Build the demo's VKS cluster and add-ons from git with Argo CD, then
+# register the cluster as an Argo CD target. No Terraform.
 #
-#   demos/platform-engineer-gitops-cluster/deploy.sh <argo context>
+#   demos/platform-engineer-gitops-cluster/deploy.sh <argo context> <namespace context> [git ref]
 #
-# <argo context> is your vcf context for the Supervisor Namespace
-# platform-<suffix>, where Argo CD runs: see README.md.
+# <argo context>      vcf context for the Supervisor Namespace where Argo CD
+#                     runs, platform-<suffix>.
+# <namespace context> vcf context for the existing Supervisor Namespace the
+#                     cluster goes in. Reused, not created: see README.md.
+# [git ref]           the revision Argo CD reads the manifests from
+#                     (default main). Use your branch while testing, once it
+#                     is pushed.
 #
-# The pull request adds the namespace vks-addons to
-# terraform/platform-engineer/variables.tf, and the manifests in gitops/
-# here to gitops/vks-addons on main. It merges it, runs the workflow
-# platform-engineer with apply, and waits for Argo CD to report the
-# cluster Healthy. What is already done is skipped, so it can run again
-# after a failure.
+# It kubectl-applies, into Argo CD's namespace:
+#   1. a ManagedEntity that registers the namespace as a destination;
+#   2. the Application that builds the cluster and its add-ons, then waits
+#      for it to be Healthy;
+#   3. a ManagedEntity that registers the cluster as a target.
+# Each step is idempotent, so it can run again after a failure.
 #
-# Needs gh, kubectl, jq and perl. Prints no secret.
+# Needs kubectl and jq. Prints no secret.
 set -euo pipefail
-here=$(cd "$(dirname "$0")" && pwd)
-. "$here/../lib/github.sh"
+. "$(cd "$(dirname "$0")" && pwd)/common.sh"
 
-ARGO_CONTEXT=${1:?usage: $0 <argo context>}
+ARGO_CONTEXT=${1:?usage: $0 <argo context> <namespace context> [git ref]}
+NS_CONTEXT=${2:?usage: $0 <argo context> <namespace context> [git ref]}
+REVISION=${3:-$REVISION}
+
 ARGO_NS=$(context_namespace "$ARGO_CONTEXT")
-[[ -n $ARGO_NS ]] || { echo "Context $ARGO_CONTEXT has no namespace: see README.md" >&2; exit 2; }
+NS=$(context_namespace "$NS_CONTEXT")
+[[ -n $ARGO_NS ]] || die "Context $ARGO_CONTEXT has no namespace: see README.md"
+[[ -n $NS ]] || die "Context $NS_CONTEXT has no namespace: see README.md"
+check_releases
 
-if grep -l RELEASE_FROM_LAB "$here"/gitops/*.yaml; then
-  echo "These files have no release yet: see README.md." >&2
-  exit 2
-fi
+echo "Namespace $NS: registering it as an Argo CD destination (ManagedEntity $NS_ENTITY)."
+apply_tmpl argocd/managedentity-namespace.yaml
 
-# The perl in edit_file reads this from its environment.
-export NAMESPACE_ENTRY='    # Made and removed by demos/platform-engineer-gitops-cluster.
-    vks-addons = {
-      description   = "GOAD VKS add-ons demo: a VKS cluster managed by Argo CD. Managed by terraform/platform-engineer."
-      cpu_limit     = "40000M"
-      memory_limit  = "48Gi"
-      storage_limit = "150Gi"
-    }
-'
+echo "Application $APP: building the cluster $CLUSTER and its add-ons from $REVISION."
+apply_tmpl argocd/application.yaml
 
-if on_main gitops/vks-addons/cluster.yaml; then
-  echo "gitops/vks-addons is already on main."
-else
-  branch=demo-gitops-cluster-$(date +%Y%m%d%H%M%S)
-  new_branch "$branch"
-  edit_file "$branch" terraform/platform-engineer/variables.tf \
-    's/(    platform-tools = \{.*?\n    \}\n)/$1$ENV{NAMESPACE_ENTRY}/s' \
-    "Add the Supervisor Namespace vks-addons"
-  for file in "$here"/gitops/*.yaml; do
-    add_file "$branch" "gitops/vks-addons/$(basename "$file")" "$file" \
-      "Add $(basename "$file") to gitops/vks-addons"
-  done
-  merge_branch "$branch" "Demo: a VKS cluster with add-ons, managed by Argo CD" \
-    "The namespace vks-addons, and its VKS cluster with Headlamp and cert-manager, and the platform-observability label for Prometheus and Telegraf. Opened by demos/platform-engineer-gitops-cluster/deploy.sh."
-fi
+wait_for "Argo CD: $APP Synced and Healthy" 2400 app_ready "$APP"
 
-echo "Applying terraform/platform-engineer."
-run_workflow platform-engineer.yml -f apply=true
-plan_summary "$RUN_ID" || true
+echo "Cluster $CLUSTER: registering it as an Argo CD target (ManagedEntity $CLUSTER_ENTITY)."
+apply_tmpl argocd/managedentity-cluster.yaml
 
-app_ready() {
-  kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get application vks-addons -o json |
-    jq -e '.status.sync.status == "Synced" and .status.health.status == "Healthy"'
-}
-wait_for "Argo CD: vks-addons Synced and Healthy" 2400 app_ready
+cat <<EOF
 
-namespace=$(kubectl --context "$ARGO_CONTEXT" -n "$ARGO_NS" get application vks-addons -o jsonpath='{.spec.destination.namespace}')
-echo "The cluster vks-addons is ready, in the Supervisor Namespace $namespace."
+Done. The cluster $CLUSTER is built and registered with Argo CD.
+  - See the destinations in Argo CD: Settings, Clusters, $NS_ENTITY and $CLUSTER_ENTITY.
+  - Where it stands:  demos/platform-engineer-gitops-cluster/status.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
+  - Test the target:  demos/platform-engineer-gitops-cluster/test-app.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
+EOF

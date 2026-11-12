@@ -1,0 +1,20 @@
+# Registers the existing Supervisor Namespace as an Argo CD destination, so
+# Application A (application.yaml) can deploy the Cluster and the
+# AddonInstalls into it. The ManagedEntity controller makes the Argo CD
+# cluster secret named by clusterName and grants Argo CD access to the
+# namespace.
+#
+# deploy.sh fills __ARGO_NS__ (where Argo CD runs), __NAMESPACE__ (the
+# namespace to deploy into) and __PROJECT__. No Terraform makes this.
+apiVersion: argocd-service.vsphere.vmware.com/v1alpha1
+kind: ManagedEntity
+metadata:
+  name: vks-addons-ns
+  namespace: __ARGO_NS__
+spec:
+  clusterName: vks-addons-ns
+  targetRef:
+    apiGroup: ""
+    kind: Namespace
+    name: __NAMESPACE__
+    project: __PROJECT__

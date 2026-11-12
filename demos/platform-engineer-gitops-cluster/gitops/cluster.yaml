@@ -1,7 +1,8 @@
 # The VKS cluster of the demo platform-engineer-gitops-cluster.
 #
-# No namespace: Argo CD applies this into the Supervisor Namespace
-# vks-addons. The class, the Kubernetes version, the VM classes and the
+# No namespace: Argo CD (Application A) applies this into the Supervisor
+# Namespace that deploy.sh registers as a destination, whichever one you
+# reuse. The class, the Kubernetes version, the VM classes and the
 # storage class are the same as the music store cluster's
 # (gitops/music-store/cluster.yaml). The Argo CD that VCF ships reports a
 # Cluster Healthy only when it is ready.
