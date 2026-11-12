@@ -20,6 +20,6 @@ spec:
   targetRef:
     apiGroup: cluster.x-k8s.io
     kind: Cluster
-    name: vks-addons
+    name: pe-gitops-cluster
     namespace: __NAMESPACE__
     project: __PROJECT__

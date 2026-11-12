@@ -163,8 +163,8 @@ Argo CD, with no Terraform.
 ```bash
 demos/platform-engineer-gitops-cluster/status.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
 vcf context use "$NS_CONTEXT"
-vcf cluster kubeconfig get vks-addons
-WORKLOAD_CONTEXT=<the context for the cluster vks-addons>
+vcf cluster kubeconfig get pe-gitops-cluster
+WORKLOAD_CONTEXT=<the context for the cluster pe-gitops-cluster>
 kubectl --context "$WORKLOAD_CONTEXT" get pods -A | grep -iE 'headlamp|cert-manager|prometheus|telegraf'
 ```
 

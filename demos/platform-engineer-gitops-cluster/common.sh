@@ -25,7 +25,7 @@ APP=vks-addons                 # Application A: the cluster and its add-ons
 TEST_APP=vks-addons-test       # Application B: the test workload in the cluster
 NS_ENTITY=vks-addons-ns        # ManagedEntity + Argo CD destination for the namespace
 CLUSTER_ENTITY=vks-addons-cluster  # ManagedEntity + Argo CD destination for the cluster
-CLUSTER=vks-addons             # the Cluster's name, from gitops/cluster.yaml
+CLUSTER=pe-gitops-cluster      # the Cluster's name, from gitops/cluster.yaml
 
 die() { echo "$1" >&2; exit "${2:-2}"; }
 

@@ -1,4 +1,4 @@
-# Headlamp, a Kubernetes UI in the browser, on the VKS cluster vks-addons,
+# Headlamp, a Kubernetes UI in the browser, on the VKS cluster pe-gitops-cluster,
 # from the VKS addon. Default values. It needs cert-manager
 # (cert-manager.yaml).
 #

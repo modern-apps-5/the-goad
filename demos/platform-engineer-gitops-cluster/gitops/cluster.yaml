@@ -9,7 +9,7 @@
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
-  name: vks-addons
+  name: pe-gitops-cluster
   # The platform-observability Supervisor Service onboards labelled
   # clusters to VCF Operations and installs its collectors, Prometheus and
   # Telegraf. The addon also needs helm-controller, which VKS already turns
