@@ -98,8 +98,8 @@ vcf context create goad --endpoint https://auto.gpu.set.lab --type cci \
   --tenant-name goad --api-token <your API token>
 ```
 
-Find Argo CD's namespace (`platform-<suffix>`, not `platform-tools-<suffix>`)
-and the namespace you will reuse for the cluster:
+Find Argo CD's vSphere namespace (`platform-<suffix>`, not `platform-tools-<suffix>`)(This is any vSphere namespace where you have deployed an ArgoCD Instance)
+and the vSphere namespace you will reuse for the cluster:
 
 ```bash
 vcf context list | grep ':platform-'
