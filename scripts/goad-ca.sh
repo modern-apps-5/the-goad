@@ -8,9 +8,10 @@
 # The CA signs the certificates of GOAD's own names, in goad.gpu.set.lab,
 # starting with Private AI Services (gitops/private-ai/ingress.yaml). The
 # lab has no public CA. The key goes only to the GitHub secret
-# GOAD_CA_KEY: the platform engineer Terraform writes it into the Secret
-# goad-ca in the private-ai Supervisor Namespace, and cert-manager issues
-# from it there. The certificate is public and is written to:
+# GOAD_CA_KEY, in the environment lab: the platform engineer Terraform
+# writes it into the Secret goad-ca in the private-ai Supervisor
+# Namespace, and cert-manager issues from it there. The certificate is
+# public and is written to:
 #
 #   gitops/private-ai/goad-ca.crt                     the copy Terraform reads
 #   gitops/private-ai/goad-ca-pkiprofile.yaml         Avi trusts PAIS with it
@@ -22,10 +23,11 @@
 # KEY_OUT=<file>, the key is also written there, for terraform.tfvars on a
 # machine (goad_ca_key). Nothing secret is printed.
 #
-# Needs openssl and gh, logged in with access to the repository's secrets.
+# Needs openssl and gh, logged in with access to the environment's secrets.
 set -euo pipefail
 
 REPO=${REPO:-modern-apps-5/the-goad}
+ENVIRONMENT=${ENVIRONMENT:-lab}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 CERT=$ROOT/gitops/private-ai/goad-ca.crt
 
@@ -44,7 +46,7 @@ openssl req -x509 -new -newkey rsa:3072 -nodes -sha256 -days 3650 \
   -addext "keyUsage=critical,keyCertSign,cRLSign" \
   -keyout "$WORK/ca.key" -out "$WORK/ca.crt" 2>/dev/null
 
-gh secret set GOAD_CA_KEY -R "$REPO" < "$WORK/ca.key"
+gh secret set GOAD_CA_KEY -R "$REPO" -e "$ENVIRONMENT" < "$WORK/ca.key"
 if [ -n "${KEY_OUT:-}" ]; then
   cp "$WORK/ca.key" "$KEY_OUT"
 fi
@@ -72,4 +74,4 @@ EOF
 } > "$ROOT/gitops/private-ai/goad-ca-pkiprofile.yaml"
 
 openssl x509 -in "$CERT" -noout -subject -enddate
-echo "Stored GOAD_CA_KEY in $REPO. Commit the certificate files listed in $0."
+echo "Stored GOAD_CA_KEY in $REPO, environment $ENVIRONMENT. Commit the certificate files listed in $0."
