@@ -1681,3 +1681,24 @@ Cost:
 
 Look again if: Supervisor LoadBalancer Services get names from Avi DNS,
 or the lab gets a CA that cert-manager can issue from.
+
+## 54. The Broadcom proxy cache keeps every image it has cached
+
+`terraform/cloud-admin/org/harbor.tf` sets the retention policy of the
+proxy cache project `tanzu-platform-content` (decision 46): one rule,
+always retain, for every repository and tag. Harbor made a policy with
+the project; an `import` block brings it into the state.
+
+Why: Harbor gives a proxy cache project a policy of its own that keeps
+only what was pulled in the last 7 days. The music store's base image,
+`containers/photon-5/python`, is pulled only by builds. Found on
+2026-11-13: the repository was still there, with 13 pulls, but held no
+artifact and no tag, and the build failed with `not found`. With the cache
+empty, every pull goes to Broadcom, and an expired Broadcom token fails it.
+
+Cost: the cache only grows. It holds only what the lab has pulled, a few
+images today. An image Broadcom changes under the same tag is not fetched
+again while the cached copy stays.
+
+Look again if: the cache gets large. Then retain by days since last pull,
+with a window longer than the gap between builds.
