@@ -23,6 +23,6 @@ gitops_repo_ssh_key_file = ".secrets/gitops-deploy-key"
 # The Private AI Services ingress in the private-ai namespace, and the
 # model the shop's chat asks for.
 music_store_chat = {
-  base_url = "https://10.47.7.73/api/v1/compatibility/openai/v1"
+  base_url = "https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1"
   model    = "qwen"
 }

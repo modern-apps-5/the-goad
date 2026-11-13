@@ -125,7 +125,7 @@ applications:
       - route: metal-incident-live.apps.goad.gpu.set.lab
       - route: metal-incident-live.apps.internal
     env:
-      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_BASE_URL: https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_URL: https://music.goad.gpu.set.lab/
@@ -179,7 +179,7 @@ applications:
     env:
       TANZU_AGENT_ENABLE_DEBUG_UI: "true"
       AGENT_ROLE: lb_diagnostic_agent
-      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_BASE_URL: https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
@@ -211,7 +211,7 @@ applications:
     env:
       TANZU_AGENT_ENABLE_DEBUG_UI: "true"
       AGENT_ROLE: k8s_diagnostic_agent
-      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_BASE_URL: https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn
@@ -243,7 +243,7 @@ applications:
     env:
       TANZU_AGENT_ENABLE_DEBUG_UI: "true"
       AGENT_ROLE: vcf_diagnostic_agent
-      QWEN_BASE_URL: https://10.47.7.73/api/v1/compatibility/openai/v1
+      QWEN_BASE_URL: https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1
       QWEN_API_KEY: ((qwen_api_key))
       QWEN_MODEL: qwen
       STORE_WORKER_VMS: music-store-workers-6xtl4-wnr4j-8n8n5,music-store-workers-6xtl4-wnr4j-gjwhn

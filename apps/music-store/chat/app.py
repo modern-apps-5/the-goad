@@ -11,6 +11,7 @@ registration. The chat route does not call /mcp.
 import asyncio
 import json
 import os
+import ssl
 from dataclasses import dataclass, field
 
 import httpx
@@ -174,6 +175,10 @@ def resolve_model():
 
 
 def tls_verify():
+    """The model's CA file if one is given, else on or off."""
+    ca_file = os.environ.get("OPENAI_CA_FILE")
+    if ca_file:
+        return ssl.create_default_context(cafile=ca_file)
     return os.environ.get("OPENAI_TLS_VERIFY", "true").lower() not in ("0", "false", "no")
 
 

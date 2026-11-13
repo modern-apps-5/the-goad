@@ -1,11 +1,13 @@
 # Private AI Services, and one model.
 #
 # Sync order, by sync wave:
-#   0  the database (postgres.yaml), its Service, and the CA below
+#   0  the database (postgres.yaml), its Service, the Harbor CA below, and
+#      the ingress certificate (ingress.yaml)
 #   1  the Job that points the Service at the database
 #      (database-service.yaml)
 #   2  Private AI Services
-#   3  the model
+#   3  the model, and the Gateway that gives it the name
+#      pais.goad.gpu.set.lab (ingress.yaml)
 # Argo CD starts a wave only when the wave before it is healthy. The
 # health checks that make that true for these kinds are in
 # terraform/platform-engineer/manifests/argocd.yaml.
@@ -74,8 +76,13 @@ spec:
     caBundleRefs:
       - kind: ConfigMap
         name: supervisor-harbor-ca
+  # The ingress serves the GOAD CA's certificate (ingress.yaml), not one
+  # PAIS makes. Clients reach it as pais.goad.gpu.set.lab, through the
+  # Gateway pais.
   ingress:
     serviceType: LoadBalancer
+    tlsSecretRef:
+      name: pais-ingress-tls
   defaultStorageClassName: mgmt-cl01-optimal-datastore-default-policy-autoraid
   observability:
     prometheusRuntime:

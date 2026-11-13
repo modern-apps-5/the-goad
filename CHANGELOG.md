@@ -3,6 +3,32 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-13 (Private AI Services by name, with a GOAD CA)
+
+### Added
+
+- `pais.goad.gpu.set.lab`: a Gateway of class `avi-lb` and an HTTPRoute
+  in the private-ai Supervisor Namespace, published by Avi DNS, in front
+  of Private AI Services (`gitops/private-ai/ingress.yaml`).
+- The GOAD CA: `scripts/goad-ca.sh` makes it, its key is the GitHub
+  secret `GOAD_CA_KEY`, and the platform engineer Terraform writes the
+  Secret `goad-ca` that cert-manager issues from.
+- Avi checks the PAIS certificate: a `RouteBackendExtension` and the
+  `PKIProfile` `goad-ca`.
+
+### Changed
+
+- Private AI Services serves the GOAD CA's certificate
+  (`tlsSecretRef`).
+- The shop's chat trusts the GOAD CA (`OPENAI_CA_FILE`), and its model URL
+  is the name.
+- The incident agents call the name and trust the GOAD CA; the `goad-qwen`
+  binding names it.
+
+### Removed
+
+- `model_proxy.py` and `pais-root.pem` from the incident agents.
+
 ## 2026-11-10 (Architecture explorer)
 
 ### Added

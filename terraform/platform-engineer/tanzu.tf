@@ -17,9 +17,9 @@ provider "cloudfoundry" {
 }
 
 locals {
-  # The agents reach the model through a proxy on 127.0.0.1:8765 in their
-  # own container (tanzu/.../shared/trust), so the binding names that.
-  goad_qwen_proxy = "http://127.0.0.1:8765/api/v1/compatibility"
+  # The model by its name. The agents trust its certificate's CA, the GOAD
+  # CA, through SSL_CERT_FILE (tanzu/.../shared/trust).
+  goad_qwen_api = "https://pais.goad.gpu.set.lab/api/v1/compatibility"
 }
 
 data "cloudfoundry_org" "goad" {
@@ -46,14 +46,14 @@ resource "cloudfoundry_service_instance" "goad_qwen" {
   space = cloudfoundry_space.agentic.id
   tags  = ["tanzu-ai-models", "ai-models", "genai", "llm"]
   credentials = jsonencode({
-    api_base           = "${local.goad_qwen_proxy}/openai/v1"
+    api_base           = "${local.goad_qwen_api}/openai/v1"
     api_key            = var.incident_qwen_api_key
     model_name         = "qwen"
     model_capabilities = ["chat", "tools"]
     wire_format        = "openai"
     endpoint = {
-      api_base        = local.goad_qwen_proxy
-      openai_api_base = "${local.goad_qwen_proxy}/openai/v1"
+      api_base        = local.goad_qwen_api
+      openai_api_base = "${local.goad_qwen_api}/openai/v1"
       api_key         = var.incident_qwen_api_key
       config_url      = "https://metal-incident-live.${var.cf_apps_domain}/config/v1/endpoint"
       name            = "qwen"

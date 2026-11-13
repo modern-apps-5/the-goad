@@ -54,6 +54,13 @@ images:
   - name: depot.kube-system.svc/music-store/chat
     newTag: ff4cf83e2310
 
+# The GOAD CA, which the chat trusts for the model (scripts/goad-ca.sh
+# writes goad-ca.crt). The name gets a hash, so a new CA restarts the chat.
+configMapGenerator:
+  - name: goad-ca
+    files:
+      - ca.crt=goad-ca.crt
+
 patches:
   - path: cart-persistence.yaml
   - path: order-persistence.yaml

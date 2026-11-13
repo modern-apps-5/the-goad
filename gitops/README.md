@@ -18,9 +18,10 @@ Each directory belongs to one owner and one Application.
    other. `music-store-platform` and `music-store-apps` need the
    cluster and the catalog from `music-store`, and retry until they
    exist.
-   - `private-ai/` — Application `private-ai`. Wave 0 database, wave 1
-     the address Job, wave 2 Private AI Services, wave 3 model
-     `qwen-14b-xlarge`.
+   - `private-ai/` — Application `private-ai`. Wave 0 database and the
+     ingress certificate from the GOAD CA, wave 1 the address Job, wave 2
+     Private AI Services, wave 3 model `qwen-14b-xlarge` and the Gateway
+     that names it `pais.goad.gpu.set.lab`.
    - `music-store/` — Application `music-store`. Wave 0 is the catalog,
      the VKS cluster `music-store`, its ESO and cert-manager addons,
      Antrea's NSX integration, and the users VM, wave 1 the catalog address, wave 2 catalog init, which
@@ -64,7 +65,7 @@ Each directory belongs to one owner and one Application.
 
 | Folder | Owner | Application | What it deploys |
 |---|---|---|---|
-| `private-ai/` | platform engineer | `private-ai` | DSM database, Private AI Services, and the Qwen model. |
+| `private-ai/` | platform engineer | `private-ai` | DSM database, Private AI Services, the Qwen model, and the Gateway and certificate that make it `pais.goad.gpu.set.lab`. |
 | `music-store/` | platform engineer | `music-store` | The VKS cluster `music-store`, the DSM catalog, the ESO and cert-manager addons for the cluster, Antrea's NSX integration, the users VM, and the Job `shop-endpoints` that writes the users VM's and the catalog's addresses into the VKS cluster. |
 | `music-store-platform/` | platform engineer | `music-store-platform` | Inside the VKS cluster: the `ClusterSecretStore` `secret-store` for Secret Store, the Gateway's certificate, and in namespace `platform-tools` what the platform tools cluster needs there: a Prometheus agent and blackbox exporter that write to its Prometheus, and the service account `goad-k8s-mcp`; the shop's default deny (decision 49); and in namespace `pen-test` the always-on pen test's blackbox exporter, for the board "Pen test". |
 | `platform-tools/` | platform engineer | `platform-tools` | The VKS cluster `platform-tools`, its ESO addon, and its Tekton addon. |
@@ -102,6 +103,14 @@ host. Its HTTPS certificate is the Secret
 `music-store-platform/gateway-cert.yaml`. The L7Rule `metal-store-waf`
 puts Avi's `System-WAF-Policy` on the route; a HostRule does nothing for
 a Gateway.
+
+Private AI Services, `pais.goad.gpu.set.lab`, is in a Supervisor
+Namespace, not a VKS cluster. Its LoadBalancer Service is NSX's, which
+publishes no name, annotation or not. A Gateway of class `avi-lb` in the
+namespace is the Supervisor's Avi controller, and its HTTPRoute's
+hostname is published like the shop's (decision 53,
+`private-ai/ingress.yaml`). The listener's hostname alone publishes
+nothing.
 
 This AKO build
 takes one name per Service or Ingress host; a comma-separated list is

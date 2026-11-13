@@ -1,0 +1,37 @@
+# Avi's trust for the PAIS ingress certificate: the GOAD CA. Written by
+# scripts/goad-ca.sh; do not edit. The RouteBackendExtension pais in
+# ingress.yaml names it.
+apiVersion: ako.vmware.com/v1alpha1
+kind: PKIProfile
+metadata:
+  name: goad-ca
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  ca_certs:
+    - certificate: |
+        -----BEGIN CERTIFICATE-----
+        MIIEMzCCApugAwIBAgIUGlq0QVvIdlLygpaQZAyG5uvt0oAwDQYJKoZIhvcNAQEL
+        BQAwITENMAsGA1UECgwER09BRDEQMA4GA1UEAwwHR09BRCBDQTAeFw0yNjExMTMx
+        ODMyNDdaFw0zNjExMTAxODMyNDdaMCExDTALBgNVBAoMBEdPQUQxEDAOBgNVBAMM
+        B0dPQUQgQ0EwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQCtDOmqevm/
+        51DzusnyOPrAIeQ6fyhiqRGv6Eww5k8rjN0vHCwCaBeePQcFBUIuOpC0BFNqqDMe
+        8S0S6tQcIyB9HmLUtgRgaG6Y4ZPnLDw016EIiL8sKSRUe6ncpP9wHO85wX+wkmFg
+        rq5AHGmdLt2lkhZ2xl79+ewtr+h69vZjfssgSrhkivM2wnjmH444EMvSNpRf5WJD
+        fh6NNeGs3Mauk6M/ZWJzFFXO3uNmXcgmH8x4XzRKDjeVM0QS8KJEXcHLgAYQ638w
+        KHqyh+f2C65KO6/f/HMC17pugfQLBWD3SC+lCea1TZnrDcx+17jZMJ31qoD8LECy
+        i2ZuIjYzuoybsAoAsIE+oa8bhHMsmACO2aJVqDJD6fKLYSQogaz8sWFtf8OOxx5a
+        wZNQRMYw6bDqGH7u1WGLoNnIL98GjCMdFVjkaTnibPLUIfmFwkwHju8d4Xq/ejB/
+        tGyQqGCvxAswFGL8TvOhnZLqEBPqyZBdpnu7Y95HJIIk6tqXhAYeEncCAwEAAaNj
+        MGEwHQYDVR0OBBYEFIQnaQODmrBWSF6MmlovAEVXb7wsMB8GA1UdIwQYMBaAFIQn
+        aQODmrBWSF6MmlovAEVXb7wsMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQD
+        AgEGMA0GCSqGSIb3DQEBCwUAA4IBgQAhvnFUd4a6zAN/quVl/CYOckNex8z2Vc91
+        vXWykuU22JIJ/Pk07gk21ukos5uBSZMBCRuVpSeKfAo3FfkC+MwPf99OWFHsh/mx
+        QxzXiaHLPS8xtaaav98qc3OsC06Yu5dYvsP0GxBUdES+Kg0NeTXcVy36hGbNvIX4
+        4INvpmDDcyRDr4d7cYa6CGv0s/AlJF1yeLnFKg8i9b9JZ17ZSXUVgc1Fe6p1461L
+        8Cf+T3xN6XvvYktXTzTtx/sn/R1dorkrZNix0tLYJfwcDYHWZSYlbVbE/Nw3ZgDv
+        S5bMst9pBZrmlxDGNiJlV2R6MJ0+FTcwSSlkg4FTiGXNj9B+SWwEp0kUTgtZCYNM
+        AjcvxhfR6JVYTpq5+HF9VPM73SdGlC+nvUQfvJ7Wqu9zb3kWcHoa4ruRUmqBdE3N
+        p6WEfsHTGvlqwpABUP51rLUscY+b+thgstMSrjHuMK9uBhTyM4bE18neIYsRDiyI
+        g7scvlr5/iGEQV9roZbb8I35JZDhVxE=
+        -----END CERTIFICATE-----

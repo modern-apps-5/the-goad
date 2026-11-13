@@ -75,8 +75,8 @@ routes, under `apps.goad.gpu.set.lab`, and the addresses they call:
 
 - `K8S_API_SERVER`: the `music-store` cluster's API server.
 - `AVI_CONTROLLER`: the Avi Controller.
-- `QWEN_BASE_URL`: the Private AI Services endpoint. The same address is
-  `UPSTREAM` in `shared/trust/model_proxy.py`.
+- `QWEN_BASE_URL`: the Private AI Services endpoint, by its name
+  `pais.goad.gpu.set.lab` (`gitops/private-ai/ingress.yaml`).
 - AgentMinder and Grafana, under `goad.gpu.set.lab`.
 
 `scripts/incident-walk.py` uses the domain for the tickets' customer.
@@ -89,7 +89,7 @@ The repository is `modern-apps-5/the-goad`. In a fork, change:
   [build.md](build.md) step 2.
 - `github_url` and `github_app_id` in `terraform/runner`, and the GitHub
   App: see [terraform/runner/README.md](../terraform/runner/README.md).
-- `REPO` in `scripts/music-store-build-kubeconfig.sh` and
+- `REPO` in `scripts/music-store-build-kubeconfig.sh`, `scripts/goad-ca.sh` and
   `demos/lib/github.sh`, and `ORG` in `scripts/create-github-app.py`.
 - The Tanzu Platform API address in `.github/actions/cf-login/action.yml`
   and `.github/actions/cf-token/action.yml`.
