@@ -1,6 +1,5 @@
 # What stage.sh copies in. The originals are in shared/.
-*-agent/pais-root.pem
-*-agent/model_proxy.py
+*-agent/goad-ca.pem
 *-agent/.profile
 *-agent/.agents/skills/*/findings.schema.json
 *-agent/sidecar/

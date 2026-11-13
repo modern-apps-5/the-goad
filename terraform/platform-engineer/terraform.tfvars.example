@@ -17,6 +17,13 @@ vcfa_api_token = "CHANGE-ME"
 # value, and Terraform would rewrite the Secret. Copy the team's hash.
 pais_admin_password_hash = "$6$CHANGE-ME"
 
+# The GOAD CA's key (scripts/goad-ca.sh, KEY_OUT=<file>). In the workflow it
+# is the GitHub secret GOAD_CA_KEY.
+# goad_ca_key = <<-EOT
+#   -----BEGIN PRIVATE KEY-----
+#   ...
+#   EOT
+
 # The music store's secrets, written to Secret Store (decision 38). In the
 # workflow they are the GitHub secrets MUSIC_STORE_DB_PASSWORD and
 # MUSIC_STORE_CHAT_API_KEY. Copy the team's values: a new database

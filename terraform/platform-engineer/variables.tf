@@ -169,6 +169,13 @@ variable "pais_admin_password_hash" {
   default     = null
 }
 
+variable "goad_ca_key" {
+  type        = string
+  description = "PEM private key of the GOAD CA, which signs the Private AI Services certificate. GitHub secret GOAD_CA_KEY, made by scripts/goad-ca.sh; the certificate is gitops/private-ai/goad-ca.crt. Null or empty skips the Secret goad-ca."
+  sensitive   = true
+  default     = null
+}
+
 # --- Music store secrets (decision 38) ---
 
 variable "music_store_db_password" {

@@ -37,3 +37,28 @@ resource "kubectl_manifest" "pais_static_credentials" {
     }
   })
 }
+
+# The GOAD CA, which cert-manager issues the Private AI Services ingress
+# certificate from (gitops/private-ai/ingress.yaml). The key is the GitHub
+# secret GOAD_CA_KEY; the certificate is public and in git. Made by
+# scripts/goad-ca.sh. Until this Secret exists, the Certificate in sync
+# wave 0 is not Ready, and Argo CD does not go on to Private AI Services.
+resource "kubectl_manifest" "goad_ca" {
+  count    = nonsensitive(try(length(var.goad_ca_key), 0) == 0) ? 0 : 1
+  provider = kubectl.private_ai
+
+  sensitive_fields = ["stringData"]
+  yaml_body = yamlencode({
+    apiVersion = "v1"
+    kind       = "Secret"
+    type       = "kubernetes.io/tls"
+    metadata = {
+      name      = "goad-ca"
+      namespace = local.namespace_names["private-ai"]
+    }
+    stringData = {
+      "tls.crt" = file("${path.module}/../../gitops/private-ai/goad-ca.crt")
+      "tls.key" = var.goad_ca_key
+    }
+  })
+}

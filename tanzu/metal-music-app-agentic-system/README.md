@@ -39,9 +39,9 @@ The `am-*` and `sc-*` services are the agentic ops engineer's, in
 
 `shared/` holds what several agents use, kept once:
 
-- `trust/`: the Goad model ingress CA, the local model proxy on
-  `127.0.0.1:8765`, and the `.profile` that starts it. The ingress
-  certificate is signed by its own CA and named for another host.
+- `trust/`: the GOAD CA (`goad-ca.pem`, written by `scripts/goad-ca.sh`),
+  which signs the model's certificate at `pais.goad.gpu.set.lab`, and the
+  `.profile` that adds it to `SSL_CERT_FILE`.
 - `sidecar/`: AgentMinder Sidecar Mode. `agentminder-env.sh` finds the bound
   service tagged `agentminder-client` in `VCAP_SERVICES` and exports the
   client ID, secret and gateway URL the SDK reads. `run-sidecar.sh` and

@@ -1603,3 +1603,81 @@ pen test has no check for this control yet.
 Look again if: signature auto-update works (issue #113), a pen test check
 6 for the VM is added, or the hop from Avi to the store gets IDPS too
 (issue #114).
+
+## 53. Private AI Services is `pais.goad.gpu.set.lab`, behind a Supervisor Gateway, with a GOAD CA certificate
+
+Private AI Services was reached at `https://10.47.7.73`, with the
+certificate PAIS makes by itself: its own root, and `pais-ingress-default`
+as the only name. No client could check it, so each one worked around it:
+the shop's chat set `OPENAI_TLS_VERIFY=false`, the incident agents ran a
+local proxy that sent SNI `pais-ingress-default` to the address, and
+kagent on Agent Substrate could not reach the model at all (issue #123).
+
+Now:
+
+- **The name.** `gitops/private-ai/ingress.yaml` has a Gateway `pais` of
+  class `avi-lb` in the private-ai Supervisor Namespace, and an HTTPRoute
+  for `pais.goad.gpu.set.lab` to the Service `pais-ingress-default`. The
+  Supervisor's Avi Gateway API controller puts the route's hostname on its
+  virtual service, and Avi DNS answers for it, as for the shop (decision
+  43). The record follows the Gateway's address.
+- **The CA.** One GOAD CA, made once by `scripts/goad-ca.sh`. Its key is
+  the GitHub secret `GOAD_CA_KEY`; `terraform/platform-engineer/pais.tf`
+  writes it with the certificate into the Secret `goad-ca`, and a
+  cert-manager `Issuer` in the namespace issues from it. The certificate is
+  public and in git, in the four places the script writes.
+- **One certificate, two hops.** The Certificate `pais-ingress` names both
+  `pais.goad.gpu.set.lab` and `pais-ingress-default`. The Gateway serves
+  it to clients, and PAIS serves it to Avi through
+  `PAISConfiguration.spec.ingress.tlsSecretRef`. Avi checks the PAIS side
+  with the AKO CRDs: a `RouteBackendExtension` with `hostCheckEnabled` for
+  `pais-ingress-default`, and the `PKIProfile` `goad-ca`.
+- **The clients.** The shop's chat reads the CA from the ConfigMap
+  `goad-ca` (`OPENAI_CA_FILE`). The incident agents add it to
+  `SSL_CERT_FILE` and call the name; `model_proxy.py` and `pais-root.pem`
+  are removed. `music_store_chat.base_url` and the `goad-qwen` binding
+  name `pais.goad.gpu.set.lab`.
+
+Why not a name on PAIS's own Service: NSX serves a Supervisor
+LoadBalancer Service, not AKO. Tested on 2026-11-13: with
+`external-dns.alpha.kubernetes.io/hostname` on `pais-ingress-default`,
+NSX processed the change and no record appeared in three minutes.
+
+Why not a static record in Avi: it needs Avi credentials no persona has,
+and it breaks when PAIS makes its Service again with a new address. The
+Gateway needs neither; its backend is the Service by name.
+
+Why the Gateway, tested on 2026-11-13 with throwaway objects: the
+hostname on the listener alone published nothing; the HTTPRoute's
+hostname resolved in about 20 seconds. Through the Gateway the models API
+answered 401 without a key, as it does at the address. With a wrong
+`domainName` in the RouteBackendExtension it answered 503, so Avi does
+check the PAIS certificate.
+
+Why the CA key is not in Secret Store: Secret Store's only reader in a
+Supervisor Namespace is the vault injector, which writes files into a
+pod, and cert-manager needs a Secret. A KV in private-ai would have no
+reader: a VKS cluster's role reads only its own namespace's KVs, named
+for the cluster. Terraform writes the Secret, as it does the PAIS login
+(decision 20). When a cluster needs the CA key, a KV for it goes beside
+its other KVs in `secrets.tf`.
+
+Cost:
+- A new GitHub secret, `GOAD_CA_KEY`. Until the Secret `goad-ca` exists,
+  the Certificate in wave 0 is not Ready and Argo CD does not go on to
+  Private AI Services.
+- One more Avi virtual service and hop in front of PAIS.
+- The CA certificate is in four files. `scripts/goad-ca.sh --rotate`
+  writes them all, and every client must then be pushed or synced again.
+- The certificate is renewed every year by cert-manager. Whether PAIS
+  reloads the renewed Secret without a restart is not yet known.
+- The chat keeps `OPENAI_TLS_VERIFY=false` until its image has
+  `OPENAI_CA_FILE` (the next build of `apps/music-store`). `OPENAI_CA_FILE`
+  wins when both are set.
+- The blackbox exporter and the orchestrator still skip verification;
+  they use the name.
+- kagent on Agent Substrate still needs the CA in its egress gateway
+  (vks-kagent-addon).
+
+Look again if: Supervisor LoadBalancer Services get names from Avi DNS,
+or the lab gets a CA that cert-manager can issue from.

@@ -54,6 +54,7 @@ jobs:
       # that terraform/cloud-admin/org-config made an org administrator.
       TF_VAR_vcfa_api_token: ${{ secrets.PLATFORM_ENGINEER_VCFA_TOKEN }}
       TF_VAR_pais_admin_password_hash: ${{ secrets.PAIS_ADMIN_PASSWORD_HASH }}
+      TF_VAR_goad_ca_key: ${{ secrets.GOAD_CA_KEY }}
       TF_VAR_music_store_db_password: ${{ secrets.MUSIC_STORE_DB_PASSWORD }}
       TF_VAR_music_store_chat_api_key: ${{ secrets.MUSIC_STORE_CHAT_API_KEY }}
       TF_VAR_incident_qwen_api_key: ${{ secrets.INCIDENT_QWEN_API_KEY }}
