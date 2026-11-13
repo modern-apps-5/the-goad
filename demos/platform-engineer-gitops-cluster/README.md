@@ -22,6 +22,9 @@ is what lets Argo CD deploy *workloads* into the cluster afterwards.
 The point: a new cluster and everything on it is git, and Argo CD keeps it
 that way. Nothing is created by hand in the namespace or the cluster, and
 the add-ons come from VCF, so nobody finds, mirrors or patches a chart.
+The exceptions are the logins in steps 4 and 6: the cluster's VCF
+Automation authenticator and Headlamp's service account. They go away with
+the cluster.
 
 > **Not yet run in the lab.** Headlamp's release name, the add-on pod names
 > and the times below are copied from the platform tools cluster and not
@@ -158,17 +161,79 @@ In Argo CD, Settings, Clusters: `vks-addons-ns` and `vks-addons-cluster`.
 **Why**: from a pull request to a cluster teams can deploy to, all through
 Argo CD, with no Terraform.
 
-### 4. The add-ons
+### 4. Connect to the cluster
+
+A cluster that Argo CD makes does not yet accept VCF Automation logins:
+`kubectl` against it fails with `could not complete Concierge credential
+exchange: login failed: authentication failed`. Register the VCF
+Automation JWT authenticator on the cluster once, then export its
+kubeconfig and make a vcf context for it:
+
+```bash
+vcf context use "$NS_CONTEXT"
+vcf cluster register-vcfa-jwt-authenticator pe-gitops-cluster
+
+vcf cluster kubeconfig get pe-gitops-cluster --export-file ~/pe-gitops-cluster.kubeconfig
+kubectl --kubeconfig ~/pe-gitops-cluster.kubeconfig config get-contexts -o name
+```
+
+The context in the file is named
+`vcf-cli-pe-gitops-cluster-<namespace>@pe-gitops-cluster-<namespace>`, with
+the namespace of `NS_CONTEXT`. `--type k8s` is required:
+
+```bash
+vcf context create pe-gitops-cluster --type k8s \
+  --kubeconfig ~/pe-gitops-cluster.kubeconfig \
+  --kubecontext vcf-cli-pe-gitops-cluster-<namespace>@pe-gitops-cluster-<namespace>
+
+vcf context use pe-gitops-cluster
+kubectl get nodes
+```
+
+The first `kubectl` asks for your VCF Automation API token. There are three
+nodes, all `Ready`.
+
+### 5. The add-ons
 
 ```bash
 demos/platform-engineer-gitops-cluster/status.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
-vcf context use "$NS_CONTEXT"
-vcf cluster kubeconfig get pe-gitops-cluster
-WORKLOAD_CONTEXT=<the context for the cluster pe-gitops-cluster>
-kubectl --context "$WORKLOAD_CONTEXT" get pods -A | grep -iE 'headlamp|cert-manager|prometheus|telegraf'
+vcf context use pe-gitops-cluster
+kubectl get pods -A | grep -iE 'headlamp|cert-manager|prometheus|telegraf'
 ```
 
 **Show**: the `AddonInstall`s, and the four add-ons' pods in the cluster.
+
+### 6. Log in to Headlamp
+
+Headlamp asks for a Kubernetes token. Make a service account for the login,
+give it read access to the cluster, and copy a token for it. In the cluster
+context from step 4:
+
+```bash
+kubectl -n headlamp create serviceaccount headlamp-login
+kubectl create clusterrolebinding headlamp-login \
+  --serviceaccount=headlamp:headlamp-login --clusterrole=view
+
+kubectl -n headlamp create token headlamp-login --duration=8h | pbcopy
+```
+
+`pbcopy` copies the token on macOS without printing it. Elsewhere, run the
+last command without it in a terminal the audience cannot see. A token
+lasts until `--duration` runs out; make a new one with the same command.
+`--clusterrole=cluster-admin` instead of `view` lets you change things from
+Headlamp.
+
+Find Headlamp's address:
+
+```bash
+kubectl -n headlamp get svc
+```
+
+Open the Service's `EXTERNAL-IP`. If it has none, run
+`kubectl -n headlamp port-forward svc/<the Service> 8080:80` and open
+`http://localhost:8080`. Paste the token.
+
+**Show**: the three nodes, and the workloads the add-ons made.
 
 ## Test the target (optional, not part of the demo)
 
@@ -192,6 +257,14 @@ demos/platform-engineer-gitops-cluster/reset.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
 It removes the test workload, deletes Application A (Argo CD prunes the
 cluster and the add-ons), waits for the cluster to be gone, and removes the
 two targets. The reused namespace is left as it was.
+
+The Headlamp service account and binding go with the cluster. Remove the
+cluster's vcf context and kubeconfig yourself:
+
+```bash
+vcf context delete pe-gitops-cluster
+rm ~/pe-gitops-cluster.kubeconfig
+```
 
 ## Testing from a branch
 
@@ -220,5 +293,20 @@ demos/platform-engineer-gitops-cluster/test-app.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
 - **The cluster stays in `Provisioning`**: the namespace may be out of
   memory or storage. `kubectl --context "$NS_CONTEXT" get machines`, then
   `describe` the one that is stuck.
+- **`could not complete Concierge credential exchange: login failed:
+  authentication failed`**: the cluster has no VCF Automation
+  authenticator. Run `vcf cluster register-vcfa-jwt-authenticator
+  pe-gitops-cluster` from `NS_CONTEXT` (step 4).
+- **`Context type is invalid: context pe-gitops-cluster creation failed`**:
+  `vcf context create` needs `--type k8s`. Delete the half-made context
+  with `vcf context delete pe-gitops-cluster` first if it exists.
+- **`x509: certificate signed by unknown authority`** on `vcf context
+  create goad`: the CLI does not trust the lab's CA. Pass it with
+  `--ca-certificate <the vc01.gpu.set.lab CA file>`, or use
+  `--insecure-skip-tls-verify`.
+- **Headlamp rejects the token**: the token expired, or it came from a
+  Secret that is not a service account token, such as an image pull
+  secret. Make a new one with `kubectl -n headlamp create token
+  headlamp-login`.
 - **`You must be logged in to the server`**: the vcf session expired.
   `vcf context refresh goad`, then run the script again.
