@@ -10,6 +10,7 @@ the rest from git.
 |---|---|---|
 | Headlamp | A Kubernetes UI in the browser | An `AddonInstall`, `gitops/headlamp.yaml` |
 | cert-manager | Certificates. Headlamp does not work without it | An `AddonInstall`, `gitops/cert-manager.yaml` |
+| Istio | A service mesh: mTLS, traffic policy and telemetry between workloads | An `AddonInstall`, `gitops/istio.yaml` |
 | Prometheus | Metrics and alerting | The label `addons.kubernetes.vmware.com/platform-observability: enabled` |
 | Telegraf | An agent that collects metrics | The same label |
 
@@ -47,7 +48,7 @@ namespace as a   ──────▶ the namespace:    ──────▶ a
 destination              Cluster + add-ons         (applied once Healthy)
                               │
                               ▼  Supervisor installs
-                     Headlamp, cert-manager,
+                     Headlamp, cert-manager, Istio,
                      Prometheus, Telegraf
 ```
 
@@ -55,7 +56,7 @@ destination              Cluster + add-ons         (applied once Healthy)
   Namespace as an Argo CD destination (`vks-addons-ns`), so Application A
   can deploy into it.
 - **`argocd/application.yaml`** (Application A, `vks-addons`) syncs
-  `gitops/` — the `Cluster` and the two `AddonInstall`s — into that
+  `gitops/` — the `Cluster` and the three `AddonInstall`s — into that
   namespace. Argo CD reports it Healthy only when the cluster is ready.
 - **`argocd/managedentity-cluster.yaml`** registers the VKS cluster itself
   as an Argo CD target (`vks-addons-cluster`). This is the point of the
@@ -72,7 +73,7 @@ destination              Cluster + add-ons         (applied once Healthy)
 | `check.sh` | Pre-demo check: contexts resolve, releases set, nothing already deployed. |
 | `test-app.sh` | The test: deploy a workload into the cluster through the target. |
 | `common.sh` | Shared values and helpers. Not run on its own. |
-| `gitops/` | What Argo CD syncs: `cluster.yaml`, `headlamp.yaml`, `cert-manager.yaml`. |
+| `gitops/` | What Argo CD syncs: `cluster.yaml`, `headlamp.yaml`, `cert-manager.yaml`, `istio.yaml`. |
 | `argocd/` | The `Application` and `ManagedEntity` objects `deploy.sh` applies. |
 | `test/` | Application B and its workload, for `test-app.sh`. |
 
@@ -198,10 +199,12 @@ nodes, all `Ready`.
 ```bash
 demos/platform-engineer-gitops-cluster/status.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
 vcf context use pe-gitops-cluster
-kubectl get pods -A | grep -iE 'headlamp|cert-manager|prometheus|telegraf'
+kubectl get pods -A | grep -iE 'headlamp|cert-manager|istio|prometheus|telegraf'
 ```
 
-**Show**: the `AddonInstall`s, and the four add-ons' pods in the cluster.
+**Show**: the `AddonInstall`s, and the five add-ons' pods in the cluster.
+Istio's are in `istio-system`: `istiod`, an `istio-cni-node` on every
+node, and `istio-support`.
 
 ### 6. Log in to Headlamp
 
@@ -234,6 +237,37 @@ Open the Service's `EXTERNAL-IP`. If it has none, run
 `http://localhost:8080`. Paste the token.
 
 **Show**: the three nodes, and the workloads the add-ons made.
+
+### 7. Istio
+
+The mesh is on, but nothing is in it yet: Istio adds its sidecar only to
+pods in a namespace with the label `istio-injection=enabled`. The test
+workload's namespace is a good one to show it with (see "Test the target"
+below):
+
+```bash
+kubectl label namespace demo istio-injection=enabled
+kubectl -n demo rollout restart deployment
+kubectl -n demo get pods
+```
+
+**Show**: the pods now have two containers, the workload and
+`istio-proxy`.
+
+**Why**: a mesh for every cluster is one label in git, with no chart.
+
+The Istio add-on has no Kiali and no ingress gateway. For a Kiali
+dashboard, install Istio's sample Prometheus and Kiali by hand; they are
+not production setups (no persistence, anonymous login) and pull their
+images from `quay.io` and `docker.io`:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.28/samples/addons/prometheus.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.28/samples/addons/kiali.yaml
+kubectl -n istio-system port-forward svc/kiali 20001:20001
+```
+
+and open `http://localhost:20001`. They go away with the cluster.
 
 ## Test the target (optional, not part of the demo)
 
@@ -308,5 +342,11 @@ demos/platform-engineer-gitops-cluster/test-app.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
   Secret that is not a service account token, such as an image pull
   secret. Make a new one with `kubectl -n headlamp create token
   headlamp-login`.
+- **Istio was also added from the VCF Automation UI**: the UI makes its
+  own install for the cluster, a second one beside `gitops/istio.yaml`.
+  Remove the UI's, and leave the cluster's Istio to git.
+- **Pods have no `istio-proxy`**: the namespace has no
+  `istio-injection=enabled` label, or the pods started before it was set.
+  Label it and `rollout restart`.
 - **`You must be logged in to the server`**: the vcf session expired.
   `vcf context refresh goad`, then run the script again.

@@ -14,12 +14,13 @@ metadata:
   # clusters to VCF Operations and installs its collectors, Prometheus and
   # Telegraf. The addon also needs helm-controller, which VKS already turns
   # on for every cluster. headlamp.yaml installs Headlamp on clusters with
-  # the second label, and cert-manager.yaml cert-manager, which Headlamp
-  # needs, with the third.
+  # the second label, cert-manager.yaml cert-manager, which Headlamp
+  # needs, with the third, and istio.yaml Istio with the fourth.
   labels:
     addons.kubernetes.vmware.com/platform-observability: enabled
     addons.kubernetes.vmware.com/headlamp: enabled
     addons.kubernetes.vmware.com/cert-manager: enabled
+    addons.kubernetes.vmware.com/istio: enabled
 spec:
   # serviceDomain must be set: the helm-controller addon release new
   # clusters get reads it in its template and fails without it.

@@ -1,7 +1,7 @@
 # Application A: the VKS cluster and its add-ons, from git.
 #
 # Argo CD syncs the manifests in gitops/ (the Cluster pe-gitops-cluster and the
-# AddonInstalls for Headlamp and cert-manager) into the Supervisor
+# AddonInstalls for Headlamp, cert-manager and Istio) into the Supervisor
 # Namespace registered by managedentity-namespace.yaml. The
 # platform-observability label on the Cluster brings Prometheus and
 # Telegraf through the Supervisor Service, with nothing else in git.
