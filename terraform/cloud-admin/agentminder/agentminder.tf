@@ -56,13 +56,8 @@ resource "helm_release" "ingress_nginx" {
 # is its own Service, with the same selector, and its own Avi virtual
 # service. loadBalancerClass can only be set when the Service is created.
 #
-# It was applied by hand from incident-demo/agentminder/ and is imported
-# here. A server-side apply manifest, so the annotations AKO and Antrea add
-# stay theirs.
-import {
-  to = kubernetes_manifest.ingress_nginx_mgmt_service
-  id = "apiVersion=v1,kind=Service,namespace=ingress-nginx,name=ingress-nginx-mgmt-dns"
-}
+# A server-side apply manifest, so the annotations AKO and Antrea add stay
+# theirs.
 
 resource "kubernetes_manifest" "ingress_nginx_mgmt_service" {
   manifest = {

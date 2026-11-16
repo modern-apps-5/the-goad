@@ -3,10 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
-## 2026-11-16 (The shop's chat checks the model's certificate)
+## 2026-11-16 (The chat checks the model's certificate; imports removed)
 
 ### Changed
 
+- The `import` blocks are removed: the Cloud Foundry space and services
+  in `terraform/platform-engineer`, the Harbor retention policy in
+  `terraform/cloud-admin/org`, and the Service `ingress-nginx-mgmt-dns` in
+  `terraform/cloud-admin/agentminder`. All of them are in the lab's state.
 - The music store images are `8bfbc79f6a70`, the first with
   `OPENAI_CA_FILE`. The chat no longer sets `OPENAI_TLS_VERIFY=false`: it
   checks `pais.goad.gpu.set.lab` against the GOAD CA (decision 53).
