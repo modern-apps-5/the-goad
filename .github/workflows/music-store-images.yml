@@ -7,10 +7,14 @@
 # shows the result here. The Pipeline pushes one image per service to the
 # Harbor project music-store, tagged with the commit.
 #
-# Then it opens a pull request that sets the new tag in
-# gitops/music-store-apps/kustomization.yaml. Merging that pull request is
-# the deploy: Argo CD syncs the shop to the new images. Building is not
-# deploying.
+# Then it pushes a branch that sets the new tag in
+# gitops/music-store-apps/kustomization.yaml, and a second job opens the
+# pull request for it. Merging that pull request is the deploy: Argo CD
+# syncs the shop to the new images. Building is not deploying.
+#
+# Only the second job, on a GitHub-hosted runner, may open pull requests
+# (decision 55). The lab runner's token can push branches, not open or
+# approve pull requests.
 #
 # The runner reaches the cluster with the ServiceAccount pipeline-starter,
 # whose kubeconfig is the GitHub secret MUSIC_STORE_BUILD_KUBECONFIG
@@ -28,8 +32,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: music-store-images
@@ -44,6 +47,11 @@ jobs:
     runs-on: [self-hosted, lab]
     environment: lab
     timeout-minutes: 45
+    permissions:
+      contents: write
+    outputs:
+      branch: ${{ steps.branch.outputs.branch }}
+      tag: ${{ steps.start.outputs.tag }}
     defaults:
       run:
         shell: bash
@@ -134,10 +142,10 @@ jobs:
             done
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Open the deploy pull request
+      - name: Push the deploy branch
+        id: branch
         env:
           TAG: ${{ steps.start.outputs.tag }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'EOF'
@@ -162,11 +170,27 @@ jobs:
           git switch -c "$branch"
           git commit -qam "Deploy the music store images ${TAG}."
           git push -q origin "$branch"
-          jq -n --arg head "$branch" --arg tag "$TAG" --arg sha "$GITHUB_SHA" '{
-            title: "Deploy the music store images \($tag)",
-            head: $head, base: "main",
-            body: "Sets every music store image to `\($tag)`, built from \($sha) by the Tekton Pipeline music-store-images.\n\nMerging this deploys it: Argo CD syncs `gitops/music-store-apps`."
-          }' | curl -fsS -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" -d @- | jq -r .html_url
+          echo "branch=${branch}" >> "$GITHUB_OUTPUT"
+
+  # On GitHub's runner, with no checkout and no lab secrets: the only job
+  # whose token may open a pull request.
+  pull-request:
+    needs: build
+    if: needs.build.outputs.branch != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Open the deploy pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.build.outputs.branch }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          gh pr create -R "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+            --title "Deploy the music store images ${TAG}" \
+            --body "Sets every music store image to \`${TAG}\`, built from ${GITHUB_SHA} by the Tekton Pipeline music-store-images.
+
+          Merging this deploys it: Argo CD syncs \`gitops/music-store-apps\`."

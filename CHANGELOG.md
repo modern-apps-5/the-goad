@@ -3,10 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
-## 2026-11-16 (The chat checks the model's certificate; imports removed)
+## 2026-11-16 (Chat checks the model's certificate; imports removed; pull request rules)
 
 ### Changed
 
+- `.github/CODEOWNERS` names the team. With the main ruleset requiring a
+  code owner's review, a workflow's approval never counts (decision 55).
+- `music-store-images` opens the deploy pull request from a job on
+  `ubuntu-latest`. The lab runner's job only pushes the branch.
 - The `import` blocks are removed: the Cloud Foundry space and services
   in `terraform/platform-engineer`, the Harbor retention policy in
   `terraform/cloud-admin/org`, and the Service `ingress-nginx-mgmt-dns` in

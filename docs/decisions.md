@@ -1684,7 +1684,7 @@ or the lab gets a CA that cert-manager can issue from.
 `terraform/cloud-admin/org/harbor.tf` sets the retention policy of the
 proxy cache project `tanzu-platform-content` (decision 46): one rule,
 always retain, for every repository and tag. Harbor made a policy with
-the project; an `import` block brings it into the state.
+the project; Terraform took it over with an import.
 
 Why: Harbor gives a proxy cache project a policy of its own that keeps
 only what was pulled in the last 7 days. The music store's base image,
@@ -1699,3 +1699,34 @@ again while the cached copy stays.
 
 Look again if: the cache gets large. Then retain by days since last pull,
 with a window longer than the gap between builds.
+
+## 55. Only a GitHub-hosted job opens pull requests, and only the team approves them
+
+The repository is public and its workflows run on the lab's self-hosted
+runners. Three settings work together:
+
+- `.github/CODEOWNERS` names the team: Will (`warroyo`), Ronak
+  (`ronak-mukhopadhyay`), Niran (`NiranEC77`) and Thomas (`tkrausjr`).
+  The main ruleset requires a code owner's review, so a pull request needs
+  the approval of one of them.
+- The repository setting "Allow GitHub Actions to create and approve pull
+  requests" is on, for `music-store-images`.
+- In `music-store-images`, the job on the lab runner has
+  `contents: write` only: it pushes the branch `music-store-images/<tag>`.
+  A second job, `pull-request`, on `ubuntu-latest`, with no checkout and
+  no lab secrets, has `pull-requests: write` and opens the pull request.
+
+Why: the Actions setting is one switch for the whole repository, and it
+lets a workflow's token both open and approve pull requests. On its own,
+a job token on a lab runner could approve its own pull request and meet
+the review rule, and a merge to main runs the `lab` environment. The bot
+cannot be a code owner, so its approval never counts. The lab runner's
+token cannot open or approve pull requests at all, and cannot change
+workflow files.
+
+Cost: an approval from someone outside `CODEOWNERS` does not count. A
+new person on the team goes into the file. The admin and maintain roles
+still bypass the ruleset.
+
+Look again if: another workflow needs `pull-requests: write`. It gets a
+GitHub-hosted job of its own, like this one.
