@@ -1,0 +1,4 @@
+# Every change to main needs an approval from one of the team (decision 55).
+# The main ruleset requires a code owner's review, so an approval from a
+# workflow's token never counts.
+* @warroyo @ronak-mukhopadhyay @NiranEC77 @tkrausjr
