@@ -3,6 +3,14 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-16 (The shop's chat checks the model's certificate)
+
+### Changed
+
+- The music store images are `8bfbc79f6a70`, the first with
+  `OPENAI_CA_FILE`. The chat no longer sets `OPENAI_TLS_VERIFY=false`: it
+  checks `pais.goad.gpu.set.lab` against the GOAD CA (decision 53).
+
 ## 2026-11-13 (The Broadcom proxy cache keeps its images)
 
 ### Changed

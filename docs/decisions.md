@@ -1671,9 +1671,6 @@ Cost:
   writes them all, and every client must then be pushed or synced again.
 - The certificate is renewed every year by cert-manager. Whether PAIS
   reloads the renewed Secret without a restart is not yet known.
-- The chat keeps `OPENAI_TLS_VERIFY=false` until its image has
-  `OPENAI_CA_FILE` (the next build of `apps/music-store`). `OPENAI_CA_FILE`
-  wins when both are set.
 - The blackbox exporter and the orchestrator still skip verification;
   they use the name.
 - kagent on Agent Substrate still needs the CA in its egress gateway
