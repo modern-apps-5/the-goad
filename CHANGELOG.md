@@ -3,6 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-13 (The Broadcom proxy cache keeps its images)
+
+### Changed
+
+- The Harbor proxy cache project `tanzu-platform-content` keeps every
+  cached image. Harbor's own policy kept only images pulled in the last 7
+  days, so the music store's base image was dropped and the next build
+  needed Broadcom again (decision 54).
+
 ## 2026-11-13 (Private AI Services by name, with a GOAD CA)
 
 ### Added
