@@ -31,13 +31,6 @@ resource "cloudfoundry_space" "agentic" {
   org  = data.cloudfoundry_org.goad.id
 }
 
-# The space and the services were made by hand before this root owned them.
-# Remove these blocks once they are in every state.
-import {
-  to = cloudfoundry_space.agentic
-  id = "338a6093-3030-4c8a-b724-3a84ff831aae"
-}
-
 # The model binding that agent_buildpack reads. The api key is the Private
 # AI Services key the agents use; the same key is in the apps' env.
 resource "cloudfoundry_service_instance" "goad_qwen" {
@@ -61,11 +54,6 @@ resource "cloudfoundry_service_instance" "goad_qwen" {
   })
 }
 
-import {
-  to = cloudfoundry_service_instance.goad_qwen
-  id = "a8cf043b-dfe0-4c81-8e19-13bd0c965693"
-}
-
 # metal-k8s-mcp's view of the music store cluster.
 resource "cloudfoundry_service_instance" "k8s_mcp_cluster" {
   name  = "k8s-mcp-cluster"
@@ -76,9 +64,4 @@ resource "cloudfoundry_service_instance" "k8s_mcp_cluster" {
     token     = var.incident_k8s_token
     namespace = "metal-music-store"
   })
-}
-
-import {
-  to = cloudfoundry_service_instance.k8s_mcp_cluster
-  id = "7578c44a-b628-4571-aa87-b1d1b9d381e8"
 }

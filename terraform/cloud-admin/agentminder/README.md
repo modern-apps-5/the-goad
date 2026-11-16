@@ -33,7 +33,7 @@ applied. See [decision 29](../../../docs/decisions.md).
 - The Service `ingress-nginx-mgmt-dns`: a second LoadBalancer Service on
   the same ingress controller, for the second name
   `mgmt-agentminder.goad.gpu.set.lab`. This AKO build takes one name per
-  Service. It was made by hand first and is imported.
+  Service.
 
 The agents and MCP servers are not configured here. The agentic ops
 engineer's root, [../../agentic-ops](../../agentic-ops), registers them.

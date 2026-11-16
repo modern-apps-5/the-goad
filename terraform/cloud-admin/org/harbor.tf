@@ -83,10 +83,3 @@ resource "harbor_retention_policy" "tanzu_platform_content" {
     always_retain = true
   }
 }
-
-# Harbor made the policy with the project. Remove this block once it is
-# in every state.
-import {
-  to = harbor_retention_policy.tanzu_platform_content
-  id = "/retentions/2"
-}
