@@ -66,6 +66,10 @@ spec:
     providers:
       - name: sc
         staticCredentials:
+          # The issuer is the name, not the LoadBalancer IP the controller
+          # uses by default. The certificate has no IP, so the UI cannot
+          # load the provider from the IP ("unable to load OIDC provider").
+          issuerBaseUrl: https://pais.goad.gpu.set.lab
           credentialsSecretRef:
             name: pais-static-credentials
             key: credentials.json
