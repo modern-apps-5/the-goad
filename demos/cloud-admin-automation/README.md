@@ -180,6 +180,6 @@ demos/cloud-admin-automation/check.sh
 - **The run waits on `Acquiring state lock`**: another run of the same
   root is going. It waits up to five minutes. Actions shows the other run.
 - **The run is Queued and does not start**: no lab runner is free. See
-  `terraform/runner`.
+  `terraform/vsphere-admin`.
 - **The provider portal shows the old value**: reload without the cache,
   or open the org again from Organizations.

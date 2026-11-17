@@ -1,4 +1,4 @@
-# Lab values for the runner root. Not secret, and the same for everyone, so
+# Lab values for the vSphere admin root. Not secret, and the same for everyone, so
 # they are in git. Terraform loads this file by itself.
 #
 # Secrets are not here. They are in terraform.tfvars, which git ignores:

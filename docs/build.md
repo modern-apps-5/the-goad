@@ -43,7 +43,7 @@ The lab must already have:
 - A Terraform state backend. GOAD uses a Gitea server's Terraform state
   registry: see [terraform-state.md](terraform-state.md).
 - A self-hosted GitHub runner in the lab, only to run the workflows:
-  see [terraform/runner/README.md](../terraform/runner/README.md).
+  see [terraform/vsphere-admin/README.md](../terraform/vsphere-admin/README.md).
 
 Every name and address of the lab is in git. Before the first build in
 another lab, change them: see [adapt-to-your-lab.md](adapt-to-your-lab.md).
@@ -374,7 +374,7 @@ the database, Private AI Services, and the model; for `music-store` and
 ## The secrets you make
 
 The `terraform.tfvars` files and the secrets in the GitHub environment `lab` hold the
-same values. [terraform/runner/README.md](../terraform/runner/README.md)
+same values. [terraform/vsphere-admin/README.md](../terraform/vsphere-admin/README.md)
 maps each GitHub secret to its `terraform.tfvars` value. On a first build,
 this is where each value comes from.
 

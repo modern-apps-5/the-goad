@@ -41,7 +41,7 @@ It logs in as AgentMinder's default tenant admin client. After this stage
 applies, the cloud admin copies that client's ID and secret once into the
 repository secrets `AGENTIC_OPS_AGENTMINDER_CLIENT_ID` and
 `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`: see
-[terraform/runner/README.md](../../runner/README.md).
+[terraform/vsphere-admin/README.md](../../vsphere-admin/README.md).
 
 The charts come from `https://ssp_helm_charts.storage.googleapis.com`.
 

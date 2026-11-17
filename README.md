@@ -90,7 +90,7 @@ another lab, change the lab values first: see
 | [docs/github-workflows.md](docs/github-workflows.md) | Running the Terraform roots and the app pushes from GitHub Actions |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | The repository layout, and where a new file goes |
 | [docs/terraform-state.md](docs/terraform-state.md) | Where Terraform state is, the shared secret files, and how to set up a machine |
-| [terraform/runner/README.md](terraform/runner/README.md) | The self-hosted runner that the workflows run on, and how to build it |
+| [terraform/vsphere-admin/README.md](terraform/vsphere-admin/README.md) | The vSphere admin root: the self-hosted runner that the workflows run on, and the Supervisor addons |
 
 ### Each part in detail
 

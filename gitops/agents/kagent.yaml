@@ -1,0 +1,70 @@
+# kagent with its Agent Substrate runtime on the VKS cluster agents, from
+# the kagent addon (github.com/warroyo/vks-kagent-addon, decision 56). The
+# Supervisor offers the addon because terraform/vsphere-admin registers its
+# AddonRepository. One helm release, kagent, installs Substrate in
+# ate-system and kagent in kagent, with their databases, the sandbox
+# snapshot store, and gVisor. The addon's bootstrap Job makes every key and
+# password in the cluster; none is in git or in Secret Store.
+#
+# The release is pinned. A ClusterAddon does not move to a newer release
+# by itself, and terraform/vsphere-admin must still offer the version.
+apiVersion: addons.kubernetes.vmware.com/v1alpha1
+kind: AddonInstall
+metadata:
+  name: kagent
+spec:
+  addonRef:
+    name: kagent
+  releaseFilter:
+    ref:
+      name: kagent.0.1.6
+  crossNamespaceSelection: Blocked
+  stopMatchingBehavior: Delete
+  clusters:
+    - selector:
+        matchLabels:
+          addons.kubernetes.vmware.com/kagent: enabled
+---
+# The cluster's values. The name must be <cluster>-kagent. The addon
+# derives the wiring between kagent and Substrate itself; only these are
+# ours.
+#
+# egressCABundle: the GOAD CA, so agents can reach pais.goad.gpu.set.lab
+# through Substrate's egress gateway. Terraform patches it in from
+# gitops/private-ai/goad-ca.crt (terraform/platform-engineer/gitops.tf), so
+# the certificate has one copy in git.
+#
+# The UI: kagent's own HTTPRoute for kagent.goad.gpu.set.lab, on the
+# Gateway kagent, which gitops/agents-platform makes apart from the addon.
+# Avi DNS publishes the route's hostname. kagent has no login yet.
+#
+# No model yet. Agents and their models come with the first use case.
+apiVersion: addons.kubernetes.vmware.com/v1alpha1
+kind: AddonConfig
+metadata:
+  name: agents-kagent
+  annotations:
+    clusteraddon.addons.kubernetes.vmware.com/owned-for-deletion: "true"
+spec:
+  addonConfigDefinitionRef:
+    name: kagent.0.1.6
+  values:
+    storageClass: mgmt-cl01-optimal-datastore-default-policy-autoraid
+    helmValues:
+      kagent:
+        ui:
+          httpRoute:
+            enabled: true
+            hostnames:
+              - kagent.goad.gpu.set.lab
+            parentRefs:
+              - group: gateway.networking.k8s.io
+                kind: Gateway
+                name: kagent
+                namespace: default
+                sectionName: https
+            rules:
+              - matches:
+                  - path:
+                      type: PathPrefix
+                      value: /

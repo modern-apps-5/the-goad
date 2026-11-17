@@ -13,7 +13,7 @@
 # cloud admin's workflow has installed AgentMinder and the platform
 # engineer's has made the space. The repository secrets
 # AGENTIC_OPS_AGENTMINDER_CLIENT_ID and _SECRET are copied once by the cloud
-# admin: see terraform/runner/README.md.
+# admin: see terraform/vsphere-admin/README.md.
 name: agentic-ops
 
 on:
