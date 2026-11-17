@@ -38,7 +38,12 @@ spec:
 # Gateway kagent, which gitops/agents-platform makes apart from the addon.
 # Avi DNS publishes the route's hostname. kagent has no login yet.
 #
-# No model yet. Agents and their models come with the first use case.
+# The model: no default. providers: false stops the chart making
+# default-model-config, which points at OpenAI's gpt-4.1-mini. Not null:
+# the API server drops a null on apply, and the chart's default comes
+# back. kagent's only model is the ModelConfig qwen in
+# gitops/agents-platform/model.yaml, Private AI Services, and every Agent
+# names it.
 apiVersion: addons.kubernetes.vmware.com/v1alpha1
 kind: AddonConfig
 metadata:
@@ -52,6 +57,7 @@ spec:
     storageClass: mgmt-cl01-optimal-datastore-default-policy-autoraid
     helmValues:
       kagent:
+        providers: false
         ui:
           httpRoute:
             enabled: true

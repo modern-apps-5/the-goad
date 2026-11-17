@@ -8,3 +8,4 @@ resources:
   - cluster.yaml
   - kagent.yaml
   - cert-manager.yaml
+  - external-secrets.yaml

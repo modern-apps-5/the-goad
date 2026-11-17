@@ -46,6 +46,11 @@ incident_zammad_admin_password  = "CHANGE-ME"
 incident_qwen_api_key = "CHANGE-ME"
 incident_k8s_token    = "CHANGE-ME"
 
+# kagent's model key, written to the Secret Store KV agents-qwen
+# (secrets.tf). A PAIS token for kagent alone. GitHub secret
+# KAGENT_QWEN_API_KEY. Empty or null skips it.
+kagent_qwen_api_key = "CHANGE-ME"
+
 # tanzu.tf also needs CF_ACCESS_TOKEN in the environment: a Tanzu Platform
 # token for goad-deployer. It is not a variable.
 

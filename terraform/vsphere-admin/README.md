@@ -158,6 +158,7 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 | `MUSIC_STORE_DB_PASSWORD`, `MUSIC_STORE_CHAT_API_KEY` | `music_store_db_password` and `music_store_chat_api_key` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD`, `INCIDENT_ZAMMAD_ADMIN_PASSWORD` | The `incident_*` passwords in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`; `tanzu-apps` reads the Grafana one too |
 | `INCIDENT_QWEN_API_KEY`, `INCIDENT_K8S_TOKEN` | `incident_qwen_api_key` and `incident_k8s_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`, `tanzu-apps` |
+| `KAGENT_QWEN_API_KEY` | `kagent_qwen_api_key` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `INCIDENT_SIDECAR_TOKEN` | `incident_sidecar_token` in `terraform/agentic-ops/terraform.tfvars` | `agentic-ops`, `tanzu-apps` |
 | `AGENTIC_OPS_AGENTMINDER_CLIENT_ID`, `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET` | `agentminder_client_id` and `agentminder_client_secret` in `terraform/agentic-ops/terraform.tfvars`. Only in the cluster otherwise: the Secret `ssp-ssp-secret-defaulttenantclient` in namespace `ssp` | `agentic-ops` |
 | `INCIDENT_ZAMMAD_TOKEN`, `INCIDENT_AVI_USERNAME`, `INCIDENT_AVI_PASSWORD`, `INCIDENT_MCP_READ_TOKEN`, `INCIDENT_MCP_WRITE_TOKEN` | Only in GitHub: see [the incident apps' README](../../tanzu/metal-music-app-agentic-system/README.md) | `tanzu-apps` |

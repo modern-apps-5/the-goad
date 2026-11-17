@@ -3,6 +3,32 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-16 (kagent uses Private AI Services)
+
+### Added
+
+- The ModelConfig `qwen` in kagent: Qwen on Private AI Services, through
+  `https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1`. Its key
+  is the Secret `qwen`, which ESO makes from the Secret Store KV
+  `agents-qwen` (decision 56).
+- The External Secrets Operator addon on the `agents` cluster, and the
+  ClusterSecretStore `secret-store` in `gitops/agents-platform`.
+- The variable `kagent_qwen_api_key` in `terraform/platform-engineer`, from
+  the GitHub secret `KAGENT_QWEN_API_KEY`. It is a PAIS token for kagent
+  alone, so revoking it affects nothing else. Empty skips the KV.
+
+### Changed
+
+- `terraform/platform-engineer` patches the generated namespace into the
+  Application `agents-platform`, for the ClusterSecretStore and the
+  ExternalSecret.
+
+### Removed
+
+- kagent's default model `default-model-config` (OpenAI `gpt-4.1-mini`),
+  which the lab could not use. kagent has no default model, and every Agent
+  names `qwen`.
+
 ## 2026-11-16 (Private AI Services login uses its name)
 
 ### Fixed

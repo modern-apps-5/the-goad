@@ -285,3 +285,12 @@ variable "music_store_robot_secret" {
   sensitive   = true
   default     = ""
 }
+
+# --- The agents cluster's secrets (decision 56) ---
+
+variable "kagent_qwen_api_key" {
+  type        = string
+  description = "kagent's own Private AI Services API token, for the ModelConfig qwen. GitHub secret KAGENT_QWEN_API_KEY. Null or empty skips the KV."
+  sensitive   = true
+  default     = null
+}

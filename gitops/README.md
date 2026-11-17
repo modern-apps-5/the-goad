@@ -51,12 +51,14 @@ Each directory belongs to one owner and one Application.
      registry and Git credentials, and the Dockerfile template. It
      retries until Tekton exists.
    - `agents/` — Application `agents`. The VKS cluster `agents` on
-     Kubernetes 1.37, the kagent addon with its AddonConfig, and
-     cert-manager.
+     Kubernetes 1.37, the kagent addon with its AddonConfig,
+     cert-manager, and the External Secrets Operator addon.
    - `agents-platform/` — Application `agents-platform`. Inside that
      cluster, namespace `default`: the Gateway `kagent` for the kagent UI
-     and its self-signed certificate. It retries until the cluster and
-     cert-manager exist.
+     and its self-signed certificate, and the ClusterSecretStore
+     `secret-store`. In namespace `kagent`: kagent's model, the ModelConfig
+     `qwen` and its key. It retries until the cluster, cert-manager and
+     ESO exist.
 4. Security admin Terraform: `terraform/security-admin`, once the
    cluster `music-store` is up with Antrea's NSX integration. It puts
    the vDefend policy in NSX, which pushes it into the cluster
@@ -81,8 +83,8 @@ Each directory belongs to one owner and one Application.
 | `platform-tools-apps/` | platform engineer | `platform-tools-apps` | Inside the platform tools cluster, namespace `incident-tools`: Zammad, Grafana with its boards and topology panel, Prometheus and the blackbox exporter, and their `ExternalSecret`s. |
 | `platform-tools-builds/` | platform engineer | `platform-tools-builds` | Inside the platform tools cluster, namespace `music-store-builds`: the Tekton pipeline and tasks that build the music store's images from `apps/music-store/`, the registry and Git credentials, and the Dockerfile template `dockerfiles/python`. |
 | `music-store-apps/` | platform engineer; the developer's code is in `apps/music-store/` | `music-store-apps` | The shop's containers, from the images built from `apps/music-store/` (their tag in `kustomization.yaml`), the `ExternalSecret`s `store-db` and `metal-oracle-model`, and the HTTPRoute and WAF L7Rule, in namespace `music-store` of the VKS cluster; and the Gateway `metal-store`, in namespace `default`; and the Antrea policy for the calls between the shop's services (decision 49). |
-| `agents/` | platform engineer | `agents` | The VKS cluster `agents` on Kubernetes 1.37, the kagent addon (AddonInstall and AddonConfig), and cert-manager (decision 56). |
-| `agents-platform/` | platform engineer | `agents-platform` | Inside the VKS cluster `agents`, namespace `default`: the Gateway `kagent` for the kagent UI and its self-signed certificate. |
+| `agents/` | platform engineer | `agents` | The VKS cluster `agents` on Kubernetes 1.37, the kagent addon (AddonInstall and AddonConfig), cert-manager, and the External Secrets Operator addon (decision 56). |
+| `agents-platform/` | platform engineer | `agents-platform` | Inside the VKS cluster `agents`, namespace `default`: the Gateway `kagent` for the kagent UI and its self-signed certificate, and the ClusterSecretStore `secret-store`. In namespace `kagent`: the ModelConfig `qwen` and its ExternalSecret (decision 56). |
 
 Directories do not nest across owners. An Application syncs one
 directory and does not recurse.
