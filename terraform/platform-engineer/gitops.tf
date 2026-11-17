@@ -140,6 +140,17 @@ locals {
         spec       = { dataFrom = [{ extract = { key = "${local.music_store_namespace}/${local.music_store_kv[kv]}" } }] }
       })
     }]
+    # The GOAD CA, so kagent's egress gateway trusts pais.goad.gpu.set.lab
+    # (decision 56). From the one copy of the certificate in git.
+    "agents" = [{
+      target = { kind = "AddonConfig", name = "agents-kagent" }
+      patch = yamlencode({
+        apiVersion = "addons.kubernetes.vmware.com/v1alpha1"
+        kind       = "AddonConfig"
+        metadata   = { name = "agents-kagent" }
+        spec       = { values = { egressCABundle = file("${path.module}/../../gitops/private-ai/goad-ca.crt") } }
+      })
+    }]
   }
 
   retry_sync_policy = {
@@ -371,4 +382,63 @@ resource "kubectl_manifest" "platform_tools_builds_application" {
   })
 
   depends_on = [kubectl_manifest.platform_tools_cluster_entity]
+}
+
+
+# --- The agents cluster (decision 56) ---
+#
+# The generic Application agents syncs gitops/agents into its Supervisor
+# Namespace: the VKS cluster, the kagent addon and cert-manager. This one
+# syncs gitops/agents-platform into the cluster: the Gateway and the
+# certificate the kagent UI is served with, which the addon depends on and
+# does not make. It retries until the cluster and cert-manager exist.
+
+locals {
+  agents_cluster_name = yamldecode(file("${path.module}/../../gitops/agents/cluster.yaml")).metadata.name
+}
+
+resource "kubectl_manifest" "agents_cluster_entity" {
+  provider = kubectl.platform
+
+  validate_schema = false
+  yaml_body = yamlencode({
+    apiVersion = "argocd-service.vsphere.vmware.com/v1alpha1"
+    kind       = "ManagedEntity"
+    metadata   = { name = "agents-cluster", namespace = local.platform_namespace }
+    spec = {
+      clusterName = "agents-cluster"
+      targetRef = {
+        apiGroup  = "cluster.x-k8s.io"
+        kind      = "Cluster"
+        name      = local.agents_cluster_name
+        namespace = local.namespace_names["agents"]
+        project   = var.project_name
+      }
+    }
+  })
+
+  depends_on = [terracurl_request.argocd_service_account_role]
+}
+
+resource "kubectl_manifest" "agents_platform_application" {
+  provider = kubectl.platform
+
+  validate_schema = false
+  yaml_body = yamlencode({
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "Application"
+    metadata   = { name = "agents-platform", namespace = local.platform_namespace }
+    spec = {
+      project = "default"
+      source = {
+        repoURL        = var.gitops_repo.url
+        targetRevision = var.gitops_repo.revision
+        path           = "gitops/agents-platform"
+      }
+      destination = { name = "agents-cluster", namespace = "default" }
+      syncPolicy  = local.retry_sync_policy
+    }
+  })
+
+  depends_on = [kubectl_manifest.agents_cluster_entity]
 }

@@ -18,7 +18,10 @@ keeps every version.
 | `terraform/platform-engineer` | `the-goad` | `goad-platform-engineer` |
 | `terraform/agentic-ops` | `the-goad` | `goad-agentic-ops` |
 | `terraform/security-admin` | `the-goad` | `goad-security-admin` |
-| `terraform/runner` | `the-goad` | `goad-runner` |
+| `terraform/vsphere-admin` | `the-goad` | `goad-runner` |
+
+The state of `terraform/vsphere-admin` kept its old name, `goad-runner`,
+from when the root was `terraform/runner`.
 
 In Gitea, the states are under the organization's Packages.
 
@@ -89,13 +92,13 @@ and do not make your own.
 | `vcfa_api_token` | `terraform/platform-engineer/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is an API token of `svc.platform_engineer@set.lab`, made by hand once. |
 | `vcfa_password` | `terraform/cloud-admin/org/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. It is the provider administrator's password. |
 | `nsx_password` | `terraform/security-admin/terraform.tfvars` | Not written to the lab, but a wrong one fails the NSX login. |
-| `vcenter_password` | `terraform/runner/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. |
-| GitHub App's private key | `terraform/runner/.secrets/private-key.pem` | Terraform replaces the key in the Secret `github-app` with yours. If yours is not a key of that App, the runner's pods cannot register after their next restart. |
+| `vcenter_password` | `terraform/vsphere-admin/terraform.tfvars` | Not written to the lab, but a wrong one fails the login. |
+| GitHub App's private key | `terraform/vsphere-admin/.secrets/private-key.pem` | Terraform replaces the key in the Secret `github-app` with yours. If yours is not a key of that App, the runner's pods cannot register after their next restart. |
 
 The repository secrets in GitHub are one more copy of these values
 and of the state token. The workflows apply with them. When one
 of these values changes, change the repository secret too:
-[terraform/runner/README.md](../terraform/runner/README.md) lists which
+[terraform/vsphere-admin/README.md](../terraform/vsphere-admin/README.md) lists which
 secret holds which value.
 
 Quota, VM classes, zone, and policy names are not on this list any more.

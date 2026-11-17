@@ -1,0 +1,77 @@
+# The cluster agents run on: kagent and its Agent Substrate runtime, from
+# the kagent addon (kagent.yaml, decision 56).
+#
+# No namespace: Argo CD applies this into the agents Supervisor Namespace.
+# Kubernetes 1.37, not the 1.36 of the other clusters: Substrate needs pod
+# certificates and ClusterTrustBundles, which are GA from 1.37, and the
+# chart refuses anything else. builtin-generic-v3.8.0 is the class that
+# serves 1.37. The VM classes and the storage class are the same as the
+# platform tools cluster's (gitops/platform-tools/cluster.yaml).
+#
+# The platform engineer owns the cluster and the addon. What runs on
+# kagent (models, agents) is not here yet.
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: agents
+  # kagent.yaml installs kagent on clusters with the second label, and
+  # cert-manager.yaml cert-manager, for the UI's Gateway certificate, on
+  # clusters with the third. kagent is a helm addon, so it needs
+  # helm-controller, which VKS turns on for every new cluster.
+  labels:
+    addons.kubernetes.vmware.com/platform-observability: enabled
+    addons.kubernetes.vmware.com/kagent: enabled
+    addons.kubernetes.vmware.com/cert-manager: enabled
+spec:
+  # serviceDomain must be set: helm-controller's template reads it. kagent's
+  # addon derives the cluster domain from it too. clusterNetwork cannot be
+  # changed after the cluster is created.
+  clusterNetwork:
+    serviceDomain: cluster.local
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+  topology:
+    classRef:
+      name: builtin-generic-v3.8.0
+      namespace: vmware-system-vks-public
+    version: v1.37.1+vmware.4
+    controlPlane:
+      replicas: 1
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+    workers:
+      machineDeployments:
+        # Two large workers, as in the addon's test cluster: Substrate's
+        # control plane, kagent, two databases, and the sandboxes.
+        - class: node-pool
+          name: workers
+          replicas: 2
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+          variables:
+            overrides:
+              - name: vmClass
+                value: best-effort-large
+    variables:
+      - name: vmClass
+        value: best-effort-medium
+      - name: storageClass
+        value: mgmt-cl01-optimal-datastore-default-policy-autoraid
+      # The addon's volumes use the cluster's default StorageClass.
+      - name: vsphereOptions
+        value:
+          persistentVolumes:
+            availableStorageClasses:
+              - mgmt-cl01-optimal-datastore-default-policy-autoraid
+            defaultStorageClass: mgmt-cl01-optimal-datastore-default-policy-autoraid
+      - name: bootstrapAddons
+        value:
+          cniRef:
+            name: antrea
+            namespace: vmware-system-vks-public

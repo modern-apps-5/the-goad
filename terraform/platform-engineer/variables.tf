@@ -117,6 +117,16 @@ variable "namespaces" {
       memory_limit  = "32Gi"
       storage_limit = "150Gi"
     }
+    # kagent and its Agent Substrate sandboxes (decision 56). The cluster in
+    # gitops/agents/cluster.yaml is one best-effort-medium control plane and
+    # two best-effort-large workers. The addon's volumes are two 10Gi
+    # databases and 20Gi of sandbox snapshots.
+    agents = {
+      description   = "GOAD agents: the VKS cluster for kagent and its sandboxes. Managed by terraform/platform-engineer."
+      cpu_limit     = "20000M"
+      memory_limit  = "48Gi"
+      storage_limit = "200Gi"
+    }
   }
 
   validation {

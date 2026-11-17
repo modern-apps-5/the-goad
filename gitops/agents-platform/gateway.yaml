@@ -1,0 +1,65 @@
+# The Gateway the kagent UI is served through, kagent.goad.gpu.set.lab.
+# It is a dependency of the kagent addon, not part of it: kagent's own
+# HTTPRoute attaches to it (the AddonConfig in gitops/agents/kagent.yaml),
+# and the route's hostname is what Avi DNS publishes, as for the shop
+# (decision 43).
+#
+# HTTPS only, so that login through VCF Automation's OIDC can be added
+# later. The certificate is self-signed, made by cert-manager in the
+# cluster (gitops/agents installs it), so no key is in git or anywhere
+# else. Browsers warn on it, as on the shop.
+#
+# kagent has no login yet. Anyone on the lab network who reaches this can
+# run agents (decision 56).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: self-signed
+  annotations:
+    # cert-manager's CRDs arrive with the addon.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kagent-ui
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  secretName: kagent-ui-tls
+  commonName: kagent.goad.gpu.set.lab
+  dnsNames:
+    - kagent.goad.gpu.set.lab
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    kind: ClusterIssuer
+    name: self-signed
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: kagent
+  namespace: default
+spec:
+  gatewayClassName: avi-lb
+  listeners:
+    - name: https
+      hostname: kagent.goad.gpu.set.lab
+      port: 443
+      protocol: HTTPS
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: kagent-ui-tls

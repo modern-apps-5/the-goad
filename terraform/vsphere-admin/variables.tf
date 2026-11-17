@@ -92,3 +92,9 @@ variable "runner_resources" {
     limits   = {}
   }
 }
+
+variable "kagent_addon_versions" {
+  type        = list(string)
+  description = "Chart versions of warroyo/vks-kagent-addon the Supervisor offers as AddonReleases kagent.<version>. Keep a version while a cluster's AddonInstall pins it."
+  default     = ["0.1.6"]
+}

@@ -3,6 +3,30 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-16 (kagent on its own cluster)
+
+### Added
+
+- The Supervisor offers the kagent addon. `terraform/vsphere-admin` registers
+  the AddonRepository `kagent-oci-repo`, from the chart repository of
+  `warroyo/vks-kagent-addon`, because only that root logs in as a
+  Supervisor administrator (decision 56).
+- The Supervisor Namespace `agents` and the VKS cluster `agents` on
+  Kubernetes 1.37, with kagent, its Agent Substrate runtime (gVisor
+  sandboxes) and cert-manager (decision 56).
+- The kagent UI at `kagent.goad.gpu.set.lab`, over HTTPS, through the
+  Gateway `kagent` in `gitops/agents-platform` and its self-signed
+  certificate. kagent has no login yet (decision 56).
+
+### Changed
+
+- `terraform/runner` is now `terraform/vsphere-admin`, the lab's vSphere
+  admin root. Its state keeps the name `goad-runner`. Anyone with a local
+  `terraform.tfvars`, `backend.hcl` or `.secrets/` in the old directory
+  moves them to the new one and runs `terraform init` again.
+
+No model or agent is set up yet.
+
 ## 2026-11-16 (Chat checks the model's certificate; imports removed; pull request rules)
 
 ### Changed

@@ -249,7 +249,7 @@ demos/platform-engineer-automation/check.sh "$STORE_CONTEXT" "$ARGO_CONTEXT"
 - **The run waits on `Acquiring state lock`**: another run of this root is
   going. It waits up to five minutes. Actions shows the other run.
 - **The run is Queued and does not start**: no lab runner is free. See
-  `terraform/runner`.
+  `terraform/vsphere-admin`.
 - **Argo CD does not sync after the merge**: click Refresh on
   `music-store`. If it stays OutOfSync, click Sync.
 - **The third `Machine` stays in `Provisioning`**: open it in tab 5; its

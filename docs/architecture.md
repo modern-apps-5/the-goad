@@ -220,5 +220,5 @@ change.
 and the AgentMinder that the cloud admin installs, so it runs after both.
 `terraform/security-admin` needs the cluster `music-store`, so it runs
 after Argo CD has built it. `terraform/cloud-admin/ops` needs nothing from
-the others. `terraform/runner`, for the GitHub runner, is not in the
-diagram.
+the others. `terraform/vsphere-admin`, the vSphere admin root for the GitHub runner
+and the Supervisor addons, is not in the diagram.

@@ -380,7 +380,7 @@ cannot reach VCF Automation or the lab's Gitea server. The runner is
 a plain Deployment of vSphere Pods, registered to the GitHub
 organization.
 
-A third Terraform root, `terraform/runner`, builds the runner: its
+A third Terraform root, `terraform/vsphere-admin`, builds the runner: its
 Supervisor Namespace, the Secret, and the Deployment. That namespace is
 made in vCenter, not through VCF Automation.
 
@@ -1730,3 +1730,60 @@ still bypass the ruleset.
 
 Look again if: another workflow needs `pull-requests: write`. It gets a
 GitHub-hosted job of its own, like this one.
+
+## 56. kagent runs on its own 1.37 cluster, from a custom addon the vSphere admin root registers
+
+kagent and its Agent Substrate runtime (gVisor sandboxes for code an
+agent writes, and an egress gateway that injects credentials so the
+sandbox never holds them) come from the helm addon
+[warroyo/vks-kagent-addon](https://github.com/warroyo/vks-kagent-addon),
+release `0.1.6`. Three parts:
+
+- `terraform/vsphere-admin/addons.tf` registers the addon's AddonRepository and
+  AddonRepositoryInstall `kagent-oci-repo` in `vmware-system-vks-public`.
+  The Supervisor then offers the AddonRelease `kagent.<version>` for each
+  version in `kagent_addon_versions`.
+- `terraform/platform-engineer` adds the Supervisor Namespace `agents`,
+  and `gitops/agents/` holds the VKS cluster `agents` (Kubernetes
+  `v1.37.1+vmware.4`, class `builtin-generic-v3.8.0`, two
+  best-effort-large workers), the AddonInstall `kagent` pinned to
+  `kagent.0.1.6`, the AddonConfig `agents-kagent`, and cert-manager.
+  Terraform patches the GOAD CA into the AddonConfig's `egressCABundle`
+  from `gitops/private-ai/goad-ca.crt`, so agents can call
+  `pais.goad.gpu.set.lab`.
+- `gitops/agents-platform/`, the Application `agents-platform`, holds the
+  Gateway `kagent` (class `avi-lb`, namespace `default`) and its
+  self-signed certificate from cert-manager. The AddonConfig turns on
+  kagent's own HTTPRoute for `kagent.goad.gpu.set.lab` through
+  `helmValues` (`kagent.ui.httpRoute`), and Avi DNS publishes its
+  hostname. No chart change.
+
+Why the vSphere admin root: an AddonRepository in `vmware-system-vks-public`
+needs a Supervisor administrator. VCF Automation tokens, which every
+persona root uses, reach only the org's namespaces.
+`terraform/vsphere-admin`, renamed from `terraform/runner` for this,
+already logs in to the Supervisor with the vCenter user, and it is
+applied by hand by whoever holds the vCenter password, which is how a
+vSphere admin would offer an addon. No new secret goes into a workflow.
+
+Why the Gateway is apart from the addon: it is a dependency of kagent,
+not part of it. kagent's chart only attaches a route to an existing
+Gateway, and a VKS cluster has none of its own. HTTPS only, because
+login through VCF Automation's OIDC comes later, and it needs HTTPS.
+
+Why a new cluster: the chart requires Kubernetes 1.37 (pod certificates
+and ClusterTrustBundles are GA there), and the other clusters are 1.36.
+
+Why no model or agent yet: the first use case, an analyst agent that
+writes and runs Python in its sandbox, is tracked as its own issue. The
+addon is useful to check on its own: the ClusterAddon is Ready only when
+every Substrate and kagent pod runs.
+
+Cost: kagent has no login. Anyone on the lab network who reaches
+`kagent.goad.gpu.set.lab` can run agents, and once a model is set, use it.
+The Substrate CAs the addon's bootstrap Job makes
+expire a year after the cluster is built, and nothing renews them yet.
+
+Look again if: kagent gets authentication, VKS ships kagent or Substrate
+as a built-in addon, or a second custom addon needs registering (then a
+root of its own for Supervisor admin work).

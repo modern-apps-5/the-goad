@@ -56,7 +56,7 @@ the client as two sensitive variables, `agentminder_client_id` and
 `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET`.
 
 The cloud admin copies the two values once, without printing them. The
-commands are in [../runner/README.md](../runner/README.md). The client has
+commands are in [../vsphere-admin/README.md](../vsphere-admin/README.md). The client has
 full admin in AgentMinder, so the agentic ops engineer does too. AgentMinder
 has no service accounts yet. When it has, use one here.
 

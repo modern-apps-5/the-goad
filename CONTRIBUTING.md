@@ -11,7 +11,7 @@ terraform/platform-engineer/   Inside the org: namespaces, Secret Store, Argo CD
   manifests/                   Manifests that Terraform applies
 terraform/agentic-ops/         The incident demo's agents registered in AgentMinder, and the am-* and sc-* services
 terraform/security-admin/      The vDefend guardrails for the music store, in NSX
-terraform/runner/              The self-hosted runner for the workflows. Not a persona; applied by hand
+terraform/vsphere-admin/    The lab's vSphere admin root: the self-hosted runner and the Supervisor addons. Not a persona; applied by hand
 gitops/<namespace key>/        What Argo CD syncs into that namespace: private-ai, music-store, platform-tools
 gitops/music-store-platform/   The platform engineer's part inside the music-store VKS cluster
 apps/music-store/              The developer's code: store, cart, order, chat. The platform engineer builds it into images

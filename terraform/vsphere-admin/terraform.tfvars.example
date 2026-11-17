@@ -1,4 +1,4 @@
-# Secrets for the runner root. Copy to terraform.tfvars, which git ignores.
+# Secrets for the vSphere admin root. Copy to terraform.tfvars, which git ignores.
 #
 # These are shared by the team. If the runner is already built, copy the
 # team's terraform.tfvars and do not write your own.

@@ -12,15 +12,15 @@ GitHub as an owner of the organization. From another machine, first run
 `ssh -L 8765:localhost:8765 <this machine>`.
 
 It prints the App's ID, for github_app_id in lab.auto.tfvars, and writes
-the private key to terraform/runner/.secrets/private-key.pem, which git
+the private key to terraform/vsphere-admin/.secrets/private-key.pem, which git
 ignores. It prints no secret. Needs `gh`.
 """
 import html, http.server, json, os, pathlib, re, secrets, subprocess, urllib.parse
 
 ORG = "modern-apps-5"
 PORT = 8765
-# Where terraform/runner reads the key from.
-OUT = pathlib.Path(__file__).resolve().parent.parent / "terraform/runner/.secrets"
+# Where terraform/vsphere-admin reads the key from.
+OUT = pathlib.Path(__file__).resolve().parent.parent / "terraform/vsphere-admin/.secrets"
 STATE = secrets.token_urlsafe(16)
 
 # All the App needs: to register runners for the organization. No webhook.

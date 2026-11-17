@@ -1,0 +1,10 @@
+# The agents Supervisor Namespace: the VKS cluster and its addons. A
+# kustomization so that the Application agents can patch the GOAD CA into
+# the kagent AddonConfig (terraform/platform-engineer/gitops.tf).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cluster.yaml
+  - kagent.yaml
+  - cert-manager.yaml

@@ -25,7 +25,7 @@ Every lab value that is not secret. Change these first.
 | `terraform/platform-engineer` | `vcfa_url`, `region_name`, `vpc_name`, `zone_name`, `storage_class_name`, `content_library_storage_policy`, `music_store_chat` |
 | `terraform/agentic-ops` | `agentminder_hostname`, `apps_domain` |
 | `terraform/security-admin` | `nsx_manager`, `nsx_username`, `frontend_source_cidrs` |
-| `terraform/runner` | `vcenter_server`, `vcenter_user`, `supervisor_endpoint`, `supervisor_id`, `storage_policy_name`, `github_url`, `github_app_id` |
+| `terraform/vsphere-admin` | `vcenter_server`, `vcenter_user`, `supervisor_endpoint`, `supervisor_id`, `storage_policy_name`, `github_url`, `github_app_id` |
 
 `allow_unverified_ssl` and `insecure_skip_tls_verify` are `true` because
 the lab uses self-signed certificates. Set them to `false` if yours are
@@ -87,8 +87,8 @@ The repository is `modern-apps-5/the-goad`. In a fork, change:
 
 - `gitops_repo` in `terraform/platform-engineer`, and the deploy key in
   [build.md](build.md) step 2.
-- `github_url` and `github_app_id` in `terraform/runner`, and the GitHub
-  App: see [terraform/runner/README.md](../terraform/runner/README.md).
+- `github_url` and `github_app_id` in `terraform/vsphere-admin`, and the GitHub
+  App: see [terraform/vsphere-admin/README.md](../terraform/vsphere-admin/README.md).
 - `REPO` in `scripts/music-store-build-kubeconfig.sh`, `scripts/goad-ca.sh` and
   `demos/lib/github.sh`, and `ORG` in `scripts/create-github-app.py`.
 - The Tanzu Platform API address in `.github/actions/cf-login/action.yml`
