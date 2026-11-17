@@ -3,6 +3,15 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-16 (Private AI Services login uses its name)
+
+### Fixed
+
+- The Private AI Services UI login. The built-in provider `sc` now has
+  `issuerBaseUrl: https://pais.goad.gpu.set.lab`. Without it the issuer
+  was the LoadBalancer IP, which the certificate does not cover, and the
+  UI showed "unable to load OIDC provider".
+
 ## 2026-11-16 (kagent on its own cluster)
 
 ### Added
