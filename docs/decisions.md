@@ -1787,11 +1787,13 @@ Terraform also patches the generated namespace into the ClusterSecretStore
 `secret-store` and the ExternalSecret. ESO and the store work as on the
 other clusters (decision 38).
 
-Why no default model: the chart makes `default-model-config`, which points
-at OpenAI's `gpt-4.1-mini` with a Secret that does not exist, and the lab
-cannot reach OpenAI. `helmValues.kagent.providers: false` in the AddonConfig
-stops it. Not null: the API server drops a null on apply. So every Agent
-names `qwen`.
+Why the default model is Qwen too: the addon always makes
+`default-model-config`, and without `modelProvider` it points at OpenAI's
+`gpt-4.1-mini` with a Secret that does not exist. It cannot be turned off:
+the addon's template sets its own defaults for `modelProvider` and fails
+when `helmValues.kagent.providers` is not a map. So the AddonConfig's
+`modelProvider` points it at the same base URL, model and Secret as `qwen`.
+Our Agents still name `qwen`.
 
 Why its own PAIS token: kagent's key is not shared with the shop or the
 incident agents, so revoking it stops kagent alone.

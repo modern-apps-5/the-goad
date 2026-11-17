@@ -3,6 +3,16 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-17 (kagent's default model is Qwen)
+
+### Fixed
+
+- The kagent addon. `providers: false` in the AddonConfig failed the
+  addon's template, because the addon always sets a default model, and the
+  ClusterAddon stopped reconciling. The AddonConfig's `modelProvider` now
+  points kagent's `default-model-config` at Qwen on Private AI Services,
+  with the Secret `qwen` (decision 56).
+
 ## 2026-11-16 (kagent uses Private AI Services)
 
 ### Added

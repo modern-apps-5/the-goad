@@ -1,7 +1,7 @@
 # kagent's model: Qwen on Private AI Services (gitops/private-ai), through
-# its OpenAI-compatible API at pais.goad.gpu.set.lab. It is kagent's only
-# model; the AddonConfig turns off the chart's default
-# (gitops/agents/kagent.yaml). Every Agent names the ModelConfig qwen.
+# its OpenAI-compatible API at pais.goad.gpu.set.lab. Every Agent names
+# the ModelConfig qwen. The addon's default-model-config points at the
+# same model and Secret (gitops/agents/kagent.yaml).
 #
 # Both are in the namespace kagent: the addon sets up its worker pool and
 # Substrate's egress credential policy there only. Agents call the model
