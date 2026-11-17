@@ -1747,13 +1747,15 @@ release `0.1.6`. Three parts:
   and `gitops/agents/` holds the VKS cluster `agents` (Kubernetes
   `v1.37.1+vmware.4`, class `builtin-generic-v3.8.0`, two
   best-effort-large workers), the AddonInstall `kagent` pinned to
-  `kagent.0.1.6`, the AddonConfig `agents-kagent`, and cert-manager.
+  `kagent.0.1.6`, the AddonConfig `agents-kagent`, cert-manager, and the
+  External Secrets Operator (ESO) addon.
   Terraform patches the GOAD CA into the AddonConfig's `egressCABundle`
   from `gitops/private-ai/goad-ca.crt`, so agents can call
   `pais.goad.gpu.set.lab`.
 - `gitops/agents-platform/`, the Application `agents-platform`, holds the
   Gateway `kagent` (class `avi-lb`, namespace `default`) and its
-  self-signed certificate from cert-manager. The AddonConfig turns on
+  self-signed certificate from cert-manager, the ClusterSecretStore `secret-store`
+  for Secret Store (decision 38), and kagent's model. The AddonConfig turns on
   kagent's own HTTPRoute for `kagent.goad.gpu.set.lab` through
   `helmValues` (`kagent.ui.httpRoute`), and Avi DNS publishes its
   hostname. No chart change.
@@ -1774,13 +1776,34 @@ login through VCF Automation's OIDC comes later, and it needs HTTPS.
 Why a new cluster: the chart requires Kubernetes 1.37 (pod certificates
 and ClusterTrustBundles are GA there), and the other clusters are 1.36.
 
-Why no model or agent yet: the first use case, an analyst agent that
-writes and runs Python in its sandbox, is tracked as its own issue. The
-addon is useful to check on its own: the ClusterAddon is Ready only when
-every Substrate and kagent pod runs.
+The model: kagent's only model is the ModelConfig `qwen` in namespace
+`kagent`. It is provider OpenAI, model `qwen`, base URL
+`https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1`, which is
+Qwen on Private AI Services. Its key is the Secret `qwen`, which the
+ExternalSecret `qwen` makes from the Secret Store KV `agents-qwen` (key
+`api-key`) in the Supervisor Namespace `agents`. Terraform writes the KV
+from the GitHub secret `KAGENT_QWEN_API_KEY`, and an empty value skips it.
+Terraform also patches the generated namespace into the ClusterSecretStore
+`secret-store` and the ExternalSecret. ESO and the store work as on the
+other clusters (decision 38).
+
+Why no default model: the chart makes `default-model-config`, which points
+at OpenAI's `gpt-4.1-mini` with a Secret that does not exist, and the lab
+cannot reach OpenAI. `helmValues.kagent.providers: false` in the AddonConfig
+stops it. Not null: the API server drops a null on apply. So every Agent
+names `qwen`.
+
+Why its own PAIS token: kagent's key is not shared with the shop or the
+incident agents, so revoking it stops kagent alone.
+
+No agent yet: the first use case, an analyst agent that writes and runs
+Python in its sandbox, is tracked as issue #131. The addon is useful to
+check on its own: the ClusterAddon is Ready only when every Substrate and
+kagent pod runs.
 
 Cost: kagent has no login. Anyone on the lab network who reaches
-`kagent.goad.gpu.set.lab` can run agents, and once a model is set, use it.
+`kagent.goad.gpu.set.lab` can run agents, and they use the model, which
+costs PAIS capacity.
 The Substrate CAs the addon's bootstrap Job makes
 expire a year after the cluster is built, and nothing renews them yet.
 

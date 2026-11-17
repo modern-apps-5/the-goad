@@ -8,20 +8,22 @@
 # serves 1.37. The VM classes and the storage class are the same as the
 # platform tools cluster's (gitops/platform-tools/cluster.yaml).
 #
-# The platform engineer owns the cluster and the addon. What runs on
-# kagent (models, agents) is not here yet.
+# The platform engineer owns the cluster, the addon and kagent's model
+# (gitops/agents-platform). Agents are not here yet.
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: agents
-  # kagent.yaml installs kagent on clusters with the second label, and
+  # kagent.yaml installs kagent on clusters with the second label,
   # cert-manager.yaml cert-manager, for the UI's Gateway certificate, on
-  # clusters with the third. kagent is a helm addon, so it needs
-  # helm-controller, which VKS turns on for every new cluster.
+  # clusters with the third, and external-secrets.yaml ESO, for the
+  # model's key, on clusters with the fourth. kagent is a helm addon, so it
+  # needs helm-controller, which VKS turns on for every new cluster.
   labels:
     addons.kubernetes.vmware.com/platform-observability: enabled
     addons.kubernetes.vmware.com/kagent: enabled
     addons.kubernetes.vmware.com/cert-manager: enabled
+    addons.kubernetes.vmware.com/external-secrets: enabled
 spec:
   # serviceDomain must be set: helm-controller's template reads it. kagent's
   # addon derives the cluster domain from it too. clusterNetwork cannot be

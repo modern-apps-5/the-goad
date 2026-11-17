@@ -240,3 +240,50 @@ resource "kubectl_manifest" "platform_tools_git_deploy_key_kv" {
     }
   })
 }
+
+# --- The agents cluster's secrets (decision 56) ---
+#
+# kagent's Private AI Services API token, its own and not shared with
+# another app. ESO in the cluster copies it into the Secret qwen in the
+# namespace kagent (gitops/agents-platform/model.yaml). The name starts
+# with the cluster name, for the same reason as above.
+data "vcfa_kubeconfig" "agents" {
+  project_name              = var.project_name
+  supervisor_namespace_name = local.namespace_names["agents"]
+}
+
+provider "kubectl" {
+  alias            = "agents"
+  host             = data.vcfa_kubeconfig.agents.host
+  token            = data.vcfa_kubeconfig.agents.token
+  insecure         = data.vcfa_kubeconfig.agents.insecure_skip_tls_verify
+  load_config_file = false
+  lazy_load        = true
+}
+
+locals {
+  agents_kv = {
+    qwen = "${local.agents_cluster_name}-qwen"
+  }
+}
+
+resource "kubectl_manifest" "agents_qwen_kv" {
+  count    = nonsensitive(try(length(var.kagent_qwen_api_key), 0) == 0) ? 0 : 1
+  provider = kubectl.agents
+
+  validate_schema  = false
+  sensitive_fields = ["spec.data"]
+  ignore_fields    = ["spec.data"]
+  yaml_body = yamlencode({
+    apiVersion = "secretstore.vmware.com/v1alpha1"
+    kind       = "KeyValueSecret"
+    metadata = {
+      name      = local.agents_kv.qwen
+      namespace = local.namespace_names["agents"]
+    }
+    spec = {
+      name = local.agents_kv.qwen
+      data = [{ key = "api-key", value = var.kagent_qwen_api_key }]
+    }
+  })
+}
