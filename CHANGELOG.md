@@ -3,6 +3,126 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-17 (kagent's default model is Qwen)
+
+### Fixed
+
+- The kagent addon. `providers: false` in the AddonConfig failed the
+  addon's template, because the addon always sets a default model, and the
+  ClusterAddon stopped reconciling. The AddonConfig's `modelProvider` now
+  points kagent's `default-model-config` at Qwen on Private AI Services,
+  with the Secret `qwen` (decision 56).
+
+## 2026-11-16 (kagent uses Private AI Services)
+
+### Added
+
+- The ModelConfig `qwen` in kagent: Qwen on Private AI Services, through
+  `https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1`. Its key
+  is the Secret `qwen`, which ESO makes from the Secret Store KV
+  `agents-qwen` (decision 56).
+- The External Secrets Operator addon on the `agents` cluster, and the
+  ClusterSecretStore `secret-store` in `gitops/agents-platform`.
+- The variable `kagent_qwen_api_key` in `terraform/platform-engineer`, from
+  the GitHub secret `KAGENT_QWEN_API_KEY`. It is a PAIS token for kagent
+  alone, so revoking it affects nothing else. Empty skips the KV.
+
+### Changed
+
+- `terraform/platform-engineer` patches the generated namespace into the
+  Application `agents-platform`, for the ClusterSecretStore and the
+  ExternalSecret.
+
+### Removed
+
+- kagent's default model `default-model-config` (OpenAI `gpt-4.1-mini`),
+  which the lab could not use. kagent has no default model, and every Agent
+  names `qwen`.
+
+## 2026-11-16 (Private AI Services login uses its name)
+
+### Fixed
+
+- The Private AI Services UI login. The built-in provider `sc` now has
+  `issuerBaseUrl: https://pais.goad.gpu.set.lab`. Without it the issuer
+  was the LoadBalancer IP, which the certificate does not cover, and the
+  UI showed "unable to load OIDC provider".
+
+## 2026-11-16 (kagent on its own cluster)
+
+### Added
+
+- The Supervisor offers the kagent addon. `terraform/vsphere-admin` registers
+  the AddonRepository `kagent-oci-repo`, from the chart repository of
+  `warroyo/vks-kagent-addon`, because only that root logs in as a
+  Supervisor administrator (decision 56).
+- The Supervisor Namespace `agents` and the VKS cluster `agents` on
+  Kubernetes 1.37, with kagent, its Agent Substrate runtime (gVisor
+  sandboxes) and cert-manager (decision 56).
+- The kagent UI at `kagent.goad.gpu.set.lab`, over HTTPS, through the
+  Gateway `kagent` in `gitops/agents-platform` and its self-signed
+  certificate. kagent has no login yet (decision 56).
+
+### Changed
+
+- `terraform/runner` is now `terraform/vsphere-admin`, the lab's vSphere
+  admin root. Its state keeps the name `goad-runner`. Anyone with a local
+  `terraform.tfvars`, `backend.hcl` or `.secrets/` in the old directory
+  moves them to the new one and runs `terraform init` again.
+
+No model or agent is set up yet.
+
+## 2026-11-16 (Chat checks the model's certificate; imports removed; pull request rules)
+
+### Changed
+
+- `.github/CODEOWNERS` names the team. With the main ruleset requiring a
+  code owner's review, a workflow's approval never counts (decision 55).
+- `music-store-images` opens the deploy pull request from a job on
+  `ubuntu-latest`. The lab runner's job only pushes the branch.
+- The `import` blocks are removed: the Cloud Foundry space and services
+  in `terraform/platform-engineer`, the Harbor retention policy in
+  `terraform/cloud-admin/org`, and the Service `ingress-nginx-mgmt-dns` in
+  `terraform/cloud-admin/agentminder`. All of them are in the lab's state.
+- The music store images are `8bfbc79f6a70`, the first with
+  `OPENAI_CA_FILE`. The chat no longer sets `OPENAI_TLS_VERIFY=false`: it
+  checks `pais.goad.gpu.set.lab` against the GOAD CA (decision 53).
+
+## 2026-11-13 (The Broadcom proxy cache keeps its images)
+
+### Changed
+
+- The Harbor proxy cache project `tanzu-platform-content` keeps every
+  cached image. Harbor's own policy kept only images pulled in the last 7
+  days, so the music store's base image was dropped and the next build
+  needed Broadcom again (decision 54).
+
+## 2026-11-13 (Private AI Services by name, with a GOAD CA)
+
+### Added
+
+- `pais.goad.gpu.set.lab`: a Gateway of class `avi-lb` and an HTTPRoute
+  in the private-ai Supervisor Namespace, published by Avi DNS, in front
+  of Private AI Services (`gitops/private-ai/ingress.yaml`).
+- The GOAD CA: `scripts/goad-ca.sh` makes it, its key is the GitHub
+  secret `GOAD_CA_KEY`, and the platform engineer Terraform writes the
+  Secret `goad-ca` that cert-manager issues from.
+- Avi checks the PAIS certificate: a `RouteBackendExtension` and the
+  `PKIProfile` `goad-ca`.
+
+### Changed
+
+- Private AI Services serves the GOAD CA's certificate
+  (`tlsSecretRef`).
+- The shop's chat trusts the GOAD CA (`OPENAI_CA_FILE`), and its model URL
+  is the name.
+- The incident agents call the name and trust the GOAD CA; the `goad-qwen`
+  binding names it.
+
+### Removed
+
+- `model_proxy.py` and `pais-root.pem` from the incident agents.
+
 ## 2026-11-10 (Architecture explorer)
 
 ### Added

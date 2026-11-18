@@ -13,14 +13,17 @@ Each directory belongs to one owner and one Application.
    `terraform/cloud-admin/agentminder`.
 2. Platform engineer Terraform: `terraform/platform-engineer`. That
    creates the Supervisor Namespaces, Argo CD, and the Applications
-   that point at the directories below.
+   that point at the directories below. The `agents` cluster can install
+   kagent only once the Supervisor offers it: `terraform/vsphere-admin` does
+   that, and it is applied by hand (decision 56).
 3. Argo CD, in this order. The applications do not wait on each
    other. `music-store-platform` and `music-store-apps` need the
    cluster and the catalog from `music-store`, and retry until they
    exist.
-   - `private-ai/` — Application `private-ai`. Wave 0 database, wave 1
-     the address Job, wave 2 Private AI Services, wave 3 model
-     `qwen-14b-xlarge`.
+   - `private-ai/` — Application `private-ai`. Wave 0 database and the
+     ingress certificate from the GOAD CA, wave 1 the address Job, wave 2
+     Private AI Services, wave 3 model `qwen-14b-xlarge` and the Gateway
+     that names it `pais.goad.gpu.set.lab`.
    - `music-store/` — Application `music-store`. Wave 0 is the catalog,
      the VKS cluster `music-store`, its ESO and cert-manager addons,
      Antrea's NSX integration, and the users VM, wave 1 the catalog address, wave 2 catalog init, which
@@ -47,6 +50,15 @@ Each directory belongs to one owner and one Application.
      pipeline and tasks that build the music store's images, the
      registry and Git credentials, and the Dockerfile template. It
      retries until Tekton exists.
+   - `agents/` — Application `agents`. The VKS cluster `agents` on
+     Kubernetes 1.37, the kagent addon with its AddonConfig,
+     cert-manager, and the External Secrets Operator addon.
+   - `agents-platform/` — Application `agents-platform`. Inside that
+     cluster, namespace `default`: the Gateway `kagent` for the kagent UI
+     and its self-signed certificate, and the ClusterSecretStore
+     `secret-store`. In namespace `kagent`: kagent's model, the ModelConfig
+     `qwen` and its key. It retries until the cluster, cert-manager and
+     ESO exist.
 4. Security admin Terraform: `terraform/security-admin`, once the
    cluster `music-store` is up with Antrea's NSX integration. It puts
    the vDefend policy in NSX, which pushes it into the cluster
@@ -64,13 +76,15 @@ Each directory belongs to one owner and one Application.
 
 | Folder | Owner | Application | What it deploys |
 |---|---|---|---|
-| `private-ai/` | platform engineer | `private-ai` | DSM database, Private AI Services, and the Qwen model. |
+| `private-ai/` | platform engineer | `private-ai` | DSM database, Private AI Services, the Qwen model, and the Gateway and certificate that make it `pais.goad.gpu.set.lab`. |
 | `music-store/` | platform engineer | `music-store` | The VKS cluster `music-store`, the DSM catalog, the ESO and cert-manager addons for the cluster, Antrea's NSX integration, the users VM, and the Job `shop-endpoints` that writes the users VM's and the catalog's addresses into the VKS cluster. |
 | `music-store-platform/` | platform engineer | `music-store-platform` | Inside the VKS cluster: the `ClusterSecretStore` `secret-store` for Secret Store, the Gateway's certificate, and in namespace `platform-tools` what the platform tools cluster needs there: a Prometheus agent and blackbox exporter that write to its Prometheus, and the service account `goad-k8s-mcp`; the shop's default deny (decision 49); and in namespace `pen-test` the always-on pen test's blackbox exporter, for the board "Pen test". |
 | `platform-tools/` | platform engineer | `platform-tools` | The VKS cluster `platform-tools`, its ESO addon, and its Tekton addon. |
 | `platform-tools-apps/` | platform engineer | `platform-tools-apps` | Inside the platform tools cluster, namespace `incident-tools`: Zammad, Grafana with its boards and topology panel, Prometheus and the blackbox exporter, and their `ExternalSecret`s. |
 | `platform-tools-builds/` | platform engineer | `platform-tools-builds` | Inside the platform tools cluster, namespace `music-store-builds`: the Tekton pipeline and tasks that build the music store's images from `apps/music-store/`, the registry and Git credentials, and the Dockerfile template `dockerfiles/python`. |
 | `music-store-apps/` | platform engineer; the developer's code is in `apps/music-store/` | `music-store-apps` | The shop's containers, from the images built from `apps/music-store/` (their tag in `kustomization.yaml`), the `ExternalSecret`s `store-db` and `metal-oracle-model`, and the HTTPRoute and WAF L7Rule, in namespace `music-store` of the VKS cluster; and the Gateway `metal-store`, in namespace `default`; and the Antrea policy for the calls between the shop's services (decision 49). |
+| `agents/` | platform engineer | `agents` | The VKS cluster `agents` on Kubernetes 1.37, the kagent addon (AddonInstall and AddonConfig), cert-manager, and the External Secrets Operator addon (decision 56). |
+| `agents-platform/` | platform engineer | `agents-platform` | Inside the VKS cluster `agents`, namespace `default`: the Gateway `kagent` for the kagent UI and its self-signed certificate, and the ClusterSecretStore `secret-store`. In namespace `kagent`: the ModelConfig `qwen` and its ExternalSecret (decision 56). |
 
 Directories do not nest across owners. An Application syncs one
 directory and does not recurse.
@@ -102,6 +116,20 @@ host. Its HTTPS certificate is the Secret
 `music-store-platform/gateway-cert.yaml`. The L7Rule `metal-store-waf`
 puts Avi's `System-WAF-Policy` on the route; a HostRule does nothing for
 a Gateway.
+
+Private AI Services, `pais.goad.gpu.set.lab`, is in a Supervisor
+Namespace, not a VKS cluster. Its LoadBalancer Service is NSX's, which
+publishes no name, annotation or not. A Gateway of class `avi-lb` in the
+namespace is the Supervisor's Avi controller, and its HTTPRoute's
+hostname is published like the shop's (decision 53,
+`private-ai/ingress.yaml`). The listener's hostname alone publishes
+nothing.
+
+kagent, `kagent.goad.gpu.set.lab`, is published the same way as the
+shop: the Gateway `kagent` in namespace `default` of the cluster
+`agents` (`agents-platform/`), and kagent's own HTTPRoute, which the
+AddonConfig turns on. HTTPS only, with a self-signed certificate from
+cert-manager. kagent has no login yet (decision 56).
 
 This AKO build
 takes one name per Service or Ingress host; a comma-separated list is

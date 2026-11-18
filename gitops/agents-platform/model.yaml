@@ -1,0 +1,55 @@
+# kagent's model: Qwen on Private AI Services (gitops/private-ai), through
+# its OpenAI-compatible API at pais.goad.gpu.set.lab. Every Agent names
+# the ModelConfig qwen. The addon's default-model-config points at the
+# same model and Secret (gitops/agents/kagent.yaml).
+#
+# Both are in the namespace kagent: the addon sets up its worker pool and
+# Substrate's egress credential policy there only. Agents call the model
+# through the egress gateway, which adds the key from the Secret, so the
+# key never reaches a sandbox. The gateway trusts the GOAD CA through the
+# AddonConfig's egressCABundle.
+#
+# The key is kagent's own Private AI Services API token. Terraform writes
+# it from the GitHub secret KAGENT_QWEN_API_KEY to the KV agents-qwen
+# (terraform/platform-engineer/secrets.tf); ESO copies it into the Secret
+# qwen, under the key the ModelConfig names. SUPERVISOR_NAMESPACE is a
+# placeholder that the Application agents-platform patches from Terraform.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: qwen
+  namespace: kagent
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: secret-store
+  target:
+    name: qwen
+    template:
+      engineVersion: v2
+      data:
+        OPENAI_API_KEY: '{{ index . "api-key" }}'
+  dataFrom:
+    - extract:
+        key: SUPERVISOR_NAMESPACE/agents-qwen
+---
+# The model name qwen is the one the shop's chat asks for (decision 21).
+apiVersion: api.kagent.dev/v1alpha3
+kind: ModelConfig
+metadata:
+  name: qwen
+  namespace: kagent
+  annotations:
+    # kagent's CRDs arrive with the addon.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  provider: OpenAI
+  model: qwen
+  stream: true
+  apiKeySecret: qwen
+  apiKeySecretKey: OPENAI_API_KEY
+  openAI:
+    baseUrl: https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1

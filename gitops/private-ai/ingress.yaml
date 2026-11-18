@@ -1,0 +1,108 @@
+# The name pais.goad.gpu.set.lab, and a certificate for it.
+#
+# Private AI Services makes its own LoadBalancer Service,
+# pais-ingress-default. NSX serves it, so it gets no DNS name. In front of
+# it is a Gateway of the Supervisor's Avi Gateway API controller: the
+# HTTPRoute's hostname puts the name on the Avi virtual service, and Avi
+# DNS, authoritative for goad.gpu.set.lab, answers for it. The record
+# follows the Gateway's address. See decision 53.
+#
+# One certificate, from the GOAD CA, for both TLS hops:
+#   client -> Gateway   as pais.goad.gpu.set.lab
+#   Gateway -> PAIS     as pais-ingress-default, which Avi checks against
+#                       the PKIProfile goad-ca (goad-ca-pkiprofile.yaml)
+# The CA's key is the Secret goad-ca, which terraform/platform-engineer
+# writes (pais.tf). Clients trust goad-ca.crt.
+#
+# Sync waves: the issuer and the certificate in 0, so the Secret exists
+# before Private AI Services (2) names it; the Gateway in 3, once
+# pais-ingress-default exists.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: goad-ca
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  ca:
+    secretName: goad-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pais-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  secretName: pais-ingress-tls
+  dnsNames:
+    - pais.goad.gpu.set.lab
+    - pais-ingress-default
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    rotationPolicy: Always
+  issuerRef:
+    kind: Issuer
+    name: goad-ca
+---
+# Gateway API on a Supervisor Namespace: the class is the Supervisor's Avi
+# controller. Tenants cannot read GatewayClasses; avi-lb was found by
+# trying it.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: pais
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  gatewayClassName: avi-lb
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: pais.goad.gpu.set.lab
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: pais-ingress-tls
+---
+# TLS from Avi to PAIS, with the certificate checked: the GOAD CA, and the
+# name pais-ingress-default.
+apiVersion: ako.vmware.com/v1alpha1
+kind: RouteBackendExtension
+metadata:
+  name: pais
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  backendTLS:
+    hostCheckEnabled: true
+    domainName:
+      - pais-ingress-default
+    pkiProfile:
+      kind: CRD
+      name: goad-ca
+---
+# The hostname here, not the listener's, is what Avi DNS publishes.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: pais
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  parentRefs:
+    - name: pais
+  hostnames:
+    - pais.goad.gpu.set.lab
+  rules:
+    - backendRefs:
+        - name: pais-ingress-default
+          port: 443
+          filters:
+            - type: ExtensionRef
+              extensionRef:
+                group: ako.vmware.com
+                kind: RouteBackendExtension
+                name: pais

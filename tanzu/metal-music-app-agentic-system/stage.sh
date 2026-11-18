@@ -5,8 +5,8 @@
 #
 # tanzu-apps.yml runs this on a fresh checkout. Each app directory is pushed
 # as it is; this adds only what four apps share, so it is kept once in git:
-#   - the model trust (pais-root.pem, model_proxy.py, .profile) for all four
-#     agents. The Goad model ingress certificate is signed by its own CA;
+#   - the model trust (goad-ca.pem, .profile) for all four agents. The
+#     model's certificate is from the GOAD CA;
 #   - the findings schema, next to each agent's skill;
 #   - the AgentMinder sidecar, with the SDK unpacked into
 #     sidecar/site-packages, and agentminder-env.sh, which reads the agent's
@@ -22,7 +22,7 @@ SHARED=$HERE/shared
 
 for app in incident-response-agent lb-diagnostic-agent k8s-diagnostic-agent vcf-diagnostic-agent; do
   dest=$HERE/$app
-  cp "$SHARED/trust/pais-root.pem" "$SHARED/trust/model_proxy.py" "$dest/"
+  cp "$SHARED/trust/goad-ca.pem" "$dest/"
   cp "$SHARED/trust/profile" "$dest/.profile"
   for skill in "$dest"/.agents/skills/*/; do
     cp "$SHARED/findings.schema.json" "$skill"

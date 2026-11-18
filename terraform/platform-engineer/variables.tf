@@ -117,6 +117,16 @@ variable "namespaces" {
       memory_limit  = "32Gi"
       storage_limit = "150Gi"
     }
+    # kagent and its Agent Substrate sandboxes (decision 56). The cluster in
+    # gitops/agents/cluster.yaml is one best-effort-medium control plane and
+    # two best-effort-large workers. The addon's volumes are two 10Gi
+    # databases and 20Gi of sandbox snapshots.
+    agents = {
+      description   = "GOAD agents: the VKS cluster for kagent and its sandboxes. Managed by terraform/platform-engineer."
+      cpu_limit     = "20000M"
+      memory_limit  = "48Gi"
+      storage_limit = "200Gi"
+    }
   }
 
   validation {
@@ -165,6 +175,13 @@ variable "ubuntu_image" {
 variable "pais_admin_password_hash" {
   type        = string
   description = "SHA-512 crypt hash of the password for the Private AI Services user admin. Make one with: openssl passwd -6. Null skips the Secret."
+  sensitive   = true
+  default     = null
+}
+
+variable "goad_ca_key" {
+  type        = string
+  description = "PEM private key of the GOAD CA, which signs the Private AI Services certificate. GitHub secret GOAD_CA_KEY, made by scripts/goad-ca.sh; the certificate is gitops/private-ai/goad-ca.crt. Null or empty skips the Secret goad-ca."
   sensitive   = true
   default     = null
 }
@@ -267,4 +284,13 @@ variable "music_store_robot_secret" {
   description = "Secret of music_store_robot_username. GitHub secret MUSIC_STORE_HARBOR_ROBOT_SECRET, the same value terraform/cloud-admin/org sets on the robot. Empty skips the KV."
   sensitive   = true
   default     = ""
+}
+
+# --- The agents cluster's secrets (decision 56) ---
+
+variable "kagent_qwen_api_key" {
+  type        = string
+  description = "kagent's own Private AI Services API token, for the ModelConfig qwen. GitHub secret KAGENT_QWEN_API_KEY. Null or empty skips the KV."
+  sensitive   = true
+  default     = null
 }

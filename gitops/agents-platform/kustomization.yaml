@@ -1,0 +1,11 @@
+# Inside the VKS cluster agents: the kagent UI's Gateway, Secret Store's
+# ClusterSecretStore, and kagent's model. A kustomization so that the
+# Application agents-platform can patch the generated Supervisor Namespace
+# name into the Secret Store manifests (terraform/platform-engineer/gitops.tf).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - gateway.yaml
+  - secret-store.yaml
+  - model.yaml

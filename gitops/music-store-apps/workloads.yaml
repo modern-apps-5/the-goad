@@ -213,8 +213,13 @@ spec:
                 secretKeyRef:
                   name: metal-oracle-model
                   key: model
-            - name: OPENAI_TLS_VERIFY
-              value: "false"
+            # The model's certificate is from the GOAD CA (goad-ca.crt).
+            - name: OPENAI_CA_FILE
+              value: /etc/goad-ca/ca.crt
+          volumeMounts:
+            - name: goad-ca
+              mountPath: /etc/goad-ca
+              readOnly: true
           ports:
             - containerPort: 5005
           readinessProbe:
@@ -237,6 +242,10 @@ spec:
               drop: ["ALL"]
             runAsNonRoot: true
             runAsUser: 1000
+      volumes:
+        - name: goad-ca
+          configMap:
+            name: goad-ca
 ---
 apiVersion: apps/v1
 kind: Deployment

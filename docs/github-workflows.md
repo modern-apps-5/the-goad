@@ -52,6 +52,6 @@ secrets after `cloud-admin` has installed AgentMinder and before
 The workflows use the same state and the same shared secrets as a
 machine does, so a run and a teammate's `terraform apply` are the same
 thing. The secrets are repository secrets in GitHub.
-[terraform/runner/README.md](../terraform/runner/README.md) lists them and
+[terraform/vsphere-admin/README.md](../terraform/vsphere-admin/README.md) lists them and
 says how the runner is built.
 [Decision 25](decisions.md) has the reasons.

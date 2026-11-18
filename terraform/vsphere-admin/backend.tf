@@ -6,6 +6,10 @@
 # git ignores:
 #
 #   terraform init -backend-config=backend.hcl
+#
+# The state is still named goad-runner: the root was terraform/runner
+# before it also registered addons (decision 56). Renaming the state would
+# mean moving it in Gitea, for no change in what it holds.
 terraform {
   backend "http" {
     address        = "https://git.gpu.set.lab/api/packages/the-goad/terraform/state/goad-runner"

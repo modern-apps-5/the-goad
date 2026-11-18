@@ -1,33 +1,14 @@
 # The agent HTTP client uses SSL_CERT_FILE when it is set.
-# The model itself is reached through the local proxy, because this
-# container cannot edit /etc/hosts and the certificate name is not the address.
+# The model's certificate, at pais.goad.gpu.set.lab, is from the GOAD CA,
+# which is not in the system bundle: add it.
 base="${SSL_CERT_FILE:-/etc/ssl/certs/ca-certificates.crt}"
-if [ -r "$base" ] && [ -r /home/vcap/app/pais-root.pem ]; then
-  cat "$base" /home/vcap/app/pais-root.pem > /home/vcap/app/trust-bundle.pem
+if [ -r "$base" ] && [ -r /home/vcap/app/goad-ca.pem ]; then
+  cat "$base" /home/vcap/app/goad-ca.pem > /home/vcap/app/trust-bundle.pem
   export SSL_CERT_FILE=/home/vcap/app/trust-bundle.pem
-  echo 'trust: model CA added' >&2
+  echo 'trust: GOAD CA added' >&2
 else
-  echo 'trust: model CA was not added' >&2
+  echo 'trust: GOAD CA was not added' >&2
 fi
-python3 - << 'PY'
-import socket, subprocess
-s = socket.socket()
-s.settimeout(0.3)
-try:
-    s.connect(("127.0.0.1", 8765))
-except Exception:
-    subprocess.Popen(
-        ["python3", "/home/vcap/app/model_proxy.py"],
-        stdout=open("/home/vcap/app/model-proxy.log", "ab"),
-        stderr=subprocess.STDOUT,
-        start_new_session=True,
-    )
-    print("trust: model proxy started", flush=True)
-else:
-    print("trust: model proxy already listening", flush=True)
-finally:
-    s.close()
-PY
 
 # The diagnostic agents' AgentMinder client, from the bound am-* service.
 # Only they have the sidecar, so only they have the file.

@@ -46,13 +46,20 @@ resources:
 # apps/music-store. Its pull request sets newTag; merging it deploys.
 images:
   - name: depot.kube-system.svc/music-store/store
-    newTag: ff4cf83e2310
+    newTag: 2744d7a1ec5c
   - name: depot.kube-system.svc/music-store/cart
-    newTag: ff4cf83e2310
+    newTag: 2744d7a1ec5c
   - name: depot.kube-system.svc/music-store/order
-    newTag: ff4cf83e2310
+    newTag: 2744d7a1ec5c
   - name: depot.kube-system.svc/music-store/chat
-    newTag: ff4cf83e2310
+    newTag: 2744d7a1ec5c
+
+# The GOAD CA, which the chat trusts for the model (scripts/goad-ca.sh
+# writes goad-ca.crt). The name gets a hash, so a new CA restarts the chat.
+configMapGenerator:
+  - name: goad-ca
+    files:
+      - ca.crt=goad-ca.crt
 
 patches:
   - path: cart-persistence.yaml

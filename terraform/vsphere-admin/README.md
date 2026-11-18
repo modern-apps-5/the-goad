@@ -1,4 +1,10 @@
-# The self-hosted runner
+# vSphere admin: the self-hosted runner and Supervisor addons
+
+This root does the lab's vSphere admin work: the self-hosted runner, and
+the addons the Supervisor offers that VKS does not ship ([decision
+56](../../docs/decisions.md)).
+
+## The runner
 
 The workflows in [.github/workflows](../../.github/workflows) run on
 this runner. GitHub's own runners cannot reach VCF Automation or the lab's
@@ -14,6 +20,13 @@ hand, from a machine, once. No workflow runs it, because it builds what
 the workflows run on. [Decision 25](../../docs/decisions.md) has the
 reasons.
 
+## The addons
+
+This root registers the addons that the Supervisor offers and VKS does not
+ship, such as kagent. Only this root logs in as a Supervisor
+administrator, through the vCenter user, and registering an addon needs
+one ([decision 56](../../docs/decisions.md)).
+
 ## What it creates
 
 | Resource | What it is |
@@ -23,6 +36,8 @@ reasons.
 | `kubectl_manifest.runner_settings` | The ConfigMap `github-runner`: the organization and the labels |
 | `kubectl_manifest.runner_entrypoint` | The ConfigMap with the scripts the two containers start with |
 | `kubectl_manifest.runner_deployment` | The Deployment `github-runner`, two replicas |
+| `kubectl_manifest.kagent_addon_repository` | The AddonRepository `kagent-oci-repo` in `vmware-system-vks-public`, from `oci://ghcr.io/warroyo/vks-kagent-addon/charts` (decision 56) |
+| `kubectl_manifest.kagent_addon_repository_install` | The AddonRepositoryInstall that makes the Supervisor offer the repository's addon releases to VKS clusters |
 
 The Deployment and the scripts are not in this repository. Terraform reads
 them from supervisor-github-runner at the commit `runner_commit`, and
@@ -40,8 +55,9 @@ The namespace has one storage policy and the Supervisor's workload
 network, which is the default. It has no VM classes and no limits. It has
 no project and no `-xxxxx` suffix, and VCF Automation does not list it.
 
-Until `github_app_id` is set, Terraform creates the namespace and nothing
-else.
+Until `github_app_id` is set, Terraform creates the namespace and the two
+addon resources, and nothing else. The addon resources do not depend on
+`github_app_id`.
 
 ## Logins
 
@@ -61,14 +77,14 @@ token, and to be an owner of the GitHub organization.
 ### 1. The namespace
 
 ```sh
-cd terraform/runner
+cd terraform/vsphere-admin
 cp terraform.tfvars.example terraform.tfvars   # then put the vCenter password in it
 cp backend.hcl.example backend.hcl             # then put the state token in it
 terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
-The plan is one resource, the namespace.
+The plan is three resources: the namespace and the two addon resources.
 
 ### 2. The GitHub App
 
@@ -92,7 +108,7 @@ The App is private, has no webhook, and has one permission: Self-hosted
 runners, read and write, for the organization.
 
 The script prints the App's ID, and writes the private key to
-`terraform/runner/.secrets/private-key.pem`. Git ignores `.secrets/`.
+`terraform/vsphere-admin/.secrets/private-key.pem`. Git ignores `.secrets/`.
 
 ### 3. The runner
 
@@ -103,7 +119,7 @@ The ID is not a secret. Then:
 terraform apply
 ```
 
-The plan is four resources. The apply waits until both pods are ready.
+The plan is four more resources. The apply waits until both pods are ready.
 To see them register:
 
 ```sh
@@ -137,10 +153,12 @@ values, not new ones: see [docs/terraform-state.md](../../docs/terraform-state.m
 | `SSP_REGISTRY_USERNAME`, `SSP_REGISTRY_PASSWORD` | `ssp_registry_username` and `ssp_registry_password` in `terraform/cloud-admin/agentminder/terraform.tfvars` | `cloud-admin` |
 | `PLATFORM_ENGINEER_VCFA_TOKEN` | `vcfa_api_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `PAIS_ADMIN_PASSWORD_HASH` | `pais_admin_password_hash` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
+| `GOAD_CA_KEY` | Made by `scripts/goad-ca.sh` (decision 53); `goad_ca_key` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `GITOPS_DEPLOY_KEY` | The file `terraform/platform-engineer/.secrets/gitops-deploy-key` | `platform-engineer` |
 | `MUSIC_STORE_DB_PASSWORD`, `MUSIC_STORE_CHAT_API_KEY` | `music_store_db_password` and `music_store_chat_api_key` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD`, `INCIDENT_ZAMMAD_ADMIN_PASSWORD` | The `incident_*` passwords in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`; `tanzu-apps` reads the Grafana one too |
 | `INCIDENT_QWEN_API_KEY`, `INCIDENT_K8S_TOKEN` | `incident_qwen_api_key` and `incident_k8s_token` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer`, `tanzu-apps` |
+| `KAGENT_QWEN_API_KEY` | `kagent_qwen_api_key` in `terraform/platform-engineer/terraform.tfvars` | `platform-engineer` |
 | `INCIDENT_SIDECAR_TOKEN` | `incident_sidecar_token` in `terraform/agentic-ops/terraform.tfvars` | `agentic-ops`, `tanzu-apps` |
 | `AGENTIC_OPS_AGENTMINDER_CLIENT_ID`, `AGENTIC_OPS_AGENTMINDER_CLIENT_SECRET` | `agentminder_client_id` and `agentminder_client_secret` in `terraform/agentic-ops/terraform.tfvars`. Only in the cluster otherwise: the Secret `ssp-ssp-secret-defaulttenantclient` in namespace `ssp` | `agentic-ops` |
 | `INCIDENT_ZAMMAD_TOKEN`, `INCIDENT_AVI_USERNAME`, `INCIDENT_AVI_PASSWORD`, `INCIDENT_MCP_READ_TOKEN`, `INCIDENT_MCP_WRITE_TOKEN` | Only in GitHub: see [the incident apps' README](../../tanzu/metal-music-app-agentic-system/README.md) | `tanzu-apps` |
@@ -192,6 +210,21 @@ kubectl -n goad-runner logs deploy/github-runner -c runner --tail=5
 | How many jobs run at once | `runner_replicas` |
 | The labels | `runner_labels`, and `runs-on` in every workflow |
 | The disk a job has | In supervisor-github-runner, then `runner_commit` |
+
+## Offering a new kagent version
+
+Add the version to `kagent_addon_versions` and apply. Keep the old
+version in the list while `gitops/agents/kagent.yaml` still pins it. Only
+`spec.addonFilters` can change on an installed AddonRepository, and the
+version list is what that field holds.
+
+Then change the AddonInstall and AddonConfig refs in
+`gitops/agents/kagent.yaml` to the new version. To check that the
+Supervisor offers it:
+
+```sh
+kubectl -n vmware-system-vks-public get addonreleases | grep kagent
+```
 
 ## Remove it
 

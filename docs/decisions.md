@@ -380,7 +380,7 @@ cannot reach VCF Automation or the lab's Gitea server. The runner is
 a plain Deployment of vSphere Pods, registered to the GitHub
 organization.
 
-A third Terraform root, `terraform/runner`, builds the runner: its
+A third Terraform root, `terraform/vsphere-admin`, builds the runner: its
 Supervisor Namespace, the Secret, and the Deployment. That namespace is
 made in vCenter, not through VCF Automation.
 
@@ -1603,3 +1603,212 @@ pen test has no check for this control yet.
 Look again if: signature auto-update works (issue #113), a pen test check
 6 for the VM is added, or the hop from Avi to the store gets IDPS too
 (issue #114).
+
+## 53. Private AI Services is `pais.goad.gpu.set.lab`, behind a Supervisor Gateway, with a GOAD CA certificate
+
+Private AI Services was reached at `https://10.47.7.73`, with the
+certificate PAIS makes by itself: its own root, and `pais-ingress-default`
+as the only name. No client could check it, so each one worked around it:
+the shop's chat set `OPENAI_TLS_VERIFY=false`, the incident agents ran a
+local proxy that sent SNI `pais-ingress-default` to the address, and
+kagent on Agent Substrate could not reach the model at all (issue #123).
+
+Now:
+
+- **The name.** `gitops/private-ai/ingress.yaml` has a Gateway `pais` of
+  class `avi-lb` in the private-ai Supervisor Namespace, and an HTTPRoute
+  for `pais.goad.gpu.set.lab` to the Service `pais-ingress-default`. The
+  Supervisor's Avi Gateway API controller puts the route's hostname on its
+  virtual service, and Avi DNS answers for it, as for the shop (decision
+  43). The record follows the Gateway's address.
+- **The CA.** One GOAD CA, made once by `scripts/goad-ca.sh`. Its key is
+  the GitHub secret `GOAD_CA_KEY`; `terraform/platform-engineer/pais.tf`
+  writes it with the certificate into the Secret `goad-ca`, and a
+  cert-manager `Issuer` in the namespace issues from it. The certificate is
+  public and in git, in the four places the script writes.
+- **One certificate, two hops.** The Certificate `pais-ingress` names both
+  `pais.goad.gpu.set.lab` and `pais-ingress-default`. The Gateway serves
+  it to clients, and PAIS serves it to Avi through
+  `PAISConfiguration.spec.ingress.tlsSecretRef`. Avi checks the PAIS side
+  with the AKO CRDs: a `RouteBackendExtension` with `hostCheckEnabled` for
+  `pais-ingress-default`, and the `PKIProfile` `goad-ca`.
+- **The clients.** The shop's chat reads the CA from the ConfigMap
+  `goad-ca` (`OPENAI_CA_FILE`). The incident agents add it to
+  `SSL_CERT_FILE` and call the name; `model_proxy.py` and `pais-root.pem`
+  are removed. `music_store_chat.base_url` and the `goad-qwen` binding
+  name `pais.goad.gpu.set.lab`.
+
+Why not a name on PAIS's own Service: NSX serves a Supervisor
+LoadBalancer Service, not AKO. Tested on 2026-11-13: with
+`external-dns.alpha.kubernetes.io/hostname` on `pais-ingress-default`,
+NSX processed the change and no record appeared in three minutes.
+
+Why not a static record in Avi: it needs Avi credentials no persona has,
+and it breaks when PAIS makes its Service again with a new address. The
+Gateway needs neither; its backend is the Service by name.
+
+Why the Gateway, tested on 2026-11-13 with throwaway objects: the
+hostname on the listener alone published nothing; the HTTPRoute's
+hostname resolved in about 20 seconds. Through the Gateway the models API
+answered 401 without a key, as it does at the address. With a wrong
+`domainName` in the RouteBackendExtension it answered 503, so Avi does
+check the PAIS certificate.
+
+Why the CA key is not in Secret Store: Secret Store's only reader in a
+Supervisor Namespace is the vault injector, which writes files into a
+pod, and cert-manager needs a Secret. A KV in private-ai would have no
+reader: a VKS cluster's role reads only its own namespace's KVs, named
+for the cluster. Terraform writes the Secret, as it does the PAIS login
+(decision 20). When a cluster needs the CA key, a KV for it goes beside
+its other KVs in `secrets.tf`.
+
+Cost:
+- A new GitHub secret, `GOAD_CA_KEY`. Until the Secret `goad-ca` exists,
+  the Certificate in wave 0 is not Ready and Argo CD does not go on to
+  Private AI Services.
+- One more Avi virtual service and hop in front of PAIS.
+- The CA certificate is in four files. `scripts/goad-ca.sh --rotate`
+  writes them all, and every client must then be pushed or synced again.
+- The certificate is renewed every year by cert-manager. Whether PAIS
+  reloads the renewed Secret without a restart is not yet known.
+- The blackbox exporter and the orchestrator still skip verification;
+  they use the name.
+- kagent on Agent Substrate still needs the CA in its egress gateway
+  (vks-kagent-addon).
+
+Look again if: Supervisor LoadBalancer Services get names from Avi DNS,
+or the lab gets a CA that cert-manager can issue from.
+
+## 54. The Broadcom proxy cache keeps every image it has cached
+
+`terraform/cloud-admin/org/harbor.tf` sets the retention policy of the
+proxy cache project `tanzu-platform-content` (decision 46): one rule,
+always retain, for every repository and tag. Harbor made a policy with
+the project; Terraform took it over with an import.
+
+Why: Harbor gives a proxy cache project a policy of its own that keeps
+only what was pulled in the last 7 days. The music store's base image,
+`containers/photon-5/python`, is pulled only by builds. Found on
+2026-11-13: the repository was still there, with 13 pulls, but held no
+artifact and no tag, and the build failed with `not found`. With the cache
+empty, every pull goes to Broadcom, and an expired Broadcom token fails it.
+
+Cost: the cache only grows. It holds only what the lab has pulled, a few
+images today. An image Broadcom changes under the same tag is not fetched
+again while the cached copy stays.
+
+Look again if: the cache gets large. Then retain by days since last pull,
+with a window longer than the gap between builds.
+
+## 55. Only a GitHub-hosted job opens pull requests, and only the team approves them
+
+The repository is public and its workflows run on the lab's self-hosted
+runners. Three settings work together:
+
+- `.github/CODEOWNERS` names the team: Will (`warroyo`), Ronak
+  (`ronak-mukhopadhyay`), Niran (`NiranEC77`) and Thomas (`tkrausjr`).
+  The main ruleset requires a code owner's review, so a pull request needs
+  the approval of one of them.
+- The repository setting "Allow GitHub Actions to create and approve pull
+  requests" is on, for `music-store-images`.
+- In `music-store-images`, the job on the lab runner has
+  `contents: write` only: it pushes the branch `music-store-images/<tag>`.
+  A second job, `pull-request`, on `ubuntu-latest`, with no checkout and
+  no lab secrets, has `pull-requests: write` and opens the pull request.
+
+Why: the Actions setting is one switch for the whole repository, and it
+lets a workflow's token both open and approve pull requests. On its own,
+a job token on a lab runner could approve its own pull request and meet
+the review rule, and a merge to main runs the `lab` environment. The bot
+cannot be a code owner, so its approval never counts. The lab runner's
+token cannot open or approve pull requests at all, and cannot change
+workflow files.
+
+Cost: an approval from someone outside `CODEOWNERS` does not count. A
+new person on the team goes into the file. The admin and maintain roles
+still bypass the ruleset.
+
+Look again if: another workflow needs `pull-requests: write`. It gets a
+GitHub-hosted job of its own, like this one.
+
+## 56. kagent runs on its own 1.37 cluster, from a custom addon the vSphere admin root registers
+
+kagent and its Agent Substrate runtime (gVisor sandboxes for code an
+agent writes, and an egress gateway that injects credentials so the
+sandbox never holds them) come from the helm addon
+[warroyo/vks-kagent-addon](https://github.com/warroyo/vks-kagent-addon),
+release `0.1.6`. Three parts:
+
+- `terraform/vsphere-admin/addons.tf` registers the addon's AddonRepository and
+  AddonRepositoryInstall `kagent-oci-repo` in `vmware-system-vks-public`.
+  The Supervisor then offers the AddonRelease `kagent.<version>` for each
+  version in `kagent_addon_versions`.
+- `terraform/platform-engineer` adds the Supervisor Namespace `agents`,
+  and `gitops/agents/` holds the VKS cluster `agents` (Kubernetes
+  `v1.37.1+vmware.4`, class `builtin-generic-v3.8.0`, two
+  best-effort-large workers), the AddonInstall `kagent` pinned to
+  `kagent.0.1.6`, the AddonConfig `agents-kagent`, cert-manager, and the
+  External Secrets Operator (ESO) addon.
+  Terraform patches the GOAD CA into the AddonConfig's `egressCABundle`
+  from `gitops/private-ai/goad-ca.crt`, so agents can call
+  `pais.goad.gpu.set.lab`.
+- `gitops/agents-platform/`, the Application `agents-platform`, holds the
+  Gateway `kagent` (class `avi-lb`, namespace `default`) and its
+  self-signed certificate from cert-manager, the ClusterSecretStore `secret-store`
+  for Secret Store (decision 38), and kagent's model. The AddonConfig turns on
+  kagent's own HTTPRoute for `kagent.goad.gpu.set.lab` through
+  `helmValues` (`kagent.ui.httpRoute`), and Avi DNS publishes its
+  hostname. No chart change.
+
+Why the vSphere admin root: an AddonRepository in `vmware-system-vks-public`
+needs a Supervisor administrator. VCF Automation tokens, which every
+persona root uses, reach only the org's namespaces.
+`terraform/vsphere-admin`, renamed from `terraform/runner` for this,
+already logs in to the Supervisor with the vCenter user, and it is
+applied by hand by whoever holds the vCenter password, which is how a
+vSphere admin would offer an addon. No new secret goes into a workflow.
+
+Why the Gateway is apart from the addon: it is a dependency of kagent,
+not part of it. kagent's chart only attaches a route to an existing
+Gateway, and a VKS cluster has none of its own. HTTPS only, because
+login through VCF Automation's OIDC comes later, and it needs HTTPS.
+
+Why a new cluster: the chart requires Kubernetes 1.37 (pod certificates
+and ClusterTrustBundles are GA there), and the other clusters are 1.36.
+
+The model: kagent's only model is the ModelConfig `qwen` in namespace
+`kagent`. It is provider OpenAI, model `qwen`, base URL
+`https://pais.goad.gpu.set.lab/api/v1/compatibility/openai/v1`, which is
+Qwen on Private AI Services. Its key is the Secret `qwen`, which the
+ExternalSecret `qwen` makes from the Secret Store KV `agents-qwen` (key
+`api-key`) in the Supervisor Namespace `agents`. Terraform writes the KV
+from the GitHub secret `KAGENT_QWEN_API_KEY`, and an empty value skips it.
+Terraform also patches the generated namespace into the ClusterSecretStore
+`secret-store` and the ExternalSecret. ESO and the store work as on the
+other clusters (decision 38).
+
+Why the default model is Qwen too: the addon always makes
+`default-model-config`, and without `modelProvider` it points at OpenAI's
+`gpt-4.1-mini` with a Secret that does not exist. It cannot be turned off:
+the addon's template sets its own defaults for `modelProvider` and fails
+when `helmValues.kagent.providers` is not a map. So the AddonConfig's
+`modelProvider` points it at the same base URL, model and Secret as `qwen`.
+Our Agents still name `qwen`.
+
+Why its own PAIS token: kagent's key is not shared with the shop or the
+incident agents, so revoking it stops kagent alone.
+
+No agent yet: the first use case, an analyst agent that writes and runs
+Python in its sandbox, is tracked as issue #131. The addon is useful to
+check on its own: the ClusterAddon is Ready only when every Substrate and
+kagent pod runs.
+
+Cost: kagent has no login. Anyone on the lab network who reaches
+`kagent.goad.gpu.set.lab` can run agents, and they use the model, which
+costs PAIS capacity.
+The Substrate CAs the addon's bootstrap Job makes
+expire a year after the cluster is built, and nothing renews them yet.
+
+Look again if: kagent gets authentication, VKS ships kagent or Substrate
+as a built-in addon, or a second custom addon needs registering (then a
+root of its own for Supervisor admin work).

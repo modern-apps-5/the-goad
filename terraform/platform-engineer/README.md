@@ -10,11 +10,11 @@ account `svc.platform_engineer@set.lab` (`auth_type` `api_token`).
 | File | What it creates |
 |---|---|
 | `images.tf` | The org content library `goad-images` and the Ubuntu image in it, for the users VM. The library is attached to every namespace in the org. A `terraform_data` downloads the OVA with `curl` into `.images/` (ignored by git) on the first apply, so that machine or runner needs `curl` and internet access to cloud-images.ubuntu.com. The storage policy is the lab value `content_library_storage_policy`; `ubuntu_image` sets the image name and URL. |
-| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM, catalog, and VKS cluster, and `platform-tools` for the VKS cluster of the incident demo's tools. |
+| `namespace.tf` | The Supervisor Namespaces: `platform` for Argo CD, `private-ai` for Private AI Services and its database, `music-store` for the shop's users VM, catalog, and VKS cluster, `platform-tools` for the VKS cluster of the incident demo's tools, and `agents` for the VKS cluster that runs kagent. |
 | `argocd.tf` | The Argo CD instance, from `manifests/argocd.yaml`, and the role its service account needs. |
 | `pais.tf` | The Secret with the Private AI Services administrator. Everything else for Private AI Services is in `gitops/private-ai/`. |
-| `secrets.tf` | `KeyValueSecret`s in Secret Store (decision 38). In `music-store`: the catalog password and the chat's model key, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY`. In `platform-tools`: Grafana's and Zammad's passwords, from `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD` and `INCIDENT_ZAMMAD_ADMIN_PASSWORD`, and the blackbox exporter's Qwen check, from `INCIDENT_QWEN_API_KEY`. Empty values skip them. In `platform-tools`, for the image build: `platform-tools-harbor-push`, the registry robot's login, from `MUSIC_STORE_HARBOR_ROBOT_SECRET` (variable `music_store_robot_secret`), and `platform-tools-git-deploy-key`, the key the build clones the repository with. |
-| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform` and `music-store-apps`; the platform tools cluster's registration and the Applications `platform-tools-apps` and `platform-tools-builds`; and the patches that put the generated namespace and cluster names into the manifests. |
+| `secrets.tf` | `KeyValueSecret`s in Secret Store (decision 38). In `music-store`: the catalog password and the chat's model key, from the GitHub secrets `MUSIC_STORE_DB_PASSWORD` and `MUSIC_STORE_CHAT_API_KEY`. In `platform-tools`: Grafana's and Zammad's passwords, from `INCIDENT_GRAFANA_ADMIN_PASSWORD`, `INCIDENT_ZAMMAD_DB_PASSWORD` and `INCIDENT_ZAMMAD_ADMIN_PASSWORD`, and the blackbox exporter's Qwen check, from `INCIDENT_QWEN_API_KEY`. In `agents`: kagent's model key, from `KAGENT_QWEN_API_KEY`. Empty values skip them. In `platform-tools`, for the image build: `platform-tools-harbor-push`, the registry robot's login, from `MUSIC_STORE_HARBOR_ROBOT_SECRET` (variable `music_store_robot_secret`), and `platform-tools-git-deploy-key`, the key the build clones the repository with. |
+| `gitops.tf` | The handoff: for each namespace other than `platform`, its registration with Argo CD and one Application; the music store's cluster registration and the Applications `music-store-platform` and `music-store-apps`; the platform tools cluster's registration and the Applications `platform-tools-apps` and `platform-tools-builds`; the agents cluster's registration and the Applications `agents` and `agents-platform`; and the patches that put the generated namespace and cluster names into the manifests, including the namespace of `agents` into `agents-platform` for kagent's ClusterSecretStore and model key. |
 | `tanzu.tf` | On Tanzu Platform, org `Goad`: the space `metal-music-app-agentic-system` and the user-provided services `goad-qwen` and `k8s-mcp-cluster` (decision 40). The agents' `sc-*` services moved to [terraform/agentic-ops](../agentic-ops) (decision 50). The provider logs in with `CF_ACCESS_TOKEN`, a token for `goad-deployer` that the `cf-token` action gets. |
 
 It uses the org's default project and default VPC. It does not create the
@@ -92,6 +92,17 @@ namespace `incident-tools` (decision 42). A second Application,
 `platform-tools-builds`, syncs `gitops/platform-tools-builds/` into the
 namespace `music-store-builds` of the same cluster: the Tekton pipeline
 that builds the music store's images (decision 48).
+
+The agents cluster has a handoff too: a `ManagedEntity` named
+`agents-cluster`, for the cluster that `gitops/agents/cluster.yaml` names,
+and the Application `agents-platform`, which syncs
+`gitops/agents-platform/` into its namespace `default`: the Gateway
+`kagent` for the kagent UI, and the ClusterSecretStore `secret-store`,
+and in namespace `kagent` its model, the ModelConfig `qwen` (decision 56).
+Terraform patches the generated namespace into the store's mount and role
+and into the ExternalSecret's key. The Application `agents` is the
+namespace's own, and it syncs `gitops/agents/`. The kagent addon must already be offered
+by [terraform/vsphere-admin](../vsphere-admin).
 
 Argo CD reads the repository with a read-only deploy key. The private
 half stays in `.secrets/`, which git ignores.

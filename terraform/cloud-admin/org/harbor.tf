@@ -67,3 +67,19 @@ resource "harbor_robot_account" "music_store_builder" {
     }
   }
 }
+
+# Keep every image the proxy has cached. Harbor gives a proxy cache
+# project its own retention policy, which keeps only what was pulled in
+# the last 7 days. The music store's base image is pulled only by builds,
+# so a week without one emptied the cache, and the next build had to
+# fetch from Broadcom again, where an expired token fails every pull
+# (decision 54).
+resource "harbor_retention_policy" "tanzu_platform_content" {
+  scope = harbor_project.tanzu_platform_content.id
+
+  rule {
+    repo_matching = "**"
+    tag_matching  = "**"
+    always_retain = true
+  }
+}
