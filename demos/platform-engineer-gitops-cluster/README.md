@@ -188,17 +188,33 @@ vcf context create pe-gitops-cluster --type k8s \
   --kubecontext vcf-cli-pe-gitops-cluster-<namespace>@pe-gitops-cluster-<namespace>
 
 vcf context use pe-gitops-cluster
+```
+
+`vcf context use` does not switch plain `kubectl`: the vcf context keeps
+the cluster in its own file, and `kubectl` reads only `~/.kube/config`.
+Point `kubectl` at the file, with `~/.kube/config` after it so the
+namespace contexts still resolve for the scripts:
+
+```bash
+export KUBECONFIG=~/pe-gitops-cluster.kubeconfig:~/.kube/config
+kubectl config current-context
 kubectl get nodes
 ```
 
+The file comes first, so its current context, the cluster, is the one
+`kubectl` uses, and its entries win over any left in `~/.kube/config`
+from an earlier cluster of the same name. Back to the namespace:
+`unset KUBECONFIG`.
+
 The first `kubectl` asks for your VCF Automation API token. There are three
-nodes, all `Ready`.
+nodes, all `Ready`. If `kubectl` is `Forbidden` right after the cluster
+comes up, wait a minute: VKS gives your namespace role its rights in the
+cluster a few minutes after the nodes are up.
 
 ### 5. The add-ons
 
 ```bash
 demos/platform-engineer-gitops-cluster/status.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
-vcf context use pe-gitops-cluster
 kubectl get pods -A | grep -iE 'headlamp|cert-manager|istio|prometheus|telegraf'
 ```
 
@@ -209,8 +225,8 @@ node, and `istio-support`.
 ### 6. Log in to Headlamp
 
 Headlamp asks for a Kubernetes token. Make a service account for the login,
-give it read access to the cluster, and copy a token for it. In the cluster
-context from step 4:
+give it read access to the cluster, and copy a token for it. With
+`KUBECONFIG` from step 4:
 
 ```bash
 kubectl -n headlamp create serviceaccount headlamp-login
@@ -293,12 +309,22 @@ cluster and the add-ons), waits for the cluster to be gone, and removes the
 two targets. The reused namespace is left as it was.
 
 The Headlamp service account and binding go with the cluster. Remove the
-cluster's vcf context and kubeconfig yourself:
+cluster's vcf context and kubeconfig yourself, and any entries for the
+cluster in `~/.kube/config`. They are stale once the cluster is gone, and
+the next cluster of the same name has a new CA, so `kubectl` with them
+fails on the certificate:
 
 ```bash
+unset KUBECONFIG
 vcf context delete pe-gitops-cluster
 rm ~/pe-gitops-cluster.kubeconfig
+
+kubectl config get-contexts -o name | grep pe-gitops-cluster
+kubectl config delete-context vcf-cli-pe-gitops-cluster-<namespace>@pe-gitops-cluster-<namespace>
+kubectl config delete-cluster pe-gitops-cluster-<namespace>
 ```
+
+The last two say `not found` if there was nothing to remove.
 
 ## Testing from a branch
 
@@ -334,6 +360,16 @@ demos/platform-engineer-gitops-cluster/test-app.sh "$ARGO_CONTEXT" "$NS_CONTEXT"
 - **`Context type is invalid: context pe-gitops-cluster creation failed`**:
   `vcf context create` needs `--type k8s`. Delete the half-made context
   with `vcf context delete pe-gitops-cluster` first if it exists.
+- **`kubectl config current-context` is still the namespace after `vcf
+  context use pe-gitops-cluster`**: `kubectl` does not read the vcf
+  context's file. Set `KUBECONFIG` as in step 4.
+- **`nodes is forbidden: User "<you>" cannot list resource "nodes"`**: you
+  are logged in, but VKS has not yet given your namespace role its rights
+  in the new cluster. Wait a minute and run it again.
+- **`x509: certificate signed by unknown authority`** against the cluster:
+  `kubectl` is using an entry in `~/.kube/config` left from an earlier
+  `pe-gitops-cluster`. Set `KUBECONFIG` as in step 4, and remove the old
+  entries (see "After the demo").
 - **`x509: certificate signed by unknown authority`** on `vcf context
   create goad`: the CLI does not trust the lab's CA. Pass it with
   `--ca-certificate <the vc01.gpu.set.lab CA file>`, or use
