@@ -3,6 +3,25 @@
 What changed in this repository, newest first. The reasons are in
 [docs/decisions.md](docs/decisions.md).
 
+## 2026-11-18 (Istio on the GitOps VKS cluster)
+
+### Added
+
+- The VKS Istio addon on `pe-gitops-cluster`, in
+  `demos/platform-engineer-gitops-cluster`: `gitops/istio.yaml` pins
+  `istio.kubernetes.vmware.com.1.28.10-vmware.1-vks.1`, and the `Cluster`
+  has the label `addons.kubernetes.vmware.com/istio: enabled`. The demo
+  gets a step for sidecar injection and how to add Kiali, which the addon
+  does not include.
+
+### Changed
+
+- The demo's README connects to the cluster with the VCF Automation JWT
+  authenticator and a `KUBECONFIG` that puts the cluster's exported file
+  first, logs in to Headlamp with a service account token, removes the
+  cluster's stale `~/.kube/config` entries after the demo, and has
+  troubleshooting for each.
+
 ## 2026-11-17 (kagent's default model is Qwen)
 
 ### Fixed

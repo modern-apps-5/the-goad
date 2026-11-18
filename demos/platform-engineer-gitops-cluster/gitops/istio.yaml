@@ -1,0 +1,27 @@
+# Istio, a service mesh, on the VKS cluster pe-gitops-cluster, from the VKS
+# addon. Default values: istiod, the Istio CNI node agent and
+# istio-support, in namespace istio-system. No ingress gateway and no
+# Kiali: the addon has neither.
+#
+# 1.28.10+vmware.1-vks.1 is the release VKS Add-ons v3.8.0+20261021 has, the
+# same repository release as headlamp.yaml's. It is the one VCF Automation
+# installed on pe-gitops-cluster when Istio was added from the UI.
+#
+# The release is pinned. A ClusterAddon does not move to a newer release
+# by itself.
+apiVersion: addons.kubernetes.vmware.com/v1alpha1
+kind: AddonInstall
+metadata:
+  name: istio
+spec:
+  addonRef:
+    name: istio
+  releaseFilter:
+    ref:
+      name: istio.kubernetes.vmware.com.1.28.10-vmware.1-vks.1
+  crossNamespaceSelection: Blocked
+  stopMatchingBehavior: Delete
+  clusters:
+    - selector:
+        matchLabels:
+          addons.kubernetes.vmware.com/istio: enabled
